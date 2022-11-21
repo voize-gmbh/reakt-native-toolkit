@@ -28,10 +28,15 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "11"
+      - name: Install react-native
+        run: yarn install
+        working-directory: js
       - name: Release build
         run: ./gradlew build
+        working-directory: kotlin
       - name: Publish to MavenCentral
         run: ./gradlew publishAllPublicationToSonatypeRepository --max-workers 1 closeAndReleaseSonatypeStagingRepository
+        working-directory: kotlin
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
