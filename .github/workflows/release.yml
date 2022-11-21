@@ -1,0 +1,14 @@
+name: Publish artifacts
+on:
+  release:
+    types: [created]
+jobs:
+  publish-npm:
+    name: Build and publish to NPM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: yarn install
+      - uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
