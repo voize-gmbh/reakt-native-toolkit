@@ -1,3 +1,5 @@
 
-rootProject.name = "reakt-native-toolkit"
+rootProject.name = "reakt-native-toolkit-root"
 
+include(":reakt-native-toolkit")
+include(":reakt-native-toolkit-ksp")

@@ -1,0 +1,3 @@
+language = Objective-C
+headers = React/RCTEventEmitter.h React/RCTBridge.h
+headerFilter = React/*
