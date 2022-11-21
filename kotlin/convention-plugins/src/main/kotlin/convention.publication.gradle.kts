@@ -31,61 +31,6 @@ if (secretPropsFile.exists()) {
 
 fun getExtraString(name: String) = ext[name]?.toString()
 
-tasks {
-    val dokkaOutputDir = "$buildDir/dokka"
-
-    dokkaHtml {
-        outputDirectory.set(file(dokkaOutputDir))
-    }
-
-    val deleteDokkaOutputDir by registering(Delete::class) {
-        delete(dokkaOutputDir)
-    }
-
-    register<Jar>("javadocJar") {
-        dependsOn(deleteDokkaOutputDir, dokkaHtml)
-        archiveClassifier.set("javadoc")
-        from(dokkaOutputDir)
-    }
-}
-
-publishing {
-    // Configure all publications
-    publications.withType<MavenPublication> {
-
-        artifact(tasks.named<Jar>("javadocJar").get())
-
-        // Provide artifacts information requited by Maven Central
-        pom {
-            name.set("reakt-native-toolkit")
-            description.set("Toolkit for combining Kotlin Multiplatform and React Native")
-            url.set("https://github.com/voize-gmbh/reakt-native-toolkit")
-
-            licenses {
-                license {
-                    name.set("Apache-2.0")
-                    url.set("https://opensource.org/licenses/Apache-2.0")
-                }
-            }
-            developers {
-                developer {
-                    id.set("LeonKiefer")
-                    name.set("Leon Kiefer")
-                    email.set("leon@voize.de")
-                }
-                developer {
-                    id.set("ErikZiegler")
-                    name.set("Erik Ziegler")
-                    email.set("erik@voize.de")
-                }
-            }
-            scm {
-                url.set("https://github.com/voize-gmbh/reakt-native-toolkit")
-            }
-        }
-    }
-}
-
 nexusPublishing {
     repositories {
         sonatype {
@@ -97,11 +42,73 @@ nexusPublishing {
     }
 }
 
-if (signingPassword != null) {
-    signing {
-        if (signingKey != null) {
-            useInMemoryPgpKeys(signingKey, signingPassword)
+subprojects {
+    apply(plugin = "org.jetbrains.dokka")
+    apply(plugin = "maven-publish")
+    apply(plugin = "signing")
+
+    tasks {
+        val dokkaOutputDir = "$buildDir/dokka"
+
+        dokkaHtml {
+            outputDirectory.set(file(dokkaOutputDir))
         }
-        sign(publishing.publications)
+
+        val deleteDokkaOutputDir by registering(Delete::class) {
+            delete(dokkaOutputDir)
+        }
+
+        register<Jar>("javadocJar") {
+            dependsOn(deleteDokkaOutputDir, dokkaHtml)
+            archiveClassifier.set("javadoc")
+            from(dokkaOutputDir)
+        }
+    }
+
+    publishing {
+        // Configure all publications
+        publications.withType<MavenPublication> {
+
+            artifact(tasks.named<Jar>("javadocJar").get())
+
+            // Provide artifacts information requited by Maven Central
+            pom {
+                name.set("reakt-native-toolkit")
+                description.set("Toolkit for combining Kotlin Multiplatform and React Native")
+                url.set("https://github.com/voize-gmbh/reakt-native-toolkit")
+
+                licenses {
+                    license {
+                        name.set("Apache-2.0")
+                        url.set("https://opensource.org/licenses/Apache-2.0")
+                    }
+                }
+                developers {
+                    developer {
+                        id.set("LeonKiefer")
+                        name.set("Leon Kiefer")
+                        email.set("leon@voize.de")
+                    }
+                    developer {
+                        id.set("ErikZiegler")
+                        name.set("Erik Ziegler")
+                        email.set("erik@voize.de")
+                    }
+                }
+                scm {
+                    url.set("https://github.com/voize-gmbh/reakt-native-toolkit")
+                }
+            }
+        }
+    }
+
+    if (signingPassword != null) {
+        signing {
+            if (signingKey != null) {
+                useInMemoryPgpKeys(signingKey, signingPassword)
+            }
+            sign(publishing.publications)
+        }
     }
 }
+

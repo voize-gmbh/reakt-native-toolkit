@@ -13,21 +13,19 @@ buildscript {
     }
 }
 
+plugins {
+    id("convention.publication")
+}
+
 repositories {
     mavenCentral()
 }
 
 subprojects {
-    apply(plugin = "maven-publish")
-
     group = "de.voize"
 
     repositories {
         mavenCentral()
         google()
     }
-}
-
-tasks.register("clean", Delete::class) {
-    delete(rootProject.buildDir)
 }

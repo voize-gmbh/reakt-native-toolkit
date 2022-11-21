@@ -28,11 +28,3 @@ kapt {
     correctErrorTypes = true
     includeCompileClasspath = false
 }
-
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            from(components["java"])
-        }
-    }
-}
