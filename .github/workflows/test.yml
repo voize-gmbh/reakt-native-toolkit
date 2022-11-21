@@ -1,0 +1,43 @@
+name: Lint project
+on: [push, pull_request]
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: js
+    steps:
+      - uses: actions/checkout@v3
+      - run: yarn install
+      - run: yarn lint
+  checkformat:
+    name: Check format
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: js
+    steps:
+      - uses: actions/checkout@v3
+      - run: yarn install
+      - run: yarn checkformat
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: js
+    steps:
+      - uses: actions/checkout@v3
+      - run: yarn install
+      - run: yarn typecheck
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: js
+    steps:
+      - uses: actions/checkout@v3
+      - run: yarn install
+      - run: yarn test
