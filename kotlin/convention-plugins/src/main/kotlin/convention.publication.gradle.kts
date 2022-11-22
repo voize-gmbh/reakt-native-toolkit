@@ -71,10 +71,8 @@ subprojects {
 
             artifact(tasks.named<Jar>("javadocJar").get())
 
-            // Provide artifacts information requited by Maven Central
+            // Provide artifacts information required by Maven Central
             pom {
-                name.set("reakt-native-toolkit")
-                description.set("Toolkit for combining Kotlin Multiplatform and React Native")
                 url.set("https://github.com/voize-gmbh/reakt-native-toolkit")
 
                 licenses {

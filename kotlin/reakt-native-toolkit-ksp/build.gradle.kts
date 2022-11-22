@@ -28,3 +28,16 @@ kapt {
     correctErrorTypes = true
     includeCompileClasspath = false
 }
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+
+            pom {
+                name.set("reakt-native-toolkit-ksp")
+                description.set("Annotation processor for reakt-native-toolkit")
+            }
+        }
+    }
+}
