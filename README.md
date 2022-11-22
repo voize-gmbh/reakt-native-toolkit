@@ -52,7 +52,7 @@ import de.voize.reaktnativetoolkit.annotation.ReactNativeModule
 @ReactNativeModule("Calculator")
 class CalculatorRNModule {
     @ReactNativeMethod
-    fun add(a: Int, b: Int): Int {s
+    fun add(a: Int, b: Int): Int {
         return a + b
     }
 }
@@ -78,8 +78,58 @@ class MyRNPackage(coroutineScope: CoroutineScope) : ReactPackage {
     override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
         return listOf<NativeModule>(
             CalculatorRNModuleAndroid(reactContext, coroutineScope),
-            ...
+            // ...
         )
     }
 }
+```
+
+The `CalculatorRNModuleIOS` class will be compiled into your KMM projects shared framework and can be consumed in your iOS project in the `extraModules` of your `RCTBridgeDelegate`:
+
+```swift
+import shared // your KMM project's shared framework
+
+@UIApplicationMain
+class AppDelegate: UIResponder, UIApplicationDelegate, RCTBridgeDelegate {
+  // ...
+
+    func extraModules(for bridge: RCTBridge!) -> [RCTBridgeModule]! {
+        return [CalculatorRNModuleIOS(...)]
+    }
+}
+```
+
+To do dependency injection or to supply the `coroutineScope` property you can wrap your `RNModuleIOS` classes in Kotlin in the `iosMain` source set and call constructors there:
+
+```kotlin
+import com.example.calculator.CalculatorRNModuleIOS
+import kotlinx.coroutines.CoroutineScope
+import react_native.RCTBridgeModuleProtocol
+
+class MyIOSRNModules {
+    val coroutineScope = CoroutineScope(Dispatchers.Default)
+
+    fun createNativeModules(): List<RCTBridgeModuleProtocol> {
+        return listOf(
+            CalculatorRNModuleIOS(coroutineScope),
+            // ...
+        )
+    }
+}
+```
+
+And use this wrapper in Swift:
+
+```swift
+import shared // your KMM project's shared framework
+
+@UIApplicationMain
+class AppDelegate: UIResponder, UIApplicationDelegate, RCTBridgeDelegate {
+    // ...
+
+    func extraModules(for bridge: RCTBridge!) -> [RCTBridgeModule]! {
+        return MyIOSRNModules().createNativeModules()
+    }
+}
+
 ```
