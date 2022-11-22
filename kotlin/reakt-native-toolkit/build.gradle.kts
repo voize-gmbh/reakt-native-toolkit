@@ -66,3 +66,12 @@ kotlin {
         }
     }
 }
+
+publishing {
+    publications.withType<MavenPublication> {
+        pom {
+            name.set("reakt-native-toolkit")
+            description.set("Toolkit for combining Kotlin Multiplatform and React Native")
+        }
+    }
+}
