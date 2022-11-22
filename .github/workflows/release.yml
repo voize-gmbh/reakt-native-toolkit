@@ -18,7 +18,7 @@ jobs:
           token: ${{ secrets.NPM_TOKEN }}
   publish-maven:
     name: Build and publish to Maven Repository
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     defaults:
       run:
         working-directory: kotlin
