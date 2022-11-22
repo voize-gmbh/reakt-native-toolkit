@@ -22,8 +22,6 @@ repositories {
 }
 
 subprojects {
-    group = "de.voize"
-
     repositories {
         mavenCentral()
         google()
