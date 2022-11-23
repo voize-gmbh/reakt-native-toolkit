@@ -41,7 +41,9 @@ function flowAsState<T>(next: NextX<T>, ...args: any[]) {
     }
   };
 
-  loop();
+  loop().catch((error) => {
+    console.error(`Next value promise in flowAsState was rejected: ${error}`);
+  });
 
   return state;
 }
