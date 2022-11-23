@@ -1,6 +1,7 @@
 # reakt-native-toolkit
 
-[![npm package](https://badge.fury.io/js/reakt-native-toolkit.svg)](https://www.npmjs.com/package/reakt-native-toolkit)
+[![NPM](https://img.shields.io/npm/v/reakt-native-toolkit?color=blue)](https://www.npmjs.com/package/reakt-native-toolkit)
+[![Maven Central](https://img.shields.io/maven-central/v/de.voize/reakt-native-toolkit?color=blue)](https://search.maven.org/artifact/de.voize/reakt-native-toolkit)
 
 This toolkit allows you to combine React Native with Kotlin Multiplatform Mobile (KMM) by generating native modules for iOS and Android from Kotlin common code and supplying you with utilities to expose Kotlin Flows directly to React Native.
 
