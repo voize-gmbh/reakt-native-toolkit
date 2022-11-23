@@ -45,4 +45,21 @@ describe('useFlow', () => {
     await act(async () => promiseResolve('{"a": "a"}'));
     expect(result.current).toBe(currentResult); // checks for reference
   });
+
+  it('catches errors in next', async () => {
+    let promiseReject: (reason?: any) => void = () => {};
+
+    const next = () =>
+      new Promise<string>((resolve, reject) => {
+        promiseReject = reject;
+      });
+
+    const { result } = renderHook(() => useFlow(next));
+
+    expect(result.current).toBe(null);
+
+    await act(async () => promiseReject(new Error('error')));
+
+    expect(result.current).toBe(null);
+  });
 });

@@ -29,16 +29,20 @@ function useFlow<T>(next: NextX<T>, ...args: any[]) {
 
   useEffect(() => {
     (async () => {
-      const nextState = await next(value, ...memoizedArgs);
+      try {
+        const nextState = await next(value, ...memoizedArgs);
 
-      if (isMounted.current) {
-        setState((previousState) => {
-          if (!_.isEqual(memoizedArgs, previousState.args)) {
-            return previousState;
-          } else {
-            return { value: nextState, args: memoizedArgs };
-          }
-        });
+        if (isMounted.current) {
+          setState((previousState) => {
+            if (!_.isEqual(memoizedArgs, previousState.args)) {
+              return previousState;
+            } else {
+              return { value: nextState, args: memoizedArgs };
+            }
+          });
+        }
+      } catch (error) {
+        console.error(`Next value promise in useFlow was rejected: ${error}`);
       }
     })();
   }, [next, value, memoizedArgs]);
