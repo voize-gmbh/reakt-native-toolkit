@@ -9,6 +9,10 @@ kotlin {
     }
 }
 
+java {
+    withSourcesJar()
+}
+
 dependencies {
     implementation(libs.google.auto.service)
     kapt(libs.google.auto.service)
