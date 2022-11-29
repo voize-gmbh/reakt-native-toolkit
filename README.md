@@ -12,6 +12,8 @@ This toolkit allows you to combine React Native with Kotlin Multiplatform Mobile
 Add the KSP gradle plugin to your multiplatform project's `build.gradle.kts` file, if you have subprojects, add it to the subject project's `build.gradle.kts` file.
 
 ```kotlin
+// android/shared/build.gradle.kts
+
 plugins {
     // from gradlePluginPortal()
     id("com.google.devtools.ksp") version "1.7.20-1.0.6"
@@ -21,12 +23,21 @@ plugins {
 Then add the `reakt-native-toolkit` to the `commonMain` source set dependencies.
 
 ```kotlin
-implementation("de.voize:reakt-native-toolkit:<version>")
+// android/shared/build.gradle.kts
+
+val commonMain by getting {
+    dependencies {
+        // ...
+        implementation("de.voize:reakt-native-toolkit:<version>")
+    }
+}
 ```
 
 Then add `reakt-native-toolkit-ksp` to the KSP configurations:
 
 ```kotlin
+// android/shared/build.gradle.kts
+
 dependencies {
     add("kspAndroid", "de.voize:reakt-native-toolkit-ksp:<version>")
     add("kspIosX64", "de.voize:reakt-native-toolkit-ksp:<version>")
