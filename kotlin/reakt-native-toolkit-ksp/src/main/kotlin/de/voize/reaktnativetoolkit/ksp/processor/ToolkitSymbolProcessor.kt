@@ -146,7 +146,7 @@ class ToolkitSymbolProcessor(
 
             FunSpec.builder(functionDeclaration.simpleName.asString())
                 .addAnnotation(ClassName("com.facebook.react.bridge", "ReactMethod"))
-                .addParameters(parameters.map(::mapReactNativeAndroidToKotlinType))
+                .addParameters(parameters.map(::mapKotlinTypeToReactNativeAndroidType))
                 .addParameter(promiseVarName, ClassName("com.facebook.react.bridge", "Promise"))
                 .addCode(
                     buildCodeBlock {
@@ -161,7 +161,7 @@ class ToolkitSymbolProcessor(
                             "wrappedModule",
                             functionDeclaration.simpleName.asString()
                         )
-                        add(parameters.map(::transformReactNativeAndroidToKotlinValue).joinToCode())
+                        add(parameters.map(::transformReactNativeAndroidValueToKotlinValue).joinToCode())
                         add(")")
                         addStatement("}")
                     }
@@ -267,10 +267,7 @@ class ToolkitSymbolProcessor(
             val promiseVarName = "promise"
 
             FunSpec.builder(functionDeclaration.simpleName.asString())
-                .addParameters(parameters.map {
-                    ParameterSpec.builder(it.name, it.type.copy(annotations = emptyList()))
-                        .build()
-                })
+                .addParameters(parameters.map(::mapKotlinTypeToReactNativeIOSType))
                 .addParameter(
                     promiseVarName,
                     PromiseIOSClassName.parameterizedBy(functionDeclaration.returnType?.toTypeName() ?: UNIT)
@@ -284,7 +281,7 @@ class ToolkitSymbolProcessor(
                             coroutineScopeVarName,
                         )
                         add("%N.%N(", "wrappedModule", functionDeclaration.simpleName.asString())
-                        add(parameters.map { CodeBlock.of("%N", it.name) }.joinToCode())
+                        add(parameters.map(::transformReactNativeIOSValueToKotlinValue).joinToCode())
                         add(")")
                         add("}")
                     }
@@ -336,6 +333,7 @@ class ToolkitSymbolProcessor(
                             functionName,
                         )
                         add((ksFunctionDeclaration.parameters.map { it.toParameterSpec() }
+                            .map(::mapKotlinTypeToReactNativeIOSType)
                             .mapIndexed { index, parameter ->
                                 CodeBlock.of(
                                     "%N[%L] as %T",
@@ -454,7 +452,7 @@ class ToolkitSymbolProcessor(
         fileSpec.writeTo(codeGenerator, false)
     }
 
-    private fun transformReactNativeAndroidToKotlinValue(parameter: ParameterSpec): CodeBlock {
+    private fun transformReactNativeAndroidValueToKotlinValue(parameter: ParameterSpec): CodeBlock {
         val isNullable = parameter.type.isNullable
         return when (val type = parameter.type) {
             is ParameterizedTypeName -> when (type.rawType) {
@@ -462,7 +460,7 @@ class ToolkitSymbolProcessor(
                     if (isNullable) "%N?.toArrayList()?.%M<%T>()" else "%N.toArrayList().%M<%T>()",
                     parameter.name,
                     MemberName("kotlin.collections", "filterIsInstance"),
-                    type.typeArguments.first()
+                    type.typeArguments.single()
                 )
                 Map::class.asTypeName() -> CodeBlock.of(
                     if (isNullable) "(%N?.toHashMap() as %T)" else "(%N.toHashMap() as %T)",
@@ -475,7 +473,7 @@ class ToolkitSymbolProcessor(
         }
     }
 
-    private fun mapReactNativeAndroidToKotlinType(parameter: ParameterSpec): ParameterSpec {
+    private fun mapKotlinTypeToReactNativeAndroidType(parameter: ParameterSpec): ParameterSpec {
         val type = parameter.type
         return ParameterSpec.builder(
             parameter.name,
@@ -489,6 +487,47 @@ class ToolkitSymbolProcessor(
                         "com.facebook.react.bridge",
                         "ReadableMap"
                     ).copy(nullable = type.isNullable)
+                    else -> type.copy(annotations = emptyList())
+                }
+                else -> type.copy(annotations = emptyList())
+            }
+        ).build()
+    }
+    private fun transformReactNativeIOSValueToKotlinValue(
+        parameter: ParameterSpec,
+    ): CodeBlock {
+        val isNullable = parameter.type.isNullable
+        return when (val type = parameter.type) {
+            is ClassName ->  {
+                when (type.canonicalName) {
+                    INT.canonicalName -> CodeBlock.of(
+                        if (isNullable) "%N?.toInt()" else "%N.toInt()",
+                        parameter.name
+                    )
+                    LONG.canonicalName -> CodeBlock.of(
+                        if (isNullable) "%N?.toLong()" else "%N.toLong()",
+                        parameter.name
+                    )
+                    FLOAT.canonicalName -> CodeBlock.of(
+                        if (isNullable) "%N?.toFloat()" else "%N.toFloat()",
+                        parameter.name
+                    )
+                    else -> CodeBlock.of("%N", parameter.name)
+                }
+            }
+            else -> CodeBlock.of("%N", parameter.name)
+        }
+    }
+
+    private fun mapKotlinTypeToReactNativeIOSType(parameter: ParameterSpec): ParameterSpec {
+        val type = parameter.type
+        return ParameterSpec.builder(
+            parameter.name,
+            when (type) {
+                is ClassName -> when (type.canonicalName) {
+                    INT.canonicalName -> DOUBLE.copy(nullable = type.isNullable)
+                    LONG.canonicalName -> DOUBLE.copy(nullable = type.isNullable)
+                    FLOAT.canonicalName -> DOUBLE.copy(nullable = type.isNullable)
                     else -> type.copy(annotations = emptyList())
                 }
                 else -> type.copy(annotations = emptyList())
