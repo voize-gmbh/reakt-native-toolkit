@@ -207,3 +207,86 @@ The extension function `Flow<T>.toReact(previous)` will JSON serialize the value
 This is why `previous` is a string.
 
 `useFlow` initiates an interaction loop with this suspension: It initially calls the native module method with `null` as the `previous` value and suspends until the native module responds with a new value. It then calls the native module again with the new value and suspends again until the native module responds with a new value. This loop continues until the component is unmounted.
+
+### Using event emitter
+
+With the toolkit you can also use event emitter in your common class module and the platform-specific event emitter setup is generated for you.
+
+To use events in your module you only need to add a property of type `EventEmitter` to your constructor and specify the event names you want to use in the `@ReactNativeModule` annotation `supportedEvents` argument.
+Then you can emit events by calling `sendEvent` on your `EventEmitter`.
+
+```kotlin
+import de.voize.reaktnativetoolkit.annotation.ReactNativeModule
+import de.voize.reaktnativetoolkit.util.EventEmitter
+
+@ReactNativeModule("Notifications", supportedEvents = ["notify"])
+class Notifications(
+    private val eventEmitter: EventEmitter,
+    private val someNotificationService: NotificationService,
+) {
+    init {
+        someDependency.onNotification { message ->
+            eventEmitter.sendEvent(
+                "notify",
+                mapOf("message" to message)
+            )
+        }
+    }
+}
+```
+
+The second argument of `sendEvent` can be null, a primitive type, a list or a map.
+
+To consume the events in JS, use `new NativeEventEmitter` and `addListener`.
+
+```typescript
+import { NativeEventEmitter, NativeModules } from "react-native";
+
+const Notifications = NativeModules.Notifications;
+
+const eventEmitter = new NativeEventEmitter(Notifications);
+
+const subscription = eventEmitter.addListener("notify", (event) => {
+  console.log(event.message);
+});
+
+// ...
+subscription.remove();
+```
+
+Because the toolkit generates native modules that are compatible with the standard React Native `NativeEventEmitter`, this is code is not specific to the toolkit, it is the same as in the React Native documentation (see [here](https://reactnative.dev/docs/native-modules-ios#sending-events-to-javascript) and [here](https://reactnative.dev/docs/native-modules-android#sending-events-to-javascript)).
+
+You can also check in the react native module if a listener is registered in JS with `EventEmitter.hasListeners`.
+`hasListeners` is a kotlin `Flow` which allows you to react to changes in the listener count (start publishing when the first listener is registered and stop publishing when the last listener is removed).
+
+```kotlin
+import de.voize.reaktnativetoolkit.annotation.ReactNativeModule
+import de.voize.reaktnativetoolkit.util.EventEmitter
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.CoroutineScope
+
+@ReactNativeModule("Notifications", supportedEvents = ["notify"])
+class Notifications(
+    private val eventEmitter: EventEmitter,
+    private val someNotificationService: NotificationService,
+    private val messages: Flow<Strings>,
+    private val lifecycleScope: CoroutineScope,
+) {
+    init {
+        eventEmitter.hasListeners.transformLatest<Boolean, Unit> { hasListeners ->
+            if (hasListeners) {
+                // do the publishing in this coroutine scope, whihc is cancelled when the last listener is removed
+                messages.collect { message ->
+                    eventEmitter.sendEvent(
+                        "notify",
+                        mapOf("message" to message)
+                    )
+                }
+            }
+            // don't forget to handle exceptions, else it will cancel lifecycleScope and everything it contains
+        }.launchIn(lifecycleScope)
+    }
+}
+```

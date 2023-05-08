@@ -11,6 +11,8 @@
 #import <React/RCTDefines.h>
 #import <React/RCTBridge.h>
 
+@class RCTCallableJSModules;
+
 typedef struct RCTMethodInfo {
   const char *const jsName;
   const char *const objcName;
@@ -40,6 +42,17 @@ RCT_EXTERN dispatch_queue_t RCTJSThread;
 + (NSString *)moduleName;
 
 @optional
+
+/**
+ * A reference to an RCTCallableJSModules. Useful for modules that need to
+ * call into methods on JavaScript modules registered as callable with
+ * React Native.
+ *
+ * To implement this in your module, just add `@synthesize callableJSModules =
+ * _callableJSModules;`. If using Swift, add `@objc var callableJSModules:
+ * RCTCallableJSModules!` to your module.
+ */
+@property (nonatomic, weak, readwrite) RCTCallableJSModules *callableJSModules;
 
 /**
  * A reference to the RCTBridge. Useful for modules that require access
@@ -118,4 +131,21 @@ RCT_EXTERN dispatch_queue_t RCTJSThread;
  */
 - (void)partialBatchDidFlush;
 
+@end
+
+/**
+ * A class that allows NativeModules to call methods on JavaScript modules registered
+ * as callable with React Native.
+ */
+@interface RCTCallableJSModules : NSObject
+
+// Commented out to avoid adding more headers.
+//- (void)setBridge:(RCTBridge *)bridge;
+//- (void)setBridgelessJSModuleMethodInvoker:(RCTBridgelessJSModuleMethodInvoker)bridgelessJSModuleMethodInvoker;
+
+- (void)invokeModule:(NSString *)moduleName method:(NSString *)methodName withArgs:(NSArray *)args;
+- (void)invokeModule:(NSString *)moduleName
+              method:(NSString *)methodName
+            withArgs:(NSArray *)args
+          onComplete:(dispatch_block_t)onComplete;
 @end

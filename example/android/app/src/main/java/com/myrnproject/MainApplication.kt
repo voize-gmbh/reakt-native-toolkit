@@ -6,9 +6,17 @@ import com.facebook.react.*
 import com.facebook.react.config.ReactFeatureFlags
 import com.facebook.soloader.SoLoader
 import com.myrnproject.newarchitecture.MainApplicationReactNativeHost
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import java.lang.reflect.InvocationTargetException
 
 class MainApplication : Application(), ReactApplication {
+    private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, throwable ->
+        throwable.printStackTrace()
+    })
+
     private val mReactNativeHost: ReactNativeHost = object : ReactNativeHost(this) {
         override fun getUseDeveloperSupport(): Boolean {
             return BuildConfig.DEBUG
@@ -19,7 +27,7 @@ class MainApplication : Application(), ReactApplication {
             // packages.add(new MyReactNativePackage());
             val packages = PackageList(this).packages
 
-            packages.add(RNPackage())
+            packages.add(RNPackage(coroutineScope))
 
             return packages
         }
@@ -54,7 +62,7 @@ class MainApplication : Application(), ReactApplication {
          * @param reactInstanceManager
          */
         private fun initializeFlipper(
-            context: Context, reactInstanceManager: ReactInstanceManager
+                context: Context, reactInstanceManager: ReactInstanceManager
         ) {
             if (BuildConfig.DEBUG) {
                 try {
@@ -64,8 +72,8 @@ class MainApplication : Application(), ReactApplication {
         */
                     val aClass = Class.forName("com.myrnproject.ReactNativeFlipper")
                     aClass
-                        .getMethod("initializeFlipper", Context::class.java, ReactInstanceManager::class.java)
-                        .invoke(null, context, reactInstanceManager)
+                            .getMethod("initializeFlipper", Context::class.java, ReactInstanceManager::class.java)
+                            .invoke(null, context, reactInstanceManager)
                 } catch (e: ClassNotFoundException) {
                     e.printStackTrace()
                 } catch (e: NoSuchMethodException) {
