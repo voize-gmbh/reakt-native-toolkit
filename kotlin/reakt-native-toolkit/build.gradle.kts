@@ -58,7 +58,7 @@ kotlin {
 
         val androidMain by getting {
             dependencies {
-                implementation("com.facebook.react:react-native:0.69.4") // from node_modules
+                implementation("com.facebook.react:react-native:0.69.5") // from node_modules
             }
         }
 

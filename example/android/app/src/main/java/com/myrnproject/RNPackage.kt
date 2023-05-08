@@ -10,12 +10,12 @@ import com.myrnproject.shared.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 
-class RNPackage : ReactPackage {
-    private val coroutineScope = CoroutineScope(Dispatchers.Default)
+class RNPackage(private val coroutineScope: CoroutineScope) : ReactPackage {
 
     override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
         return listOf(
             NameManagerAndroid(reactContext, coroutineScope, PersistentConfig(PersistentConfigInitContext(reactContext))),
+                NotificationDemoAndroid(reactContext, coroutineScope, coroutineScope)
         )
     }
 

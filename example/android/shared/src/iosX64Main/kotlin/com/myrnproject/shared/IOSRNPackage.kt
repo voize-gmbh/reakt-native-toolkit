@@ -9,7 +9,8 @@ class IOSRNModules {
 
     fun createNativeModules(): List<RCTBridgeModuleProtocol> {
         return listOf(
-            NameManagerIOS(coroutineScope, PersistentConfig(PersistentConfigInitContext()))
+            NameManagerIOS(coroutineScope, PersistentConfig(PersistentConfigInitContext())),
+            NotificationDemoIOS(coroutineScope, coroutineScope),
         )
     }
 }

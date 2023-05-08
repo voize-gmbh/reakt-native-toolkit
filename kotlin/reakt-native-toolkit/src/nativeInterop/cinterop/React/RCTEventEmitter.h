@@ -13,7 +13,7 @@
  * RCTEventEmitter is an abstract base class to be used for modules that emit
  * events to be observed by JS.
  */
-@interface RCTEventEmitter : NSObject <RCTBridgeModule, RCTJSInvokerModule, RCTInvalidating>
+@interface RCTEventEmitter : NSObject <RCTBridgeModule, RCTInvalidating>
 
 @property (nonatomic, weak) RCTBridge *bridge;
 
