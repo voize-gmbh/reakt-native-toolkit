@@ -171,9 +171,7 @@ class CounterRNModule {
 }
 ```
 
-Notice how the `count` method that is marked as a `@ReactNativeMethod` uses the extension function `Flow<T>.toReact(previous)`.
-`toReact` will JSON serialize the value of the flow and suspend until the value is different from the `previous` ([see in source](https://github.com/voize-gmbh/reakt-native-toolkit/blob/main/kotlin/reakt-native-toolkit/src/commonMain/kotlin/de/voize/reaktnativetoolkit/util/flowToReact.kt#L51)).
-This is why `previous` is a string.
+A flow is exposed via a `@ReactNativeMethod` annotated function and the `Flow<T>.toReact(previous)` extension function. The `previous` parameter must always be a nullable string, even if the flow emits a different type! You can read more below about how this works.
 
 On the JS side we interact with this suspended value using the `useFlow` hook:
 
@@ -182,7 +180,7 @@ import { useFlow, Next } from "reakt-native-toolkit";
 import { NativeModules } from "react-native";
 
 interface CounterInterface {
-  count: Next<string>;
+  count: Next<number>;
   increment: () => Promise<void>;
 }
 
@@ -199,7 +197,13 @@ function useCounter() {
 ```
 
 With `useFlow(Counter.count)` we can "subscribe" to the flow value. The hook will trigger a rerender whenever the flow value changes.
-Remember that `toReact` suspends until the value changes, so what `useFlow` does is to wait for this suspension, emit the value as soon as it is available and immediately start waiting again for the next value. `useFlow` therefore always establishes a new open promise when the previous one resolved.
 
 The `count` method of the `Counter` native module is typed as `Next<T>` which is a type alias for `(currentValue: string | null) => Promise<string>`.
 Although internally `Next<T>` is only operating on `string` the `useFlow` hook type is able to restore the type `T` in `Next<T>`.
+
+#### How do `toReact` and `useFlow` work?
+
+The extension function `Flow<T>.toReact(previous)` will JSON serialize the value of the flow and suspend until the value is different from the `previous` ([see in source](https://github.com/voize-gmbh/reakt-native-toolkit/blob/main/kotlin/reakt-native-toolkit/src/commonMain/kotlin/de/voize/reaktnativetoolkit/util/flowToReact.kt#L51)).
+This is why `previous` is a string.
+
+`useFlow` initiates an interaction loop with this suspension: It initially calls the native module method with `null` as the `previous` value and suspends until the native module responds with a new value. It then calls the native module again with the new value and suspends again until the native module responds with a new value. This loop continues until the component is unmounted.
