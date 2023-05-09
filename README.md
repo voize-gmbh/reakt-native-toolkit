@@ -8,6 +8,7 @@ This toolkit allows you to combine React Native with Kotlin Multiplatform Mobile
 ## Installation
 
 **Prerequisite:** Your project must be a Kotlin Multiplatform Mobile project, see [our guide](docs/project-setup.md) on how to setup Kotlin Multiplatform Mobile in your existing React Native project.
+The toolkit was tested with React Native 0.69 but may work with other versions as well.
 
 Add the KSP gradle plugin to your multiplatform project's `build.gradle.kts` file, if you have subprojects, add it to the subject project's `build.gradle.kts` file.
 
