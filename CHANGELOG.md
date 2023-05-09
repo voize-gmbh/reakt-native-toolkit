@@ -2,6 +2,8 @@
 
 ## unreleased
 
+- Use open-ended version range instead + for react-native Android dependency 
+
 ## v0.3.0
 
 - Implement EventEmitter for IOS
