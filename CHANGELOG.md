@@ -2,6 +2,8 @@
 
 ## unreleased
 
+## v0.3.0
+
 - Implement EventEmitter for IOS
 - Improve EventEmitter subscriber handling
 - Add documentation for EventEmitter
