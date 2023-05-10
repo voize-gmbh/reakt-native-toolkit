@@ -147,6 +147,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate, RCTBridgeDelegate {
 
 ```
 
+#### Module Providers
+
+For each `@ReactNativeModule` annotated class, the toolkit will generate a `ReactNativeModuleProvider` which can be used from common code to help with dependency injection and reduce code duplication.
+The provider has the same constructor as the class annotated with `@ReactNativeModule`.
+This allows you to create a list of all your native modules in common code and in the platform specific code you can get the actual native module instances from the provider via `getModule`.
+
+The `getModule` function takes different parameters depending on the platform.
+For android you need to pass in the `ReactApplicationContext` and the `CoroutineScope` and for iOS you need to pass in the `CoroutineScope`.
+
+There are also helper `getModules` to convert a `List<ReactNativeModuleProvider>` to a list of native modules for each platform.
+`ReactNativeModuleProvider` is very useful for large projects with many native modules.
+
 ### Expose Kotlin flows to React Native
 
 The toolkit allows you to directly expose Kotlin Flows to React Native and supplies you with utilities to interact with them.

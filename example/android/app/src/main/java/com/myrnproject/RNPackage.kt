@@ -7,16 +7,16 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.uimanager.ReactShadowNode
 import com.facebook.react.uimanager.ViewManager
 import com.myrnproject.shared.*
+import de.voize.reaktnativetoolkit.util.getModules
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 
 class RNPackage(private val coroutineScope: CoroutineScope) : ReactPackage {
 
     override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-        return listOf(
-            NameManagerAndroid(reactContext, coroutineScope, PersistentConfig(PersistentConfigInitContext(reactContext))),
-                NotificationDemoAndroid(reactContext, coroutineScope, coroutineScope)
-        )
+        return getNativeModuleProviders(
+            coroutineScope,
+            PersistentConfig(PersistentConfigInitContext(reactContext))
+        ).getModules(reactContext, coroutineScope)
     }
 
     override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<View, ReactShadowNode<*>>> {

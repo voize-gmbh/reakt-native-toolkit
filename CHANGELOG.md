@@ -2,6 +2,9 @@
 
 ## unreleased
 
+
+- Add ReactNativeModuleProvider
+
 ## v0.3.1
 
 - Use open-ended version range instead + for react-native Android dependency

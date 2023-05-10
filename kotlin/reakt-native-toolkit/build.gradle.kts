@@ -62,6 +62,11 @@ kotlin {
             }
         }
 
+        val iosMain by getting
+        val iosSimulatorArm64Main by getting {
+            dependsOn(iosMain)
+        }
+
         all {
             languageSettings.optIn("kotlinx.coroutines.ExperimentalCoroutinesApi")
         }
