@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.4.0
 
 
 - Add ReactNativeModuleProvider

@@ -5,7 +5,7 @@ plugins {
     id("com.google.devtools.ksp") version "1.8.0-1.0.8"
 }
 
-val reaktNativeToolkitVersion = "0.2.0"
+val reaktNativeToolkitVersion = "0.4.0"
 
 kotlin {
     android()
