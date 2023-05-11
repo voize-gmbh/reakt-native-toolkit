@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+
 plugins {
     kotlin("multiplatform")
     kotlin("plugin.serialization")
@@ -5,12 +8,12 @@ plugins {
 }
 
 android {
-    compileSdk = 31
+    compileSdk = 33
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
 
     defaultConfig {
         minSdk = 26
-        targetSdk = 30
+        targetSdk = 33
     }
 
     compileOptions {
@@ -25,10 +28,14 @@ repositories {
     }
 }
 
+@OptIn(ExperimentalKotlinGradlePluginApi::class)
 kotlin {
     jvmToolchain {
         (this as JavaToolchainSpec).languageVersion.set(JavaLanguageVersion.of("11"))
     }
+
+    // Enable the default target hierarchy:
+    targetHierarchy.default()
 
     android {
         compilations.all {
@@ -37,9 +44,7 @@ kotlin {
         publishLibraryVariants("release")
     }
 
-    jvm()
-
-    ios {
+    fun KotlinNativeTarget.configureReactNativeInterop() {
         val main by compilations.getting {
             val reactNative by cinterops.creating {
                 includeDirs("src/nativeInterop/cinterop/")
@@ -47,7 +52,13 @@ kotlin {
             }
         }
     }
-    iosSimulatorArm64()
+
+    ios {
+        configureReactNativeInterop()
+    }
+    iosSimulatorArm64 {
+        configureReactNativeInterop()
+    }
     sourceSets {
         val commonMain by getting {
             dependencies {
@@ -60,11 +71,6 @@ kotlin {
             dependencies {
                 implementation("com.facebook.react:react-native:[0.69.0,)") // from node_modules
             }
-        }
-
-        val iosMain by getting
-        val iosSimulatorArm64Main by getting {
-            dependsOn(iosMain)
         }
 
         all {
