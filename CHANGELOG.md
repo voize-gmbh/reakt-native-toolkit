@@ -4,6 +4,10 @@
 
 
 - Add ReactNativeModuleProvider
+- Update dependencies
+- Update to kotlin to 1.8.21
+- Enable Default hierarchy for kotlin source sets
+- Remove jvm target use android target instead
 
 ## v0.3.1
 
