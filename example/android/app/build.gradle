@@ -233,12 +233,6 @@ android {
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
-
-            kotlin {
-                sourceSets {
-                    main.kotlin.srcDirs += '../shared/build/generated/ksp/android/androidDebug/kotlin'
-                }
-            }
         }
         release {
             // Caution! In production, you need to generate your own keystore file.

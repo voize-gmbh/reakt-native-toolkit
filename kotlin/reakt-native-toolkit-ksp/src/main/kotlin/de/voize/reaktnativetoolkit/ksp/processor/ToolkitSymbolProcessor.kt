@@ -110,7 +110,10 @@ class ToolkitSymbolProcessor(
                 val isInternal = wrappedClassDeclaration.modifiers.contains(Modifier.INTERNAL)
 
                 val platformNames = platforms.map { it.platformName }
-                if (platformNames.contains("JVM")) {
+                val JvmPlatform = "JVM"
+                val NativePlatform = "Native"
+
+                if (JvmPlatform in platformNames && NativePlatform !in platformNames) {
                     createAndroidModule(
                         packageName,
                         wrappedClassName,
@@ -132,7 +135,7 @@ class ToolkitSymbolProcessor(
                     )
                 }
 
-                if (platformNames.contains("Native")) {
+                if (NativePlatform in platformNames && JvmPlatform !in platformNames) {
                     createIOSModule(
                         packageName,
                         wrappedClassName,
@@ -155,13 +158,15 @@ class ToolkitSymbolProcessor(
                     )
                 }
 
-                /*createModuleProvider(
-                    packageName,
-                    wrappedClassName,
-                    constructorParameters,
-                    wrappedClassDeclaration.containingFile,
-                    isInternal,
-                )*/
+                if (JvmPlatform in platformNames && NativePlatform in platformNames) {
+                    createModuleProvider(
+                        packageName,
+                        wrappedClassName,
+                        constructorParameters,
+                        wrappedClassDeclaration.containingFile,
+                        isInternal,
+                    )
+                }
             }
 
         return emptyList()
@@ -185,13 +190,13 @@ class ToolkitSymbolProcessor(
             if (isInternal) {
                 addModifiers(KModifier.INTERNAL)
             }
-            // TODO generating common code is not supported by KSP https://github.com/google/ksp/issues/567
-            //addModifiers(KModifier.EXPECT)
+            addModifiers(KModifier.EXPECT)
             primaryConstructor(
                 FunSpec.constructorBuilder()
                     .addParameters(constructorParameters)
                     .build()
             )
+            addSuperinterface(ReactNativeModuleProviderClassName)
             if (containingFile != null) {
                 addOriginatingKSFile(containingFile)
             }
@@ -216,10 +221,10 @@ class ToolkitSymbolProcessor(
             if (isInternal) {
                 addModifiers(KModifier.INTERNAL)
             }
-            // TODO generating common code is not supported by KSP https://github.com/google/ksp/issues/567
-            //addModifiers(KModifier.ACTUAL)
+            addModifiers(KModifier.ACTUAL)
             primaryConstructor(
                 FunSpec.constructorBuilder()
+                    .addModifiers(KModifier.ACTUAL)
                     .addParameters(constructorParameters)
                     .build()
             )
@@ -279,10 +284,10 @@ class ToolkitSymbolProcessor(
             if (isInternal) {
                 addModifiers(KModifier.INTERNAL)
             }
-            // TODO generating common code is not supported by KSP https://github.com/google/ksp/issues/567
-            //addModifiers(KModifier.ACTUAL)
+            addModifiers(KModifier.ACTUAL)
             primaryConstructor(
                 FunSpec.constructorBuilder()
+                    .addModifiers(KModifier.ACTUAL)
                     .addParameters(constructorParameters)
                     .build()
             )

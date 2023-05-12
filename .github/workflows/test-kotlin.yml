@@ -25,6 +25,8 @@ jobs:
           java-version: "11"
       - run: yarn install
         working-directory: example
+      - run: yarn install
+        working-directory: js
       - run: ./gradlew build
         working-directory: example/android
   maven-local-publish:
