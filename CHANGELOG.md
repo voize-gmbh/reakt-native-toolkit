@@ -3,7 +3,6 @@
 ## unreleased
 ## v0.4.0
 
-
 - Add ReactNativeModuleProvider
 - Update dependencies
 - Update to kotlin to 1.8.21

@@ -270,10 +270,10 @@ dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
 
     implementation project(':shared')
-    implementation("de.voize:reakt-native-toolkit:0.2.0")
+    implementation("de.voize:reakt-native-toolkit:0.4.0")
 
     // kotlin
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.21"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.6.4"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.6.1"
 
