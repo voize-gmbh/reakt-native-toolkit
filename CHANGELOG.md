@@ -1,6 +1,11 @@
 # CHANGELOG
 
 ## unreleased
+
+- Update gradle wrapper to 7.5
+- Update android gradle plugin to 7.4.1
+- Generate common code for ReactNativeModuleProviders
+
 ## v0.4.0
 
 - Add ReactNativeModuleProvider

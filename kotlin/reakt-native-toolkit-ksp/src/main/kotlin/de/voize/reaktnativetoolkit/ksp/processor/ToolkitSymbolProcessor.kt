@@ -10,6 +10,9 @@ import com.squareup.kotlinpoet.ksp.addOriginatingKSFile
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 
+private const val JvmPlatform = "JVM"
+private const val NativePlatform = "Native"
+
 class ToolkitSymbolProcessor(
     private val codeGenerator: CodeGenerator,
     private val platforms: List<PlatformInfo>,
@@ -110,8 +113,6 @@ class ToolkitSymbolProcessor(
                 val isInternal = wrappedClassDeclaration.modifiers.contains(Modifier.INTERNAL)
 
                 val platformNames = platforms.map { it.platformName }
-                val JvmPlatform = "JVM"
-                val NativePlatform = "Native"
 
                 if (JvmPlatform in platformNames && NativePlatform !in platformNames) {
                     createAndroidModule(

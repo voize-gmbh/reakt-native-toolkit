@@ -34,7 +34,6 @@ kotlin {
         (this as JavaToolchainSpec).languageVersion.set(JavaLanguageVersion.of("11"))
     }
 
-    // Enable the default target hierarchy:
     targetHierarchy.default()
 
     android {

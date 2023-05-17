@@ -40,9 +40,21 @@ Then add `reakt-native-toolkit-ksp` to the KSP configurations:
 // android/shared/build.gradle.kts
 
 dependencies {
+    add("kspCommonMainMetadata", "de.voize:reakt-native-toolkit-ksp:<version>")
     add("kspAndroid", "de.voize:reakt-native-toolkit-ksp:<version>")
     add("kspIosX64", "de.voize:reakt-native-toolkit-ksp:<version>")
     add("kspIosArm64", "de.voize:reakt-native-toolkit-ksp:<version>")
+    // (if needed) add("kspIosSimulatorArm64", "de.voize:reakt-native-toolkit-ksp:<version>")
+}
+```
+
+And configure the ksp task dependencies:
+
+```kotlin
+tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinCompile<*>>().configureEach {
+    if(name != "kspCommonMainKotlinMetadata") {
+        dependsOn("kspCommonMainKotlinMetadata")
+    }
 }
 ```
 
