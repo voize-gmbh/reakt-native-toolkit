@@ -20,6 +20,7 @@ dependencies {
     implementation(libs.kotlinpoet)
     implementation(libs.kotlinpoet.metadata)
     implementation(libs.kotlinpoet.ksp)
+    implementation(libs.typescriptpoet)
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {

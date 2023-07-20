@@ -7,7 +7,7 @@ import react_native.*
 
 class RCTBridgeMethodWrapper(
     private val jsName: String,
-    private val action: (arguments: List<*>, promise: PromiseIOS<*>) -> Unit
+    private val action: (arguments: List<*>, promise: PromiseIOS) -> Unit
 ) : RCTBridgeMethodProtocol, NSObject() {
     private val jsMethodNamePointer = jsName.cstr.getPointer(Arena())
 
@@ -35,7 +35,7 @@ class RCTBridgeMethodWrapper(
             ))
         }
 
-        val resolve: IOSResolvePromise<*> = { value ->
+        val resolve: IOSResolvePromise = { value ->
             bridge.enqueueCallback(resolveCbId, listOf(value))
         }
 

@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 plugins {
     kotlin("multiplatform")
     kotlin("native.cocoapods")
+    kotlin("plugin.serialization")
     id("com.android.library")
     id("com.google.devtools.ksp") version "1.8.21-1.0.11"
 }
@@ -42,6 +43,7 @@ kotlin {
             kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
             dependencies {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
 
                 implementation("de.voize:reakt-native-toolkit:$reaktNativeToolkitVersion") {
                     exclude("com.facebook.react", "react-native")

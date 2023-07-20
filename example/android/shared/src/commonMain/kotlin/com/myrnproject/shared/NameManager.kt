@@ -40,3 +40,4 @@ expect class PersistentConfig(initContext: PersistentConfigInitContext) {
 
     fun getConfigAsFlow(key: String): Flow<String?>
 }
+

@@ -6,15 +6,25 @@ import kotlinx.coroutines.launch
 typealias IOSResolvePromise<T> = (T) -> Unit
 typealias IOSRejectPromise = (Throwable, Map<String, Any?>) -> Unit
 
-data class PromiseIOS<T>(val resolve: IOSResolvePromise<T>, val reject: IOSRejectPromise)
+data class PromiseIOS(val resolve: IOSResolvePromise<Any?>, val reject: IOSRejectPromise)
 
-inline fun <T> PromiseIOS<T>.launch(scope: CoroutineScope, crossinline block: suspend () -> T) {
+inline fun <reified T> PromiseIOS.runCatchingWithArguments(action: () -> T, argumentsTransform: (T) -> Any?) {
+    kotlin
+        .runCatching { argumentsTransform(action()) }
+        .onSuccess(resolve)
+        .onFailure {
+            reject(it, exceptionInterceptor(it))
+        }
+}
+
+inline fun <reified T> PromiseIOS.launch(scope: CoroutineScope, crossinline action: suspend () -> T) {
     scope.launch {
-        kotlin
-            .runCatching { block() }
-            .onFailure {
-                reject(it, exceptionInterceptor(it))
-            }
-            .onSuccess { resolve(it) }
+        runCatchingWithArguments({ action() }, ::toReactNativeValue)
+    }
+}
+
+inline fun <reified T> PromiseIOS.launchJson(scope: CoroutineScope, crossinline action: suspend () -> T) {
+    scope.launch {
+        runCatchingWithArguments({ action() }, ::toReactNativeValueJson)
     }
 }
