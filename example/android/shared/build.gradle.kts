@@ -44,6 +44,7 @@ kotlin {
             dependencies {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
 
                 implementation("de.voize:reakt-native-toolkit:$reaktNativeToolkitVersion") {
                     exclude("com.facebook.react", "react-native")
