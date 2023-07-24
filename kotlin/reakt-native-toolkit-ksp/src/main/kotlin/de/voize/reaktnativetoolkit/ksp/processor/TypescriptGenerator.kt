@@ -78,6 +78,13 @@ fun Resolver.generateTypescript(
     rnModules.forEach {
         createTypescriptRNModule(it, rnModulesFileBuilder)
     }
+    // TODO workaround for not working import
+    rnModulesFileBuilder.addTypeAlias(
+        TypeAliasSpec.builder(
+            "_workaround",
+            TypeName.namedImport("NativeEventEmitter", "react-native"),
+        ).build()
+    )
     val rnModulesFile = rnModulesFileBuilder.build()
 
     rnModulesFile.writeTo(codeGenerator, kspDependencies(true, originatingKSFiles))
@@ -88,6 +95,8 @@ fun Resolver.createTypescriptRNModule(
     fileBuilder: FileSpec.Builder
 ) {
     val nativeModulesType = TypeName.namedImport("NativeModules", "react-native")
+
+    val withEventEmitter = rnModule.supportedEvents.isNotEmpty()
 
     val nativeInterfaceName = "Native" + rnModule.moduleName + "Interface"
     val nativeRNModuleInterface = InterfaceSpec.builder(nativeInterfaceName).apply {
@@ -131,6 +140,29 @@ fun Resolver.createTypescriptRNModule(
                     .build()
             }
         )
+        if (withEventEmitter) {
+            addFunction(
+                FunctionSpec.builder("addEventListener")
+                    .addModifiers(Modifier.ABSTRACT)
+                    .addParameter(
+                        ParameterSpec.builder(
+                            "key",
+                            TypeName.STRING,
+                        ).build()
+                    )
+                    .addParameter(
+                        ParameterSpec.builder(
+                            "listener",
+                            TypeName.lambda(
+                                "result" to TypeName.ANY,
+                                returnType = TypeName.VOID,
+                            ),
+                        ).build()
+                    )
+                    .returns(TypeName.VOID)
+                    .build()
+            )
+        }
     }.build()
 
     fileBuilder.addType(nativeRNModuleInterface)
@@ -149,12 +181,12 @@ fun Resolver.createTypescriptRNModule(
         CodeBlock.of(
             """
             export const %N: %T = {
-                %L
+            %>%L%<
             }
             """.trimIndent(),
             rnModule.moduleName,
             TypeName.implicit(interfaceName),
-            rnModule.reactNativeMethods.map { functionDeclaration ->
+            (rnModule.reactNativeMethods.map { functionDeclaration ->
                 if (needsSerialization(functionDeclaration.parameters.map { it.type.resolve() })) {
                     val parameters = functionDeclaration.parameters.map {
                         CodeBlock.of(
@@ -210,7 +242,52 @@ fun Resolver.createTypescriptRNModule(
                     )
                 }
 
-            }.joinToCode(",\n    ")
+            } + buildList {
+                if (withEventEmitter) {
+                    val eventEmitterVarName = "eventEmitter"
+                    val keyVarName = "key"
+                    val listenerVarName = "listener"
+
+                    val parameters = listOf(
+                        CodeBlock.of(
+                            "%N: %T",
+                            keyVarName,
+                            TypeName.STRING,
+                        ),
+                        CodeBlock.of(
+                            "%N: %T",
+                            listenerVarName,
+                            TypeName.lambda(
+                                "result" to TypeName.ANY,
+                                returnType = TypeName.VOID,
+                            ),
+                        )
+                    ).joinToCode()
+                    add(
+                        CodeBlock.of(
+                            "%N: (%L) => {\n%>%L%<}",
+                            "addEventListener",
+                            parameters,
+                            CodeBlock.builder().apply {
+                                addStatement(
+                                    "const %N = new %T(%N as %T)",
+                                    eventEmitterVarName,
+                                    TypeName.namedImport("NativeEventEmitter", "react-native"),
+                                    nativeRNModule,
+                                    TypeName.ANY,
+                                )
+                                // TODO deserialize result
+                                addStatement(
+                                    "%N.addListener(%N, %N)",
+                                    eventEmitterVarName,
+                                    keyVarName,
+                                    listenerVarName,
+                                )
+                            }.build()
+                        )
+                    )
+                }
+            }).joinToCode(",\n")
         )
     )
 }
