@@ -381,18 +381,21 @@ class ToolkitSymbolProcessor(
                 .addParameters(parameters.map(if (useJsonSerialization) ::mapKotlinTypeToReactNativeAndroidTypeJson else ::mapKotlinTypeToReactNativeAndroidType))
                 .addParameter(promiseVarName, ClassName("com.facebook.react.bridge", "Promise"))
                 .addCode(
-                    promiseVarName.promiseLaunchAndroid(coroutineScopeVarName, useJsonSerialization, buildCodeBlock {
-                        add(
-                            "%N.%N(",
-                            wrappedModuleVarName,
-                            functionDeclaration.simpleName.asString()
-                        )
-                        add(
-                            parameters.map(if (useJsonSerialization) ::transformReactNativeAndroidValueToKotlinValueJson else ::transformReactNativeAndroidValueToKotlinValue)
-                                .joinToCode()
-                        )
-                        add(")")
-                    })
+                    promiseVarName.promiseLaunchAndroid(
+                        coroutineScopeVarName,
+                        useJsonSerialization,
+                        buildCodeBlock {
+                            add(
+                                "%N.%N(",
+                                wrappedModuleVarName,
+                                functionDeclaration.simpleName.asString()
+                            )
+                            add(
+                                parameters.map(if (useJsonSerialization) ::transformReactNativeAndroidValueToKotlinValueJson else ::transformReactNativeAndroidValueToKotlinValue)
+                                    .joinToCode()
+                            )
+                            add(")")
+                        })
                 )
                 .build()
         }
@@ -505,25 +508,23 @@ class ToolkitSymbolProcessor(
 
             FunSpec.builder(functionDeclaration.simpleName.asString())
                 .addParameters(parameters.map(if (useJsonSerialization) ::mapKotlinTypeToReactNativeIOSTypeJson else ::mapKotlinTypeToReactNativeIOSType))
-                .addParameter(
-                    promiseVarName,
-                    PromiseIOSClassName.parameterizedBy(
-                        functionDeclaration.returnType?.toTypeName() ?: UNIT
-                    )
-                )
+                .addParameter(promiseVarName, PromiseIOSClassName)
                 .addCode(
-                    promiseVarName.promiseLaunchIOS(coroutineScopeVarName, useJsonSerialization, buildCodeBlock {
-                        add(
-                            "%N.%N(",
-                            wrappedModuleVarName,
-                            functionDeclaration.simpleName.asString()
-                        )
-                        add(
-                            parameters.map(if (useJsonSerialization) ::transformReactNativeIOSValueToKotlinValueJson else ::transformReactNativeIOSValueToKotlinValue)
-                                .joinToCode()
-                        )
-                        add(")")
-                    })
+                    promiseVarName.promiseLaunchIOS(
+                        coroutineScopeVarName,
+                        useJsonSerialization,
+                        buildCodeBlock {
+                            add(
+                                "%N.%N(",
+                                wrappedModuleVarName,
+                                functionDeclaration.simpleName.asString()
+                            )
+                            add(
+                                parameters.map(if (useJsonSerialization) ::transformReactNativeIOSValueToKotlinValueJson else ::transformReactNativeIOSValueToKotlinValue)
+                                    .joinToCode()
+                            )
+                            add(")")
+                        })
                 )
                 .build()
         }
@@ -591,7 +592,7 @@ class ToolkitSymbolProcessor(
                     FunSpec.builder("addListener").run {
                         val eventNameVarname = "eventName"
                         addParameter(eventNameVarname, STRING)
-                        addParameter(promiseVarName, PromiseIOSClassName.parameterizedBy(UNIT))
+                        addParameter(promiseVarName, PromiseIOSClassName)
                         addCode(
                             promiseVarName.promiseLaunchIOS(
                                 coroutineScopeVarName,
@@ -610,7 +611,7 @@ class ToolkitSymbolProcessor(
                     FunSpec.builder("removeListeners").run {
                         val countVarName = "count"
                         addParameter(countVarName, DOUBLE)
-                        addParameter(promiseVarName, PromiseIOSClassName.parameterizedBy(UNIT))
+                        addParameter(promiseVarName, PromiseIOSClassName)
                         addCode(
                             promiseVarName.promiseLaunchIOS(
                                 coroutineScopeVarName,
@@ -638,7 +639,7 @@ class ToolkitSymbolProcessor(
                         argsVarName,
                         STRING,
                         promiseVarName,
-                        PromiseIOSClassName.parameterizedBy(UNIT),
+                        PromiseIOSClassName,
                     ),
                     CodeBlock.of(
                         "%T(%S) { %N, %N -> %N(%N[0] as %T, %N as %T) }",
@@ -650,7 +651,7 @@ class ToolkitSymbolProcessor(
                         argsVarName,
                         DOUBLE,
                         promiseVarName,
-                        PromiseIOSClassName.parameterizedBy(UNIT),
+                        PromiseIOSClassName,
                     ),
                 )
             } else {
@@ -663,6 +664,7 @@ class ToolkitSymbolProcessor(
             )
 
             val bridgeMethodWrappers = reactNativeMethodsWithMetadata.map { ksFunctionDeclaration ->
+                val useJsonSerialization = true
                 val functionName = ksFunctionDeclaration.simpleName.asString()
                 buildCodeBlock {
                     val argsVarName = "args"
@@ -675,7 +677,7 @@ class ToolkitSymbolProcessor(
                         functionName,
                     )
                     add((ksFunctionDeclaration.parameters.map { it.toParameterSpec() }
-                        .map(::mapKotlinTypeToReactNativeIOSType)
+                        .map(if (useJsonSerialization) ::mapKotlinTypeToReactNativeIOSTypeJson else ::mapKotlinTypeToReactNativeIOSType)
                         .mapIndexed { index, parameter ->
                             CodeBlock.of(
                                 "%N[%L] as %T",
@@ -687,9 +689,7 @@ class ToolkitSymbolProcessor(
                         CodeBlock.of(
                             "%N as %T",
                             promiseVarName,
-                            PromiseIOSClassName.parameterizedBy(
-                                ksFunctionDeclaration.returnType?.toTypeName() ?: UNIT
-                            )
+                            PromiseIOSClassName
                         )
                     )).joinToCode())
                     add(")")
@@ -1010,7 +1010,7 @@ class ToolkitSymbolProcessor(
 
                 is ParameterizedTypeName -> STRING
 
-                else -> type.copy(nullable = type.isNullable)
+                else -> error("unsupported type $type")
             }
         ).build()
     }

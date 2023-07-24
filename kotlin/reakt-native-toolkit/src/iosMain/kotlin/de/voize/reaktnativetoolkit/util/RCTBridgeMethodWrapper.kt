@@ -35,7 +35,7 @@ class RCTBridgeMethodWrapper(
             ))
         }
 
-        val resolve: IOSResolvePromise = { value ->
+        val resolve: IOSResolvePromise<Any?> = { value ->
             bridge.enqueueCallback(resolveCbId, listOf(value))
         }
 
