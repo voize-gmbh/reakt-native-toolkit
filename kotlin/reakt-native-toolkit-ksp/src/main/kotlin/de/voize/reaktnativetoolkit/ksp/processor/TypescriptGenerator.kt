@@ -167,7 +167,8 @@ fun Resolver.createTypescriptRNModule(
             rnModule.moduleName,
             TypeName.implicit(interfaceName),
             (rnModule.reactNativeMethods.map { functionDeclaration ->
-                if (needsSerialization(functionDeclaration.parameters.map { it.type.resolve() })) {
+                if (functionDeclaration.parameters.map { it.type.resolve() }
+                        .any { needsSerialization(it) }) {
                     val parameters = functionDeclaration.parameters.map {
                         CodeBlock.of(
                             "%N: %T",
@@ -287,6 +288,10 @@ private fun KSDeclaration.getTypescriptName(): String {
 }
 
 private fun Resolver.getTypescriptTypeName(ksType: KSType): TypeName {
+    if (ksType.isError) {
+        return TypeName.ANY
+    }
+
     val module = "!$modelsModule"
     fun resolveTypeArgument(index: Int): TypeName {
         val argument = ksType.arguments[index]
@@ -297,35 +302,37 @@ private fun Resolver.getTypescriptTypeName(ksType: KSType): TypeName {
             error("Could not resolve type argument")
         }
     }
-    return when (ksType.declaration.qualifiedName) {
-        this.getKSNameFromString("kotlin.Any") -> TypeName.ANY
-        this.getKSNameFromString("kotlin.Boolean") -> TypeName.BOOLEAN
-        this.getKSNameFromString("kotlin.Byte") -> TypeName.NUMBER
-        this.getKSNameFromString("kotlin.String") -> TypeName.STRING
-        this.getKSNameFromString("kotlin.Int") -> TypeName.NUMBER
-        this.getKSNameFromString("kotlin.Long") -> TypeName.NUMBER
-        this.getKSNameFromString("kotlin.Short") -> TypeName.NUMBER
-        this.getKSNameFromString("kotlin.Char") -> TypeName.NUMBER
-        this.getKSNameFromString("kotlin.Number") -> TypeName.NUMBER
-        this.getKSNameFromString("kotlin.Float") -> TypeName.NUMBER
-        this.getKSNameFromString("kotlin.Double") -> TypeName.NUMBER
-        this.getKSNameFromString("kotlin.Unit") -> TypeName.VOID
-        this.getKSNameFromString("kotlin.Array") -> TypeName.arrayType(resolveTypeArgument(0))
-        this.getKSNameFromString("kotlin.collections.List") -> TypeName.arrayType(
-            resolveTypeArgument(0)
-        )
 
-        this.getKSNameFromString("kotlin.collections.Set") -> TypeName.arrayType(
-            resolveTypeArgument(
-                0
-            )
-        )
-
-        this.getKSNameFromString("kotlin.collections.Map") -> recordType(
+    val typeName = when (ksType.declaration.qualifiedName?.asString()) {
+        "kotlin.Any" -> TypeName.ANY
+        "kotlin.Boolean" -> TypeName.BOOLEAN
+        "kotlin.Byte" -> TypeName.NUMBER
+        "kotlin.Char" -> TypeName.NUMBER
+        "kotlin.Double" -> TypeName.NUMBER
+        "kotlin.Float" -> TypeName.NUMBER
+        "kotlin.Int" -> TypeName.NUMBER
+        "kotlin.Long" -> TypeName.NUMBER
+        "kotlin.Number" -> TypeName.NUMBER
+        "kotlin.Short" -> TypeName.NUMBER
+        "kotlin.String" -> TypeName.STRING
+        "kotlin.Unit" -> TypeName.VOID
+        else -> null
+    } ?: when (ksType.declaration.qualifiedName?.asString()) {
+        "kotlin.Array" -> TypeName.arrayType(resolveTypeArgument(0))
+        "kotlin.collections.List" -> TypeName.arrayType(resolveTypeArgument(0))
+        "kotlin.collections.Set" -> TypeName.arrayType(resolveTypeArgument(0))
+        "kotlin.collections.Map" -> recordType(
             resolveTypeArgument(0),
             resolveTypeArgument(1),
         )
 
+        else -> null
+    } ?: when (ksType.declaration.qualifiedName?.asString()) {
+        "kotlin.time.Duration" -> TypeName.STRING
+        "kotlinx.datetime.Instant" -> TypeName.STRING
+        "kotlinx.datetime.LocalDate" -> TypeName.STRING
+        "kotlinx.datetime.LocalDateTime" -> TypeName.STRING
+        "kotlinx.datetime.LocalTime" -> TypeName.STRING
         else -> when (val declaration = ksType.declaration) {
             is KSClassDeclaration -> {
                 when (declaration.classKind) {
@@ -337,7 +344,7 @@ private fun Resolver.getTypescriptTypeName(ksType: KSType): TypeName {
                         } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
                             TypeName.namedImport(declaration.getTypescriptName(), module)
                         } else {
-                            error("Only data classes and sealed classes are supported")
+                            error("Only data classes and sealed classes are supported, found: $declaration")
                         }
                     }
 
@@ -377,17 +384,16 @@ private fun Resolver.getTypescriptTypeName(ksType: KSType): TypeName {
                 error("Unsupported declaration: $declaration")
             }
         }
-    }.let {
-        if (ksType.isMarkedNullable) {
-            TypeName.unionType(it, TypeName.NULL)
-        } else {
-            it
-        }
     }
+
+    return typeName.withNullable(ksType.isMarkedNullable)
 }
 
-
 private fun Resolver.getTypescriptSerializedTypeName(ksType: KSType): TypeName {
+    if (ksType.isError) {
+        return TypeName.ANY
+    }
+
     fun resolveTypeArgument(index: Int): TypeName {
         val argument = ksType.arguments[index]
         val type = argument.type
@@ -398,76 +404,83 @@ private fun Resolver.getTypescriptSerializedTypeName(ksType: KSType): TypeName {
         }
     }
 
-    return when (ksType.declaration.qualifiedName) {
-        this.getKSNameFromString("kotlin.Any") -> TypeName.ANY
-        this.getKSNameFromString("kotlin.Boolean") -> TypeName.BOOLEAN
-        this.getKSNameFromString("kotlin.String") -> TypeName.STRING
-        this.getKSNameFromString("kotlin.Int") -> TypeName.NUMBER
-        this.getKSNameFromString("kotlin.Long") -> TypeName.NUMBER
-        this.getKSNameFromString("kotlin.Float") -> TypeName.NUMBER
-        this.getKSNameFromString("kotlin.Double") -> TypeName.NUMBER
-        this.getKSNameFromString("kotlin.Unit") -> TypeName.VOID
-        this.getKSNameFromString("kotlin.Array") -> TypeName.arrayType(resolveTypeArgument(0))
-        this.getKSNameFromString("kotlin.collections.List") -> TypeName.arrayType(
-            resolveTypeArgument(0)
-        )
-
-        this.getKSNameFromString("kotlin.collections.Set") -> TypeName.arrayType(
-            resolveTypeArgument(
-                0
+    return when (ksType.declaration.qualifiedName?.asString()) {
+        "kotlin.Any" -> TypeName.ANY
+        "kotlin.Boolean" -> TypeName.BOOLEAN
+        "kotlin.Byte" -> TypeName.NUMBER
+        "kotlin.Char" -> TypeName.NUMBER
+        "kotlin.Double" -> TypeName.NUMBER
+        "kotlin.Float" -> TypeName.NUMBER
+        "kotlin.Int" -> TypeName.NUMBER
+        "kotlin.Long" -> TypeName.NUMBER
+        "kotlin.Number" -> TypeName.NUMBER
+        "kotlin.Short" -> TypeName.NUMBER
+        "kotlin.String" -> TypeName.STRING
+        "kotlin.Unit" -> TypeName.VOID
+        else -> null
+    }?.withNullable(ksType.isMarkedNullable)
+        ?: when (ksType.declaration.qualifiedName?.asString()) {
+            "kotlin.Array" -> TypeName.arrayType(resolveTypeArgument(0))
+            "kotlin.collections.List" -> TypeName.arrayType(resolveTypeArgument(0))
+            "kotlin.collections.Set" -> TypeName.arrayType(resolveTypeArgument(0))
+            "kotlin.collections.Map" -> recordType(
+                resolveTypeArgument(0),
+                resolveTypeArgument(1),
             )
-        )
 
-        this.getKSNameFromString("kotlin.collections.Map") -> recordType(
-            resolveTypeArgument(0),
-            resolveTypeArgument(1),
-        )
-
-        else -> when (val declaration = ksType.declaration) {
-            is KSClassDeclaration -> {
-                when (declaration.classKind) {
-                    ClassKind.INTERFACE -> error("Interfaces are not supported")
-                    ClassKind.CLASS -> {
-                        if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
-                            // data class
-                            TypeName.STRING
-                        } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
-                            // sealed class
-                            TypeName.STRING
-                        } else {
-                            error("Only data classes and sealed classes are supported")
+            else -> null
+        }?.withNullable(ksType.isMarkedNullable)
+        ?: when (ksType.declaration.qualifiedName?.asString()) {
+            "kotlin.time.Duration" -> TypeName.STRING
+            "kotlinx.datetime.Instant" -> TypeName.STRING
+            "kotlinx.datetime.LocalDate" -> TypeName.STRING
+            "kotlinx.datetime.LocalDateTime" -> TypeName.STRING
+            "kotlinx.datetime.LocalTime" -> TypeName.STRING
+            else -> when (val declaration = ksType.declaration) {
+                is KSClassDeclaration -> {
+                    when (declaration.classKind) {
+                        ClassKind.INTERFACE -> error("Interfaces are not supported")
+                        ClassKind.CLASS -> {
+                            if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
+                                // data class
+                                TypeName.STRING
+                            } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                                // sealed class
+                                TypeName.STRING
+                            } else {
+                                error("Only data classes and sealed classes are supported")
+                            }
                         }
-                    }
 
-                    ClassKind.ENUM_CLASS -> TypeName.STRING
-                    ClassKind.ENUM_ENTRY -> error("Enum entries are not supported")
-                    ClassKind.OBJECT -> TypeName.STRING
-                    ClassKind.ANNOTATION_CLASS -> error("Annotation classes are not supported")
+                        ClassKind.ENUM_CLASS -> TypeName.STRING
+                        ClassKind.ENUM_ENTRY -> error("Enum entries are not supported")
+                        ClassKind.OBJECT -> TypeName.STRING
+                        ClassKind.ANNOTATION_CLASS -> error("Annotation classes are not supported")
+                    }
+                }
+
+                is KSFunctionDeclaration -> {
+                    error("Function declarations are not supported")
+                }
+
+                is KSTypeAlias -> {
+                    getTypescriptSerializedTypeName(declaration.type.resolve())
+                }
+
+                is KSPropertyDeclaration -> {
+                    error("Property declarations are not supported")
+                }
+
+                is KSTypeParameter -> {
+                    // TODO handle bounds
+                    TypeName.typeVariable(declaration.name.asString())
+                }
+
+                else -> {
+                    error("Unsupported declaration: $declaration")
                 }
             }
-
-            is KSFunctionDeclaration -> {
-                error("Function declarations are not supported")
-            }
-
-            is KSTypeAlias -> {
-                getTypescriptSerializedTypeName(declaration.type.resolve())
-            }
-
-            is KSPropertyDeclaration -> {
-                error("Property declarations are not supported")
-            }
-
-            is KSTypeParameter -> {
-                // TODO handle bounds
-                TypeName.typeVariable(declaration.name.asString())
-            }
-
-            else -> {
-                error("Unsupported declaration: $declaration")
-            }
         }
-    }
 }
 
 private val Resolver.serialNameAnnotationType
@@ -639,12 +652,25 @@ private fun Resolver.createTypescriptTypeDeclaration(
     }
 }
 
-private fun Resolver.needsSerialization(types: List<KSType>): Boolean {
-    return types.any { needsSerialization(it) }
-}
-
-private fun Resolver.needsSerialization(type: KSType): Boolean {
-    return getTypescriptTypeName(type) != getTypescriptSerializedTypeName(type)
+private fun needsSerialization(ksType: KSType): Boolean {
+    return ksType.declaration.qualifiedName?.asString() !in setOf(
+        "kotlin.Any",
+        "kotlin.Boolean",
+        "kotlin.Byte",
+        "kotlin.Char",
+        "kotlin.Double",
+        "kotlin.Float",
+        "kotlin.Int",
+        "kotlin.Long",
+        "kotlin.Number",
+        "kotlin.Short",
+        "kotlin.String",
+        "kotlin.Unit",
+        "kotlin.Array",
+        "kotlin.collections.List",
+        "kotlin.collections.Set",
+        "kotlin.collections.Map",
+    )
 }
 
 private fun Resolver.toTypescriptPropertySpec(propertyDeclaration: KSPropertyDeclaration): PropertySpec {
@@ -674,12 +700,16 @@ fun findAllUsedTypes(types: List<KSType>): Set<KSDeclaration> {
 
     while (toBeProcessed.isNotEmpty()) {
         val current = toBeProcessed.removeAt(0)
+        if (current.isError) {
+            continue
+        }
         val declaration = current.declaration
         if (declaration !in processed) {
             processed.add(declaration)
 
             when (declaration) {
                 is KSClassDeclaration -> {
+
                     when (declaration.classKind) {
                         ClassKind.CLASS -> {
                             if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
@@ -752,6 +782,11 @@ fun filterTypesForGeneration(types: Set<KSDeclaration>): Collection<KSDeclaratio
             "kotlin.collections.List",
             "kotlin.collections.Map",
             "kotlin.collections.Set",
+            "kotlin.time.Duration",
+            "kotlinx.datetime.Instant",
+            "kotlinx.datetime.LocalDate",
+            "kotlinx.datetime.LocalDateTime",
+            "kotlinx.datetime.LocalTime",
         )
         it.qualifiedName?.asString() !in defaultTypes
     }
@@ -783,6 +818,15 @@ fun FileSpec.writeTo(
         .use(::writeTo)
 }
 
+private fun TypeName.withNullable(nullable: Boolean): TypeName {
+    return if (nullable) {
+        asNullable()
+    } else {
+        this
+    }
+}
+
+private fun TypeName.asNullable() = TypeName.unionType(this, TypeName.NULL)
 
 private val TypescriptJsonTypeName = TypeName.implicit("JSON")
 private val TypescriptRecordTypeName = TypeName.implicit("Record")
