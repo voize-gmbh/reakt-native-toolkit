@@ -43,27 +43,7 @@ fun Resolver.generateTypescript(
         it.parameters.map { it.type } + (it.returnType ?: error("Type resolution error"))
     }.toSet().map { it.resolve() }
 
-    val usedTypes = findAllUsedTypes(typeDeclarations)
-
-    val customTypes = usedTypes.filter {
-        val defaultTypes = setOf(
-            "kotlin.Any",
-            "kotlin.Boolean",
-            "kotlin.Byte",
-            "kotlin.Char",
-            "kotlin.Double",
-            "kotlin.Float",
-            "kotlin.Int",
-            "kotlin.Long",
-            "kotlin.Short",
-            "kotlin.String",
-            "kotlin.Unit",
-            "kotlin.collections.List",
-            "kotlin.collections.Map",
-            "kotlin.collections.Set",
-        )
-        it.qualifiedName?.asString() !in defaultTypes
-    }
+    val customTypes = filterTypesForGeneration(findAllUsedTypes(typeDeclarations))
 
     val typescriptModelsFileBuilder = FileSpec.builder(modelsModule)
     customTypes.map {
@@ -307,6 +287,7 @@ private fun KSDeclaration.getTypescriptName(): String {
 }
 
 private fun Resolver.getTypescriptTypeName(ksType: KSType): TypeName {
+    val module = "!$modelsModule"
     fun resolveTypeArgument(index: Int): TypeName {
         val argument = ksType.arguments[index]
         val type = argument.type
@@ -323,6 +304,9 @@ private fun Resolver.getTypescriptTypeName(ksType: KSType): TypeName {
         this.getKSNameFromString("kotlin.String") -> TypeName.STRING
         this.getKSNameFromString("kotlin.Int") -> TypeName.NUMBER
         this.getKSNameFromString("kotlin.Long") -> TypeName.NUMBER
+        this.getKSNameFromString("kotlin.Short") -> TypeName.NUMBER
+        this.getKSNameFromString("kotlin.Char") -> TypeName.NUMBER
+        this.getKSNameFromString("kotlin.Number") -> TypeName.NUMBER
         this.getKSNameFromString("kotlin.Float") -> TypeName.NUMBER
         this.getKSNameFromString("kotlin.Double") -> TypeName.NUMBER
         this.getKSNameFromString("kotlin.Unit") -> TypeName.VOID
@@ -344,7 +328,6 @@ private fun Resolver.getTypescriptTypeName(ksType: KSType): TypeName {
 
         else -> when (val declaration = ksType.declaration) {
             is KSClassDeclaration -> {
-                val module = "!$modelsModule"
                 when (declaration.classKind) {
                     ClassKind.INTERFACE -> error("Interfaces are not supported")
                     ClassKind.CLASS -> {
@@ -363,7 +346,11 @@ private fun Resolver.getTypescriptTypeName(ksType: KSType): TypeName {
                     }
 
                     ClassKind.ENUM_ENTRY -> error("Enum entries are not supported")
-                    ClassKind.OBJECT -> error("Object declarations are not supported")
+                    ClassKind.OBJECT -> TypeName.namedImport(
+                        declaration.getTypescriptName(),
+                        module
+                    )
+
                     ClassKind.ANNOTATION_CLASS -> error("Annotation classes are not supported")
                 }
             }
@@ -373,7 +360,8 @@ private fun Resolver.getTypescriptTypeName(ksType: KSType): TypeName {
             }
 
             is KSTypeAlias -> {
-                getTypescriptTypeName(declaration.type.resolve())
+                // TODO support type aliases
+                TypeName.namedImport(declaration.getTypescriptName(), module)
             }
 
             is KSPropertyDeclaration -> {
@@ -453,7 +441,7 @@ private fun Resolver.getTypescriptSerializedTypeName(ksType: KSType): TypeName {
 
                     ClassKind.ENUM_CLASS -> TypeName.STRING
                     ClassKind.ENUM_ENTRY -> error("Enum entries are not supported")
-                    ClassKind.OBJECT -> error("Object declarations are not supported")
+                    ClassKind.OBJECT -> TypeName.STRING
                     ClassKind.ANNOTATION_CLASS -> error("Annotation classes are not supported")
                 }
             }
@@ -588,7 +576,7 @@ private fun Resolver.createTypescriptTypeDeclaration(
                             ).addModifiers(Modifier.EXPORT).build()
                             typescriptFileBuilder.addTypeAlias(sealedTypeUnion)
                         } else {
-                            error("Only data classes are supported, found: $declaration")
+                            error("Only data classes and sealed classes are supported, found: $declaration")
                         }
                     }
 
@@ -609,7 +597,20 @@ private fun Resolver.createTypescriptTypeDeclaration(
                     }
 
                     ClassKind.ENUM_ENTRY -> error("Enum entries are not supported")
-                    ClassKind.OBJECT -> error("Object declarations are not supported")
+                    ClassKind.OBJECT -> {
+                        if (declaration.annotations.none { it.annotationType.resolve() == serializableAnnotationType }) {
+                            error("Objects must be annotated with @Serializable: $declaration")
+                        }
+                        val interfaceSpec =
+                            InterfaceSpec.builder(declaration.getTypescriptName()).apply {
+                                addModifiers(Modifier.EXPORT)
+                                if (sealedBaseType != null) {
+                                    addSuperInterface(sealedBaseType)
+                                }
+                            }.build()
+                        typescriptFileBuilder.addInterface(interfaceSpec)
+                    }
+
                     ClassKind.ANNOTATION_CLASS -> error("Annotation classes are not supported")
                 }
             }
@@ -619,10 +620,8 @@ private fun Resolver.createTypescriptTypeDeclaration(
             }
 
             is KSTypeAlias -> {
-                createTypescriptTypeDeclaration(
-                    declaration.type.resolve().declaration,
-                    typescriptFileBuilder
-                )
+                // TODO generate the type alias
+                error("Type aliases are not supported")
             }
 
             is KSPropertyDeclaration -> {
@@ -665,7 +664,7 @@ private fun Resolver.typeReferenceToTypescriptTypeName(typeReference: KSTypeRefe
 }
 
 // Breath-first search to find all used types(property types, sealed types, etc), given initial types
-fun findAllUsedTypes(types: List<KSType>): MutableSet<KSDeclaration> {
+fun findAllUsedTypes(types: List<KSType>): Set<KSDeclaration> {
     val toBeProcessed = types.toMutableList()
     val processed = mutableSetOf<KSDeclaration>()
 
@@ -681,18 +680,25 @@ fun findAllUsedTypes(types: List<KSType>): MutableSet<KSDeclaration> {
 
             when (declaration) {
                 is KSClassDeclaration -> {
-                    if (declaration.classKind == ClassKind.CLASS) {
-                        if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
-                            // data class
-                            declaration.getAllProperties().forEach {
-                                scheduleForProcessing(it.type.resolve())
-                            }
-                        } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
-                            // sealed class
-                            declaration.getSealedSubclasses().forEach {
-                                scheduleForProcessing(it.asStarProjectedType())
+                    when (declaration.classKind) {
+                        ClassKind.CLASS -> {
+                            if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
+                                // data class
+                                declaration.getAllProperties().forEach {
+                                    scheduleForProcessing(it.type.resolve())
+                                }
+                            } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                                // sealed class
+                                declaration.getSealedSubclasses().forEach {
+                                    scheduleForProcessing(it.asStarProjectedType())
+                                }
                             }
                         }
+
+                        else -> Unit
+                    }
+                    declaration.superTypes.forEach {
+                        scheduleForProcessing(it.resolve())
                     }
                 }
 
@@ -709,7 +715,7 @@ fun findAllUsedTypes(types: List<KSType>): MutableSet<KSDeclaration> {
                 }
 
                 is KSTypeParameter -> {
-                    error("Type parameter declarations are not supported")
+                    declaration.bounds.map { it.resolve() }.forEach(::scheduleForProcessing)
                 }
 
                 else -> {
@@ -726,6 +732,40 @@ fun findAllUsedTypes(types: List<KSType>): MutableSet<KSDeclaration> {
         }
     }
     return processed
+}
+
+fun filterTypesForGeneration(types: Set<KSDeclaration>): Collection<KSDeclaration> {
+    val customTypes = types.filter {
+        val defaultTypes = setOf(
+            "kotlin.Any",
+            "kotlin.Boolean",
+            "kotlin.Byte",
+            "kotlin.Char",
+            "kotlin.Double",
+            "kotlin.Float",
+            "kotlin.Int",
+            "kotlin.Long",
+            "kotlin.Number",
+            "kotlin.Short",
+            "kotlin.String",
+            "kotlin.Unit",
+            "kotlin.collections.List",
+            "kotlin.collections.Map",
+            "kotlin.collections.Set",
+        )
+        it.qualifiedName?.asString() !in defaultTypes
+    }
+
+    fun KSClassDeclaration.isSealedClassSubclass() =
+        this.superTypes.any { com.google.devtools.ksp.symbol.Modifier.SEALED in it.resolve().declaration.modifiers }
+
+    return customTypes.filter {
+        when (it) {
+            is KSClassDeclaration -> it.classKind != ClassKind.INTERFACE && !it.isSealedClassSubclass()
+            is KSTypeParameter -> false
+            else -> true
+        }
+    }
 }
 
 private fun kspDependencies(
