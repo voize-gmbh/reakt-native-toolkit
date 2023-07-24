@@ -29,6 +29,8 @@ import io.outfoxx.typescriptpoet.TypeName
 import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
 
+private const val modelsModule = "models"
+
 fun Resolver.generateTypescript(
     functionsByClass: Map<KSClassDeclaration, List<KSFunctionDeclaration>>,
     rnModules: List<ToolkitSymbolProcessor.RNModule>,
@@ -63,7 +65,7 @@ fun Resolver.generateTypescript(
         it.qualifiedName?.asString() !in defaultTypes
     }
 
-    val typescriptModelsFileBuilder = FileSpec.builder("models")
+    val typescriptModelsFileBuilder = FileSpec.builder(modelsModule)
     customTypes.map {
         createTypescriptTypeDeclaration(it, typescriptModelsFileBuilder)
     }
@@ -166,7 +168,7 @@ fun Resolver.createTypescriptRNModule(
                         if (needsSerialization(it.type.resolve())) {
                             CodeBlock.of(
                                 "%T.%N(%N)",
-                                TypeName.implicit("JSON"),
+                                TypescriptJsonTypeName,
                                 "stringify",
                                 it.name?.asString() ?: error("Parameter must have a name")
                             )
@@ -183,7 +185,7 @@ fun Resolver.createTypescriptRNModule(
                             CodeBlock.of(
                                 ".%N(%T.%N)",
                                 "then",
-                                TypeName.implicit("JSON"),
+                                TypescriptJsonTypeName,
                                 "parse",
                             )
                         } else {
@@ -265,21 +267,22 @@ private fun Resolver.getTypescriptTypeName(ksType: KSType): TypeName {
 
         else -> when (val declaration = ksType.declaration) {
             is KSClassDeclaration -> {
+                val module = "!$modelsModule"
                 when (declaration.classKind) {
                     ClassKind.INTERFACE -> error("Interfaces are not supported")
                     ClassKind.CLASS -> {
                         if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
                             // data class
-                            TypeName.implicit(declaration.getTypescriptName())
+                            TypeName.namedImport(declaration.getTypescriptName(), module)
                         } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
-                            TypeName.implicit(declaration.getTypescriptName())
+                            TypeName.namedImport(declaration.getTypescriptName(), module)
                         } else {
                             error("Only data classes and sealed classes are supported")
                         }
                     }
 
                     ClassKind.ENUM_CLASS -> {
-                        TypeName.implicit(declaration.getTypescriptName())
+                        TypeName.namedImport(declaration.getTypescriptName(), module)
                     }
 
                     ClassKind.ENUM_ENTRY -> error("Enum entries are not supported")
@@ -458,6 +461,7 @@ private fun Resolver.createTypescriptTypeDeclaration(
                                         .arguments.single().value as String
                                 }
                             val typeEnumName = declaration.getTypescriptName() + "Type"
+                            val typeEnumTypeName = TypeName.implicit(typeEnumName)
                             EnumSpec.builder(typeEnumName).apply {
                                 addModifiers(Modifier.EXPORT)
                                 subclassesToDiscriminator.forEach { (subclassDeclaration, discriminator) ->
@@ -470,11 +474,12 @@ private fun Resolver.createTypescriptTypeDeclaration(
                                 typescriptFileBuilder.addEnum(it)
                             }
                             val baseTypeName = declaration.getTypescriptName() + "Base"
+                            val baseTypeTypeName = TypeName.implicit(baseTypeName)
                             InterfaceSpec.builder(baseTypeName).apply {
                                 val typeVariable =
                                     TypeName.typeVariable(
                                         "T",
-                                        TypeName.bound(TypeName.implicit(typeEnumName))
+                                        TypeName.bound(typeEnumTypeName)
                                     )
                                 addTypeVariable(typeVariable)
                                 addProperty(
@@ -491,9 +496,8 @@ private fun Resolver.createTypescriptTypeDeclaration(
                                 createTypescriptTypeDeclaration(
                                     subclassDeclaration,
                                     typescriptFileBuilder,
-                                    sealedBaseType = TypeName.implicit(baseTypeName).parameterized(
-                                        TypeName.implicit(typeEnumName)
-                                            .nested(subclassDeclaration.getTypescriptName())
+                                    sealedBaseType = baseTypeTypeName.parameterized(
+                                        typeEnumTypeName.nested(subclassDeclaration.getTypescriptName())
                                     ),
                                     sealedSubclassDiscriminator = subclassesToDiscriminator.getValue(
                                         subclassDeclaration
@@ -663,6 +667,7 @@ fun FileSpec.writeTo(
 }
 
 
+private val TypescriptJsonTypeName = TypeName.implicit("JSON")
 private val TypescriptRecordTypeName = TypeName.implicit("Record")
 private fun recordType(key: TypeName, value: TypeName): TypeName {
     return TypeName.parameterizedType(TypescriptRecordTypeName, key, value)
