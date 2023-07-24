@@ -51,6 +51,10 @@ sealed class TestSealedType {
         val number: Int,
         val nonNested: NonNested,
     ) : TestSealedType()
+
+    @Serializable
+    @SerialName("option3")
+    object Option3 : TestSealedType()
 }
 
 @Serializable
