@@ -32,16 +32,15 @@ import java.nio.charset.StandardCharsets
 private const val modelsModule = "models"
 
 fun Resolver.generateTypescript(
-    functionsByClass: Map<KSClassDeclaration, List<KSFunctionDeclaration>>,
     rnModules: List<ToolkitSymbolProcessor.RNModule>,
     codeGenerator: CodeGenerator,
-    logger: KSPLogger,
 ) {
 
     // Collect all types of function parameters and return types
-    val typeDeclarations = functionsByClass.values.flatten().flatMap {
-        it.parameters.map { it.type } + (it.returnType ?: error("Type resolution error"))
-    }.toSet().map { it.resolve() }
+    val typeDeclarations =
+        rnModules.flatMap { it.reactNativeMethods + it.reactNativeFlows }.flatMap {
+            it.parameters.map { it.type } + (it.returnType ?: error("Type resolution error"))
+        }.toSet().map { it.resolve() }
 
     val customTypes = filterTypesForGeneration(findAllUsedTypes(typeDeclarations))
 
@@ -88,8 +87,7 @@ fun Resolver.createTypescriptRNModule(
                     ParameterSpec.builder(
                         it.name?.asString() ?: error("Parameter must have a name"),
                         getTypescriptSerializedTypeName(it.type.resolve())
-                    )
-                        .build()
+                    ).build()
                 }
 
                 FunctionSpec.builder(functionDeclaration.simpleName.asString())
@@ -100,10 +98,16 @@ fun Resolver.createTypescriptRNModule(
                     .build()
             }
         )
+        addProperties(
+            rnModule.reactNativeFlows.map { functionDeclaration ->
+                reactNativeFlowToNextProperty(functionDeclaration)
+            }
+        )
     }.build()
 
     val interfaceName = rnModule.moduleName + "Interface"
     val rnModuleInterface = InterfaceSpec.builder(interfaceName).apply {
+        addModifiers(Modifier.EXPORT)
         addFunctions(
             rnModule.reactNativeMethods.map { functionDeclaration ->
                 val parameters = functionDeclaration.parameters.map {
@@ -145,6 +149,11 @@ fun Resolver.createTypescriptRNModule(
                     .build()
             )
         }
+        addProperties(
+            rnModule.reactNativeFlows.map { functionDeclaration ->
+                reactNativeFlowToNextProperty(functionDeclaration)
+            }
+        )
     }.build()
 
     fileBuilder.addType(nativeRNModuleInterface)
@@ -163,14 +172,15 @@ fun Resolver.createTypescriptRNModule(
         CodeBlock.of(
             """
             export const %N: %T = {
-            %>%L%<
+            %>...%N,
+            %L%<
             }
             """.trimIndent(),
             rnModule.moduleName,
             TypeName.implicit(interfaceName),
-            (rnModule.reactNativeMethods.map { functionDeclaration ->
-                if (functionDeclaration.parameters.map { it.type.resolve() }
-                        .any { needsSerialization(it) }) {
+            nativeRNModule,
+            buildList {
+                addAll(rnModule.reactNativeMethods.map { functionDeclaration ->
                     val parameters = functionDeclaration.parameters.map {
                         CodeBlock.of(
                             "%N: %T",
@@ -196,7 +206,11 @@ fun Resolver.createTypescriptRNModule(
                     }.joinToCode()
 
                     val returnValueDeserialization =
-                        if (functionDeclaration.returnType.let { it != null && needsSerialization(it.resolve()) }) {
+                        if (functionDeclaration.returnType.let {
+                                it != null && needsSerialization(
+                                    it.resolve()
+                                )
+                            }) {
                             CodeBlock.of(
                                 ".%N(%T.%N)",
                                 "then",
@@ -207,6 +221,7 @@ fun Resolver.createTypescriptRNModule(
                             CodeBlock.empty()
                         }
 
+                    // wrap native function into arrow to prevent passing to too many arguments from resulting in an error
                     CodeBlock.of(
                         "%N: (%L) => %N.%N(%L)%L",
                         functionDeclaration.simpleName.asString(),
@@ -216,16 +231,7 @@ fun Resolver.createTypescriptRNModule(
                         parameterSerialization,
                         returnValueDeserialization,
                     )
-                } else {
-                    CodeBlock.of(
-                        "%N: %N.%N",
-                        functionDeclaration.simpleName.asString(),
-                        nativeRNModule,
-                        functionDeclaration.simpleName.asString()
-                    )
-                }
-
-            } + buildList {
+                })
                 if (withEventEmitter) {
                     val eventEmitterVarName = "eventEmitter"
                     val keyVarName = "key"
@@ -270,9 +276,29 @@ fun Resolver.createTypescriptRNModule(
                         )
                     )
                 }
-            }).joinToCode(",\n")
+            }.joinToCode(",\n")
         )
     )
+}
+
+private fun Resolver.reactNativeFlowToNextProperty(functionDeclaration: KSFunctionDeclaration): PropertySpec {
+    val returnTypeName = getTypescriptTypeName(
+        (functionDeclaration.returnType!!.resolve().arguments.single().type
+            ?: error("Flow Type can not use star projection")).resolve()
+    )
+    val parameters = functionDeclaration.parameters.map {
+        getTypescriptTypeName(it.type.resolve())
+    }
+
+    val nextTypeName = when (parameters.size) {
+        0 -> NextTypeName.parameterized(returnTypeName)
+        1 -> Next1TypeName.parameterized(returnTypeName, parameters[0])
+        2 -> Next2TypeName.parameterized(returnTypeName, parameters[0], parameters[1])
+        else -> NextXTypeName.parameterized(returnTypeName)
+    }
+
+    return PropertySpec.builder(functionDeclaration.simpleName.asString(), nextTypeName)
+        .build()
 }
 
 /**
@@ -392,6 +418,7 @@ private fun Resolver.getTypescriptTypeName(ksType: KSType): TypeName {
 }
 
 private fun Resolver.getTypescriptSerializedTypeName(ksType: KSType): TypeName {
+    val useJsonSerialization = true
     if (ksType.isError) {
         return TypeName.ANY
     }
@@ -421,17 +448,27 @@ private fun Resolver.getTypescriptSerializedTypeName(ksType: KSType): TypeName {
         "kotlin.Unit" -> TypeName.VOID
         else -> null
     }?.withNullable(ksType.isMarkedNullable)
-        ?: when (ksType.declaration.qualifiedName?.asString()) {
-            "kotlin.Array" -> TypeName.arrayType(resolveTypeArgument(0))
-            "kotlin.collections.List" -> TypeName.arrayType(resolveTypeArgument(0))
-            "kotlin.collections.Set" -> TypeName.arrayType(resolveTypeArgument(0))
-            "kotlin.collections.Map" -> recordType(
-                resolveTypeArgument(0),
-                resolveTypeArgument(1),
-            )
+        ?: if (useJsonSerialization) {
+            when (ksType.declaration.qualifiedName?.asString()) {
+                "kotlin.Array" -> TypeName.STRING
+                "kotlin.collections.List" -> TypeName.STRING
+                "kotlin.collections.Set" -> TypeName.STRING
+                "kotlin.collections.Map" -> TypeName.STRING
+                else -> null
+            }
+        } else {
+            when (ksType.declaration.qualifiedName?.asString()) {
+                "kotlin.Array" -> TypeName.arrayType(resolveTypeArgument(0))
+                "kotlin.collections.List" -> TypeName.arrayType(resolveTypeArgument(0))
+                "kotlin.collections.Set" -> TypeName.arrayType(resolveTypeArgument(0))
+                "kotlin.collections.Map" -> recordType(
+                    resolveTypeArgument(0),
+                    resolveTypeArgument(1),
+                )
 
-            else -> null
-        }?.withNullable(ksType.isMarkedNullable)
+                else -> null
+            }?.withNullable(ksType.isMarkedNullable)
+        }
         ?: when (ksType.declaration.qualifiedName?.asString()) {
             "kotlin.time.Duration" -> TypeName.STRING
             "kotlinx.datetime.Instant" -> TypeName.STRING
@@ -518,6 +555,10 @@ private fun Resolver.createTypescriptTypeDeclaration(
                                     if (sealedBaseType != null) {
                                         addSuperInterface(sealedBaseType)
                                     }
+                                    addTSDoc(
+                                        "Data class generated from {@link %N}",
+                                        declaration.qualifiedName!!.asString()
+                                    )
                                     addProperties(
                                         declaration.getAllProperties()
                                             .map { toTypescriptPropertySpec(it) }.toList()
@@ -588,7 +629,11 @@ private fun Resolver.createTypescriptTypeDeclaration(
                                 declaration.getTypescriptName(),
                                 TypeName.unionType(*subclasses.map { TypeName.implicit(it.getTypescriptName()) }
                                     .toList().toTypedArray())
-                            ).addModifiers(Modifier.EXPORT).build()
+                            ).addModifiers(Modifier.EXPORT)
+                                .addTSDoc(
+                                    "Sealed class generated from {@link %N}",
+                                    declaration.qualifiedName!!.asString()
+                                ).build()
                             typescriptFileBuilder.addTypeAlias(sealedTypeUnion)
                         } else {
                             error("Only data classes and sealed classes are supported, found: $declaration")
@@ -601,6 +646,10 @@ private fun Resolver.createTypescriptTypeDeclaration(
                         }
                         val enumSpec = EnumSpec.builder(declaration.getTypescriptName()).apply {
                             addModifiers(Modifier.EXPORT)
+                            addTSDoc(
+                                "Enum generated from {@link %N}",
+                                declaration.qualifiedName!!.asString()
+                            )
                             declaration.declarations.filterIsInstance<KSClassDeclaration>()
                                 .filter { it.classKind == ClassKind.ENUM_ENTRY }
                                 .forEach { enumEntry ->
@@ -619,6 +668,10 @@ private fun Resolver.createTypescriptTypeDeclaration(
                         val interfaceSpec =
                             InterfaceSpec.builder(declaration.getTypescriptName()).apply {
                                 addModifiers(Modifier.EXPORT)
+                                addTSDoc(
+                                    "Object generated from {@link %N}",
+                                    declaration.qualifiedName!!.asString()
+                                )
                                 if (sealedBaseType != null) {
                                     addSuperInterface(sealedBaseType)
                                 }
@@ -655,6 +708,7 @@ private fun Resolver.createTypescriptTypeDeclaration(
 }
 
 private fun needsSerialization(ksType: KSType): Boolean {
+    val useJsonSerialization = true
     return ksType.declaration.qualifiedName?.asString() !in setOf(
         "kotlin.Any",
         "kotlin.Boolean",
@@ -668,11 +722,12 @@ private fun needsSerialization(ksType: KSType): Boolean {
         "kotlin.Short",
         "kotlin.String",
         "kotlin.Unit",
+    ) && (useJsonSerialization || ksType.declaration.qualifiedName?.asString() !in setOf(
         "kotlin.Array",
         "kotlin.collections.List",
         "kotlin.collections.Set",
         "kotlin.collections.Map",
-    )
+    ))
 }
 
 private fun Resolver.toTypescriptPropertySpec(propertyDeclaration: KSPropertyDeclaration): PropertySpec {
@@ -835,3 +890,8 @@ private val TypescriptRecordTypeName = TypeName.implicit("Record")
 private fun recordType(key: TypeName, value: TypeName): TypeName {
     return TypeName.parameterizedType(TypescriptRecordTypeName, key, value)
 }
+
+private val NextTypeName = TypeName.namedImport("Next", "reakt-native-toolkit")
+private val Next1TypeName = TypeName.namedImport("Next1", "reakt-native-toolkit")
+private val Next2TypeName = TypeName.namedImport("Next2", "reakt-native-toolkit")
+private val NextXTypeName = TypeName.namedImport("NextX", "reakt-native-toolkit")

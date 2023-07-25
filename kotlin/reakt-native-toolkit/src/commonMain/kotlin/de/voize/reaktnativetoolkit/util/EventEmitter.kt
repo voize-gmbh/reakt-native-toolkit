@@ -16,12 +16,16 @@ inline fun <reified T> EventEmitter.sendEventJson(eventName: String, params: T) 
 
 expect fun <T> toReactNativeValue(value: T): Any?
 
+val reactNativeValueJson = Json {
+    encodeDefaults = true
+}
+
 /**
  * Complex types are serialized to JSON. Primitive types are passed as-is.
  */
 inline fun <reified T> toReactNativeValueJson(value: T): Any? {
     return when (value) {
         null, is String, is Boolean, is Number -> value
-        else -> Json.encodeToString(value)
+        else -> reactNativeValueJson.encodeToString(value)
     }
 }

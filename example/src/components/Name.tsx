@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFlow } from 'reakt-native-toolkit';
-import NameManager from '../nativeModules/NameManager';
+import { NameManager } from '../generated/modules';
 
 const Name: React.FC = () => {
   const [input, setInput] = useState('');

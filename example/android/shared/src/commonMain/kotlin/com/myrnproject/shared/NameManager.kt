@@ -2,9 +2,9 @@
 
 package com.myrnproject.shared
 
+import de.voize.reaktnativetoolkit.annotation.ReactNativeFlow
 import de.voize.reaktnativetoolkit.annotation.ReactNativeMethod
 import de.voize.reaktnativetoolkit.annotation.ReactNativeModule
-import de.voize.reaktnativetoolkit.util.toReact
 import kotlinx.coroutines.flow.Flow
 
 @ReactNativeModule("NameManager")
@@ -27,8 +27,8 @@ class NameManager(private val persistentConfig: PersistentConfig) {
 
     private val nameAsFlow = persistentConfig.getConfigAsFlow(persistentConfigKey)
 
-   @ReactNativeMethod
-   suspend fun name(previous: String?) = nameAsFlow.toReact(previous)
+   @ReactNativeFlow
+   suspend fun name() = nameAsFlow
 }
 
 expect class PersistentConfigInitContext

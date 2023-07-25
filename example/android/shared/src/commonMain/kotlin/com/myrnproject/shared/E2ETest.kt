@@ -6,8 +6,11 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import de.voize.reaktnativetoolkit.annotation.ReactNativeMethod
 import de.voize.reaktnativetoolkit.annotation.ReactNativeModule
+import de.voize.reaktnativetoolkit.annotation.ReactNativeFlow
 
 @ReactNativeModule("E2ETest")
 class E2ETest {
@@ -82,6 +85,26 @@ class E2ETest {
     fun testKotlinDateTime(instant: Instant, localDateTime: LocalDateTime): Duration {
         return 5.seconds
     }
+
+    @ReactNativeFlow
+    fun testFlow(): Flow<Int> {
+        return flowOf(1, 2, 3)
+    }
+
+    @ReactNativeFlow
+    fun testFlowNullable(): Flow<Int?> {
+        return flowOf(1, 2, null)
+    }
+
+    @ReactNativeFlow
+    fun testFlowComplex(): Flow<Test> {
+        return flowOf(Test("Erik", listOf(), mapOf(), 30))
+    }
+
+    @ReactNativeFlow
+    fun testFlowType(test: Int): Flow<FlowTest> {
+        return flowOf()
+    }
 }
 
 
@@ -138,3 +161,6 @@ enum class Enum {
     OPTION2,
     OPTION_3,
 }
+
+@Serializable
+object FlowTest
