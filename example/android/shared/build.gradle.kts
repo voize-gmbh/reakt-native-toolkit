@@ -89,7 +89,15 @@ dependencies {
 tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinCompile<*>>().configureEach {
     if(name != "kspCommonMainKotlinMetadata") {
         dependsOn("kspCommonMainKotlinMetadata")
+    } else {
+        finalizedBy("copyGeneratedTypescriptFiles")
     }
+}
+
+tasks.register<Copy>("copyGeneratedTypescriptFiles") {
+    dependsOn("kspCommonMainKotlinMetadata")
+    from("build/generated/ksp/metadata/commonMain/resources")
+    into("../../src/generated")
 }
 
 android {
