@@ -139,7 +139,7 @@ fun Resolver.createTypescriptRNModule(
                             ),
                         ).build()
                     )
-                    .returns(TypeName.VOID)
+                    .returns(TypeName.namedImport("EmitterSubscription", "react-native"))
                     .build()
             )
         }
@@ -259,7 +259,7 @@ fun Resolver.createTypescriptRNModule(
                                 )
                                 // TODO deserialize result
                                 addStatement(
-                                    "%N.addListener(%N, %N)",
+                                    "return %N.addListener(%N, %N)",
                                     eventEmitterVarName,
                                     keyVarName,
                                     listenerVarName,
