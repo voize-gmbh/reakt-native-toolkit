@@ -12,6 +12,8 @@ interface TestSealedTypeBase<T extends TestSealedTypeType> {
 
 }
 
+/**
+ * Data class generated from {@link com.myrnproject.shared.TestSealedType.Option1} */
 export interface TestSealedTypeOption1 extends TestSealedTypeBase<TestSealedTypeType.TestSealedTypeOption1> {
 
   name: string;
@@ -20,6 +22,8 @@ export interface TestSealedTypeOption1 extends TestSealedTypeBase<TestSealedType
 
 }
 
+/**
+ * Data class generated from {@link com.myrnproject.shared.TestSealedType.Option2} */
 export interface TestSealedTypeOption2 extends TestSealedTypeBase<TestSealedTypeType.TestSealedTypeOption2> {
 
   number: number;
@@ -28,17 +32,25 @@ export interface TestSealedTypeOption2 extends TestSealedTypeBase<TestSealedType
 
 }
 
+/**
+ * Object generated from {@link com.myrnproject.shared.TestSealedType.Option3} */
 export interface TestSealedTypeOption3 extends TestSealedTypeBase<TestSealedTypeType.TestSealedTypeOption3> {
 }
 
+/**
+ * Sealed class generated from {@link com.myrnproject.shared.TestSealedType} */
 export type TestSealedType = TestSealedTypeOption1 | TestSealedTypeOption2 | TestSealedTypeOption3;
 
+/**
+ * Enum generated from {@link com.myrnproject.shared.Enum} */
 export enum Enum {
   Option1 = 'Option1',
   OPTION2 = 'OPTION2',
   OPTION_3 = 'OPTION_3'
 }
 
+/**
+ * Data class generated from {@link com.myrnproject.shared.Test} */
 export interface Test {
 
   name: string;
@@ -53,18 +65,29 @@ export interface Test {
 
 }
 
+/**
+ * Object generated from {@link com.myrnproject.shared.FlowTest} */
+export interface FlowTest {
+}
+
+/**
+ * Data class generated from {@link com.myrnproject.shared.TestSealedType.Option1.Nested} */
 export interface TestSealedTypeOption1Nested {
 
   nullable: string | null;
 
 }
 
+/**
+ * Data class generated from {@link com.myrnproject.shared.NonNested} */
 export interface NonNested {
 
   bar: string;
 
 }
 
+/**
+ * Data class generated from {@link com.myrnproject.shared.Test.Nested} */
 export interface TestNested {
 
   name: string;

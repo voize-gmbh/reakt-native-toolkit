@@ -48,13 +48,21 @@ dependencies {
 }
 ```
 
-And configure the ksp task dependencies:
+And configure the ksp task dependencies and copy the generated typescript files to your react native project:
 
 ```kotlin
 tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinCompile<*>>().configureEach {
     if(name != "kspCommonMainKotlinMetadata") {
         dependsOn("kspCommonMainKotlinMetadata")
+    } else {
+        finalizedBy("copyGeneratedTypescriptFiles")
     }
+}
+
+tasks.register<Copy>("copyGeneratedTypescriptFiles") {
+    dependsOn("kspCommonMainKotlinMetadata")
+    from("build/generated/ksp/metadata/commonMain/resources")
+    into("../../src/generated")
 }
 ```
 
@@ -178,38 +186,34 @@ The toolkit allows you to directly expose Kotlin Flows to React Native and suppl
 A flow exposed to React Native could look like this:
 
 ```kotlin
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import de.voize.reaktnativetoolkit.annotation.ReactNativeFlow
 import de.voize.reaktnativetoolkit.annotation.ReactNativeMethod
 import de.voize.reaktnativetoolkit.annotation.ReactNativeModule
-import de.voize.reaktnativetoolkit.util.toReact
 
 @ReactNativeModule("Counter")
 class CounterRNModule {
     private val counter = MutableStateFlow(0)
 
-    @ReactNativeMethod
-    suspend fun count(previous: String?) = counter.toReact(previous)
+    @ReactNativeFlow
+    suspend fun count(): Flow<Int> = counter
 
     @ReactNativeMethod
     suspend fun increment() {
-        counter.value = counter.value + 1
+        counter.update { it + 1 }
     }
 }
 ```
 
-A flow is exposed via a `@ReactNativeMethod` annotated function and the `Flow<T>.toReact(previous)` extension function. The `previous` parameter must always be a nullable string, even if the flow emits a different type! You can read more below about how this works.
+A flow is exposed via a `@ReactNativeFlow` annotated function.
 
-On the JS side we interact with this suspended value using the `useFlow` hook:
+On the JS side we interact with this flow using the `useFlow` hook:
 
 ```typescript
 import { useFlow, Next } from "reakt-native-toolkit";
 import { NativeModules } from "react-native";
-
-interface CounterInterface {
-  count: Next<number>;
-  increment: () => Promise<void>;
-}
-
-const Counter = NativeModules.Counter as CounterInterface;
+import { Counter } from "./modules";
 
 function useCounter() {
   const count = useFlow(Counter.count);
@@ -224,10 +228,13 @@ function useCounter() {
 With `useFlow(Counter.count)` we can "subscribe" to the flow value. The hook will trigger a rerender whenever the flow value changes.
 
 The `count` method of the `Counter` native module is typed as `Next<T>` which is a type alias for `(currentValue: string | null) => Promise<string>`.
+Flow values are JSON serialized and deserialized when they are sent to and from the native module.
 Although internally `Next<T>` is only operating on `string` the `useFlow` hook type is able to restore the type `T` in `Next<T>`.
 
-#### How do `toReact` and `useFlow` work?
+#### How do `ReactNativeFlow` and `useFlow` work?
 
+The `@ReactNativeFlow` annotation generates a native module method with an additional `previous` argument.
+The generated code calls `toReact(previous)` on the returned flow and returns the result of the `toReact` call.
 The extension function `Flow<T>.toReact(previous)` will JSON serialize the value of the flow and suspend until the value is different from the `previous` ([see in source](https://github.com/voize-gmbh/reakt-native-toolkit/blob/main/kotlin/reakt-native-toolkit/src/commonMain/kotlin/de/voize/reaktnativetoolkit/util/flowToReact.kt#L51)).
 This is why `previous` is a string.
 

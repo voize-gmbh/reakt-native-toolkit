@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Add @ReactNativeFlow annotation to expose Flows to RN
+
 ## v0.5.0
 
 - Update gradle wrapper to 7.5

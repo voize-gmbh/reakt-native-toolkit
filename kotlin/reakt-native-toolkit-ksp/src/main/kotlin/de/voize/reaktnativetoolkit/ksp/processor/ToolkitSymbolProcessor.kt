@@ -28,6 +28,8 @@ class ToolkitSymbolProcessor(
         val moduleName: String,
         val supportedEvents: List<String>,
         val reactNativeMethods: List<KSFunctionDeclaration>,
+        val reactNativeFlows: List<KSFunctionDeclaration>,
+        val isInternal: Boolean,
     )
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
@@ -62,6 +64,46 @@ class ToolkitSymbolProcessor(
                     }
                 }
 
+        val flowsByClass =
+            resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeFlow")
+                .map { annotatedNode ->
+                    try {
+                        when (annotatedNode) {
+                            is KSFunctionDeclaration -> annotatedNode.also {
+                                if (annotatedNode.typeParameters.isNotEmpty()) {
+                                    error("Type parameters are not supported for ReactNativeFlow")
+                                }
+                                val returnTypeReference = annotatedNode.returnType
+                                    ?: error("Return type of ReactNativeFlow must")
+                                val returnType = returnTypeReference.resolve()
+                                val declaration = returnType.declaration
+                                if (declaration.qualifiedName?.asString() != "kotlinx.coroutines.flow.Flow") {
+                                    error("Return type of ReactNativeFlow must be a Flow")
+                                }
+                                val elementTypeReference = returnType.arguments.single().type
+                                    ?: error("Element type of Flow must be specified")
+                                val elementType = elementTypeReference.resolve()
+                                if (elementType.declaration is KSTypeParameter) {
+                                    error("Element type of Flow must not be a type parameter")
+                                }
+                            }
+
+                            else -> error("ReactNativeFlow annotation can only be used on function declarations")
+                        }
+                    } catch (e: Throwable) {
+                        throw IllegalArgumentException(
+                            "Error processing $annotatedNode at ${annotatedNode.location}",
+                            e
+                        )
+                    }
+                }.groupBy { annotatedNode ->
+                    annotatedNode.parentDeclaration.let {
+                        when (it) {
+                            is KSClassDeclaration -> it
+                            else -> error("ReactNativeFlow must be declared in a class")
+                        }
+                    }
+                }
 
         val rnModules =
             resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeModule")
@@ -85,12 +127,16 @@ class ToolkitSymbolProcessor(
                         it.name?.asString() == "supportedEvents"
                     }.value as List<*>?).orEmpty().filterIsInstance<String>()
                     val reactNativeMethods = functionsByClass[wrappedClassDeclaration].orEmpty()
+                    val reactNativeFlows = flowsByClass[wrappedClassDeclaration].orEmpty()
+                    val isInternal = wrappedClassDeclaration.modifiers.contains(Modifier.INTERNAL)
 
                     RNModule(
                         wrappedClassDeclaration = wrappedClassDeclaration,
                         moduleName = moduleName,
                         supportedEvents = supportedEvents,
                         reactNativeMethods = reactNativeMethods,
+                        reactNativeFlows = reactNativeFlows,
+                        isInternal = isInternal,
                     )
                 }.toList()
 
@@ -129,52 +175,43 @@ class ToolkitSymbolProcessor(
                 wrappedClassDeclaration.getAllFunctions()
                     .any { it.simpleName.asString() == "getConstants" }
 
-            val isInternal = wrappedClassDeclaration.modifiers.contains(Modifier.INTERNAL)
 
             // Android
             if (JvmPlatform in platformNames && NativePlatform !in platformNames) {
                 createAndroidModule(
+                    rnModule,
                     packageName,
                     wrappedClassName,
-                    rnModule.moduleName,
-                    rnModule.reactNativeMethods,
                     constructorParameters,
                     constructorInvocation,
                     withConstants,
-                    rnModule.supportedEvents,
-                    wrappedClassDeclaration.containingFile,
-                    isInternal,
                 )
                 createModuleProviderAndroid(
                     packageName,
                     wrappedClassName,
                     constructorParameters,
                     wrappedClassDeclaration.containingFile,
-                    isInternal,
+                    rnModule.isInternal,
                 )
             }
 
             // iOS
             if (NativePlatform in platformNames && JvmPlatform !in platformNames) {
                 createIOSModule(
+                    rnModule,
                     packageName,
                     wrappedClassName,
-                    rnModule.moduleName,
-                    rnModule.reactNativeMethods,
                     constructorParameters,
                     constructorInvocation,
                     withConstants,
                     requiredEventEmitter,
-                    rnModule.supportedEvents,
-                    wrappedClassDeclaration.containingFile,
-                    isInternal,
                 )
                 createModuleProviderIOS(
                     packageName,
                     wrappedClassName,
                     constructorParameters,
                     wrappedClassDeclaration.containingFile,
-                    isInternal,
+                    rnModule.isInternal,
                 )
             }
 
@@ -185,13 +222,13 @@ class ToolkitSymbolProcessor(
                     wrappedClassName,
                     constructorParameters,
                     wrappedClassDeclaration.containingFile,
-                    isInternal,
+                    rnModule.isInternal,
                 )
             }
         }
 
         if (!invoked && JvmPlatform in platformNames && NativePlatform in platformNames) {
-            resolver.generateTypescript(functionsByClass, rnModules, codeGenerator, logger)
+            resolver.generateTypescript(rnModules, codeGenerator)
         }
 
         invoked = true
@@ -355,54 +392,37 @@ class ToolkitSymbolProcessor(
     }
 
     private fun createAndroidModule(
+        rnModule: RNModule,
         packageName: String,
         wrappedClassName: String,
-        reactNativeModuleName: String,
-        reactNativeMethods: List<KSFunctionDeclaration>,
         constructorParameters: List<ParameterSpec>,
         constructorInvocation: CodeBlock,
         withConstants: Boolean,
-        supportedEvents: List<String>,
-        containingFile: KSFile?,
-        isInternal: Boolean,
     ) {
         val className = wrappedClassName.androidModuleClassName()
         val reactContextVarName = "reactContext"
         val coroutineScopeVarName = "coroutineScope"
         val wrappedModuleVarName = "wrappedModule"
 
-        val functionSpecs = reactNativeMethods.map { functionDeclaration ->
-            val parameters = functionDeclaration.parameters.map { it.toParameterSpec() }
-            val promiseVarName = "promise"
-            val useJsonSerialization = true
-
-            FunSpec.builder(functionDeclaration.simpleName.asString())
-                .addAnnotation(ReactNativeMethodAndroidClassName)
-                .addParameters(parameters.map(if (useJsonSerialization) ::mapKotlinTypeToReactNativeAndroidTypeJson else ::mapKotlinTypeToReactNativeAndroidType))
-                .addParameter(promiseVarName, ClassName("com.facebook.react.bridge", "Promise"))
-                .addCode(
-                    promiseVarName.promiseLaunchAndroid(
-                        coroutineScopeVarName,
-                        useJsonSerialization,
-                        buildCodeBlock {
-                            add(
-                                "%N.%N(",
-                                wrappedModuleVarName,
-                                functionDeclaration.simpleName.asString()
-                            )
-                            add(
-                                parameters.map(if (useJsonSerialization) ::transformReactNativeAndroidValueToKotlinValueJson else ::transformReactNativeAndroidValueToKotlinValue)
-                                    .joinToCode()
-                            )
-                            add(")")
-                        })
-                )
-                .build()
+        val functionSpecs = rnModule.reactNativeMethods.map { functionDeclaration ->
+            androidReactNativeFunctionSpec(
+                functionDeclaration,
+                coroutineScopeVarName,
+                wrappedModuleVarName
+            )
         }
 
+        val flowFunctionSpecs = rnModule.reactNativeFlows.map { functionDeclaration ->
+            androidReactNativeFunctionSpec(
+                functionDeclaration,
+                coroutineScopeVarName,
+                wrappedModuleVarName,
+                isReactNativeFlow = true,
+            )
+        }
 
         val classSpec = TypeSpec.classBuilder(className).apply {
-            if (isInternal) {
+            if (rnModule.isInternal) {
                 addModifiers(KModifier.INTERNAL)
             }
             primaryConstructor(
@@ -417,7 +437,7 @@ class ToolkitSymbolProcessor(
             )
             superclass(ClassName("$toolkitPackageName.util", "ReactNativeModuleBase"))
             addSuperclassConstructorParameter("%N", reactContextVarName)
-            addSuperclassConstructorParameter("%L", listOfCode(supportedEvents.map {
+            addSuperclassConstructorParameter("%L", listOfCode(rnModule.supportedEvents.map {
                 CodeBlock.of("%S", it)
             }))
             addProperty(
@@ -432,7 +452,7 @@ class ToolkitSymbolProcessor(
                 FunSpec.builder("getName")
                     .addModifiers(KModifier.OVERRIDE)
                     .returns(String::class)
-                    .addStatement("return %S", reactNativeModuleName)
+                    .addStatement("return %S", rnModule.moduleName)
                     .build()
             )
             if (withConstants) {
@@ -472,6 +492,8 @@ class ToolkitSymbolProcessor(
                 }.build()
             )
             addFunctions(functionSpecs)
+            addFunctions(flowFunctionSpecs)
+            val containingFile = rnModule.wrappedClassDeclaration.containingFile
             if (containingFile != null) {
                 addOriginatingKSFile(containingFile)
             }
@@ -485,53 +507,41 @@ class ToolkitSymbolProcessor(
     }
 
     private fun createIOSModule(
+        rnModule: RNModule,
         packageName: String,
         wrappedClassName: String,
-        reactNativeModuleName: String,
-        reactNativeMethodsWithMetadata: List<KSFunctionDeclaration>,
         constructorParameters: List<ParameterSpec>,
         constructorInvocation: CodeBlock,
         withConstants: Boolean,
         withEventEmitter: Boolean,
-        supportedEvents: List<String>,
-        containingFile: KSFile?,
-        isInternal: Boolean,
     ) {
         val className = wrappedClassName.iOSModuleClassName()
         val coroutineScopeVarName = "coroutineScope"
         val promiseVarName = "promise"
         val wrappedModuleVarName = "wrappedModule"
 
-        val functionSpecs = reactNativeMethodsWithMetadata.map { functionDeclaration ->
-            val parameters = functionDeclaration.parameters.map { it.toParameterSpec() }
-            val useJsonSerialization = true
+        val functionSpecs = rnModule.reactNativeMethods.map { functionDeclaration ->
+            iosReactNativeFunctionSpec(
+                functionDeclaration,
+                promiseVarName,
+                coroutineScopeVarName,
+                wrappedModuleVarName
+            )
+        }
 
-            FunSpec.builder(functionDeclaration.simpleName.asString())
-                .addParameters(parameters.map(if (useJsonSerialization) ::mapKotlinTypeToReactNativeIOSTypeJson else ::mapKotlinTypeToReactNativeIOSType))
-                .addParameter(promiseVarName, PromiseIOSClassName)
-                .addCode(
-                    promiseVarName.promiseLaunchIOS(
-                        coroutineScopeVarName,
-                        useJsonSerialization,
-                        buildCodeBlock {
-                            add(
-                                "%N.%N(",
-                                wrappedModuleVarName,
-                                functionDeclaration.simpleName.asString()
-                            )
-                            add(
-                                parameters.map(if (useJsonSerialization) ::transformReactNativeIOSValueToKotlinValueJson else ::transformReactNativeIOSValueToKotlinValue)
-                                    .joinToCode()
-                            )
-                            add(")")
-                        })
-                )
-                .build()
+        val flowFunctionSpecs = rnModule.reactNativeFlows.map { functionDeclaration ->
+            iosReactNativeFunctionSpec(
+                functionDeclaration,
+                promiseVarName,
+                coroutineScopeVarName,
+                wrappedModuleVarName,
+                isReactNativeFlow = true,
+            )
         }
 
 
         val classSpec = TypeSpec.classBuilder(className).apply {
-            if (isInternal) {
+            if (rnModule.isInternal) {
                 addModifiers(KModifier.INTERNAL)
             }
 
@@ -582,7 +592,7 @@ class ToolkitSymbolProcessor(
                                 "%T({%N}, %L)",
                                 EventEmitterIOS,
                                 callableJSModulesPropertyName,
-                                listOfCode(supportedEvents.map {
+                                listOfCode(rnModule.supportedEvents.map {
                                     CodeBlock.of("%S", it)
                                 })
                             )
@@ -663,40 +673,13 @@ class ToolkitSymbolProcessor(
                     .addModifiers(KModifier.PRIVATE).initializer(constructorInvocation).build()
             )
 
-            val bridgeMethodWrappers = reactNativeMethodsWithMetadata.map { ksFunctionDeclaration ->
-                val useJsonSerialization = true
-                val functionName = ksFunctionDeclaration.simpleName.asString()
-                buildCodeBlock {
-                    val argsVarName = "args"
-                    add(
-                        "%T(%S) { %N, %N -> %N(",
-                        ClassName("$toolkitPackageName.util", "RCTBridgeMethodWrapper"),
-                        functionName,
-                        argsVarName,
-                        promiseVarName,
-                        functionName,
-                    )
-                    add((ksFunctionDeclaration.parameters.map { it.toParameterSpec() }
-                        .map(if (useJsonSerialization) ::mapKotlinTypeToReactNativeIOSTypeJson else ::mapKotlinTypeToReactNativeIOSType)
-                        .mapIndexed { index, parameter ->
-                            CodeBlock.of(
-                                "%N[%L] as %T",
-                                argsVarName,
-                                index,
-                                parameter.type
-                            )
-                        } + listOf(
-                        CodeBlock.of(
-                            "%N as %T",
-                            promiseVarName,
-                            PromiseIOSClassName
-                        )
-                    )).joinToCode())
-                    add(")")
-                    add("}")
-                }
+            val bridgeMethodWrappers = rnModule.reactNativeMethods.map { ksFunctionDeclaration ->
+                iosBridgeMethodWrapper(ksFunctionDeclaration, promiseVarName)
             }
 
+            val flowBridgeMethodWrappers = rnModule.reactNativeFlows.map { ksFunctionDeclaration ->
+                iosBridgeMethodWrapper(ksFunctionDeclaration, promiseVarName, isReactNativeFlow = true)
+            }
 
             addFunction(
                 FunSpec.builder("methodsToExport")
@@ -718,7 +701,7 @@ class ToolkitSymbolProcessor(
                     .addCode(
                         CodeBlock.of(
                             "return %L",
-                            listOfCode((bridgeMethodWrappers + eventEmitterFunctionsToExpose))
+                            listOfCode((bridgeMethodWrappers + flowBridgeMethodWrappers + eventEmitterFunctionsToExpose))
                         )
                     ).build()
             )
@@ -757,10 +740,7 @@ class ToolkitSymbolProcessor(
                         .addModifiers(KModifier.OVERRIDE)
                         .returns(STRING)
                         .addCode(
-                            CodeBlock.of(
-                                "return %S",
-                                reactNativeModuleName
-                            )
+                            CodeBlock.of("return %S", rnModule.moduleName)
                         ).build()
                 )
                 addFunction(
@@ -771,6 +751,7 @@ class ToolkitSymbolProcessor(
                             CodeBlock.of("return %L", true)
                         ).build()
                 )
+                val containingFile = rnModule.wrappedClassDeclaration.containingFile
                 if (containingFile != null) {
                     addOriginatingKSFile(containingFile)
                 }
@@ -783,6 +764,124 @@ class ToolkitSymbolProcessor(
             .build()
 
         fileSpec.writeTo(codeGenerator, false)
+    }
+
+
+    private fun androidReactNativeFunctionSpec(
+        functionDeclaration: KSFunctionDeclaration,
+        coroutineScopeVarName: String,
+        wrappedModuleVarName: String,
+        isReactNativeFlow: Boolean = false,
+    ): FunSpec {
+        val parameters = functionDeclaration.parameters.map { it.toParameterSpec() }
+        val promiseVarName = "promise"
+        val previousVarName = "previous"
+        val useJsonSerialization = true
+
+        return FunSpec.builder(functionDeclaration.simpleName.asString()).apply {
+            addAnnotation(ReactNativeMethodAndroidClassName)
+            if (isReactNativeFlow) {
+                addParameter(previousVarName, STRING.copy(nullable = true))
+            }
+            addParameters(parameters.map(if (useJsonSerialization) ::mapKotlinTypeToReactNativeAndroidTypeJson else ::mapKotlinTypeToReactNativeAndroidType))
+            addParameter(promiseVarName, ClassName("com.facebook.react.bridge", "Promise"))
+            addCode(
+                promiseVarName.promiseLaunchAndroid(
+                    coroutineScopeVarName,
+                    useJsonSerialization,
+                    buildCodeBlock {
+                        add(
+                            "%N.%N(%L)",
+                            wrappedModuleVarName,
+                            functionDeclaration.simpleName.asString(),
+                            parameters.map(if (useJsonSerialization) ::transformReactNativeAndroidValueToKotlinValueJson else ::transformReactNativeAndroidValueToKotlinValue)
+                                .joinToCode()
+                        )
+                        if (isReactNativeFlow) {
+                            add(".%M(%N)", FlowToReactMember, previousVarName)
+                        }
+                    }
+                )
+            )
+        }.build()
+    }
+
+    private fun iosReactNativeFunctionSpec(
+        functionDeclaration: KSFunctionDeclaration,
+        promiseVarName: String,
+        coroutineScopeVarName: String,
+        wrappedModuleVarName: String,
+        isReactNativeFlow: Boolean = false,
+    ): FunSpec {
+        val parameters = functionDeclaration.parameters.map { it.toParameterSpec() }
+        val previousVarName = "previous"
+        val useJsonSerialization = true
+
+        return FunSpec.builder(functionDeclaration.simpleName.asString()).apply {
+            if (isReactNativeFlow) {
+                addParameter(previousVarName, STRING.copy(nullable = true))
+            }
+            addParameters(parameters.map(if (useJsonSerialization) ::mapKotlinTypeToReactNativeIOSTypeJson else ::mapKotlinTypeToReactNativeIOSType))
+            addParameter(promiseVarName, PromiseIOSClassName)
+            addCode(
+                promiseVarName.promiseLaunchIOS(
+                    coroutineScopeVarName,
+                    useJsonSerialization,
+                    buildCodeBlock {
+                        add(
+                            "%N.%N(%L)",
+                            wrappedModuleVarName,
+                            functionDeclaration.simpleName.asString(),
+                            parameters.map(if (useJsonSerialization) ::transformReactNativeIOSValueToKotlinValueJson else ::transformReactNativeIOSValueToKotlinValue)
+                                .joinToCode()
+                        )
+                        if (isReactNativeFlow) {
+                            add(".%M(%N)", FlowToReactMember, previousVarName)
+                        }
+                    })
+            )
+        }.build()
+    }
+
+    private fun iosBridgeMethodWrapper(
+        ksFunctionDeclaration: KSFunctionDeclaration,
+        promiseVarName: String,
+        isReactNativeFlow: Boolean = false,
+        ): CodeBlock {
+        val useJsonSerialization = true
+        val functionName = ksFunctionDeclaration.simpleName.asString()
+        return buildCodeBlock {
+            val argsVarName = "args"
+            add(
+                "%T(%S) { %N, %N -> %N(",
+                ClassName("$toolkitPackageName.util", "RCTBridgeMethodWrapper"),
+                functionName,
+                argsVarName,
+                promiseVarName,
+                functionName,
+            )
+            add(
+                buildList {
+                    if (isReactNativeFlow) {
+                        add(CodeBlock.of("%N as %T", argsVarName, List::class.asTypeName().copy(nullable = true)))
+                    }
+                    addAll(ksFunctionDeclaration.parameters.map { it.toParameterSpec() }
+                        .map<ParameterSpec, ParameterSpec>(if (useJsonSerialization) ::mapKotlinTypeToReactNativeIOSTypeJson else ::mapKotlinTypeToReactNativeIOSType)
+                        .mapIndexed { index, parameter ->
+                            CodeBlock.of(
+                                "%N[%L] as %T",
+                                argsVarName,
+                                index,
+                                parameter.type
+                            )
+                        }
+                    )
+                    add(CodeBlock.of("%N as %T", promiseVarName, PromiseIOSClassName))
+                }.joinToCode()
+            )
+            add(")")
+            add("}")
+        }
     }
 
     /**
@@ -1106,3 +1205,4 @@ private val ListOfMember = MemberName("kotlin.collections", "listOf")
 private val JsonClassName = ClassName("kotlinx.serialization.json", "Json")
 private val EncodeToStringMember = MemberName("kotlinx.serialization", "encodeToString")
 private val DecodeFromStringMember = MemberName("kotlinx.serialization", "decodeFromString")
+private val FlowToReactMember = MemberName("$toolkitPackageName.util", "toReact")

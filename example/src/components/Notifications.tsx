@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Button, Text, View } from 'react-native';
-import NotificationDemo from '../nativeModules/NotificationDemo';
 import { EmitterSubscription } from 'react-native';
 import { StyleSheet } from 'react-native';
+import { NotificationDemo } from '../generated/modules';
 
 const Notifications: React.FC = () => {
   const [notifications, setNotifications] = useState<string[]>([]);
