@@ -105,6 +105,16 @@ class E2ETest {
     fun testFlowType(test: Int): Flow<FlowTest> {
         return flowOf()
     }
+
+    @ReactNativeMethod
+    fun testTypeAlias(test: TestTypeAlias): TestTypeAlias {
+        return test
+    }
+
+    @ReactNativeMethod
+    fun testSealedSubtype(test: TestSealedType.Option1): TestSealedType.Option1 {
+        return test
+    }
 }
 
 
@@ -164,3 +174,5 @@ enum class Enum {
 
 @Serializable
 object FlowTest
+
+typealias TestTypeAlias = Test
