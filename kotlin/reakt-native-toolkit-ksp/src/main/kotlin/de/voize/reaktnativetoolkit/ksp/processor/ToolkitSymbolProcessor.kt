@@ -78,7 +78,7 @@ class ToolkitSymbolProcessor(
                                 val returnType = returnTypeReference.resolve()
                                 val declaration = returnType.declaration
                                 if (declaration.qualifiedName?.asString() != "kotlinx.coroutines.flow.Flow") {
-                                    error("Return type of ReactNativeFlow must be a Flow")
+                                    error("Return type of ReactNativeFlow must be kotlinx.coroutines.flow.Flow, but was ${declaration.qualifiedName?.asString()}")
                                 }
                                 val elementTypeReference = returnType.arguments.single().type
                                     ?: error("Element type of Flow must be specified")
