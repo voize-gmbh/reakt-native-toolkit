@@ -16,6 +16,7 @@ jobs:
       - run: ./gradlew build
         working-directory: kotlin
   build-example-project:
+    if: false # disabled because build hangs indefinitely
     name: Build example project
     runs-on: macos-latest
     timeout-minutes: 30
