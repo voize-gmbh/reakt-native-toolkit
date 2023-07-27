@@ -4,6 +4,7 @@
 ## v0.6.0
 
 - Add @ReactNativeFlow annotation to expose Flows to RN
+- Auto-generate typescript native modules and interfaces of transferred data
 
 ## v0.5.0
 
