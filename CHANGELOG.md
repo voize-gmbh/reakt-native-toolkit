@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.6.0
 
 - Add @ReactNativeFlow annotation to expose Flows to RN
 
