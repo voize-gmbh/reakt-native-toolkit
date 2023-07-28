@@ -3,6 +3,7 @@
 ## unreleased
 
 - Handle unused parameter in ios wrapper
+- Handle external class declarations
 
 ## v0.6.1
 

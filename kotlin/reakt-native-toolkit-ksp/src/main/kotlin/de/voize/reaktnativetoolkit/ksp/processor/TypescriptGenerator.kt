@@ -14,6 +14,7 @@ import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeAlias
 import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSTypeReference
+import com.google.devtools.ksp.symbol.Origin
 import io.outfoxx.typescriptpoet.CodeBlock
 import io.outfoxx.typescriptpoet.CodeBlock.Companion.joinToCode
 import io.outfoxx.typescriptpoet.EnumSpec
@@ -408,6 +409,9 @@ private fun Resolver.getTypescriptTypeName(ksType: KSType): TypeName {
                                 declaration.getTypescriptNameWithNamespace(),
                                 module
                             )
+                        } else if (declaration.origin != Origin.KOTLIN) {
+                            // TODO support external classes
+                            TypeName.ANY
                         } else {
                             error("Only data classes and sealed classes are supported, found: $declaration")
                         }
@@ -910,7 +914,7 @@ fun filterTypesForGeneration(types: Set<KSDeclaration>): Collection<KSDeclaratio
 
     return customTypes.filter {
         when (it) {
-            is KSClassDeclaration -> it.classKind != ClassKind.INTERFACE
+            is KSClassDeclaration -> it.classKind != ClassKind.INTERFACE && it.origin == Origin.KOTLIN
             is KSTypeParameter -> false
             else -> true
         }
