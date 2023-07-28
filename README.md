@@ -91,7 +91,13 @@ class CalculatorRNModule {
 }
 ```
 
-The toolkit will generate `CalculatorRNModuleAndroid` and `CalculatorRNModuelIOS` for you.
+The toolkit will generate the following for you
+
+- `CalculatorRNModuleAndroid.kt` for `androidMain`
+- `CalculatorRNModuleIOS.kt` for `iosMain`
+- `Calculator` and `CalculatorInterface` Typescript code
+
+#### Register generated Android module
 
 You can now add `CalculatorRNModuleAndroid` to your native modules package in `androidMain`:
 
@@ -116,6 +122,8 @@ class MyRNPackage(coroutineScope: CoroutineScope) : ReactPackage {
     }
 }
 ```
+
+#### Register generated iOS module
 
 The `CalculatorRNModuleIOS` class will be compiled into your KMM projects shared framework and can be consumed in your iOS project in the `extraModules` of your `RCTBridgeDelegate`:
 
@@ -167,11 +175,122 @@ class AppDelegate: UIResponder, UIApplicationDelegate, RCTBridgeDelegate {
 
 ```
 
-#### Module Providers
+#### Use your native module in React Native
 
-For each `@ReactNativeModule` annotated class, the toolkit will generate a `ReactNativeModuleProvider` which can be used from common code to help with dependency injection and reduce code duplication.
+The toolkit will generate a Typescript object for you and you can just import it from the generation destination (usually `src/generated/modules`):
+
+```typescript
+import { Calculator } from "src/generated/modules";
+
+const result = await Calculator.add(1, 2);
+```
+
+### Streamline dependency injection using Module Providers
+
+If you want your RN module to use some external functionality you would pass it in via the constructor:
+
+```kotlin
+import de.voize.reaktnativetoolkit.annotation.ReactNativeMethod
+import de.voize.reaktnativetoolkit.annotation.ReactNativeModule
+
+@ReactNativeModule("Calculator")
+class CalculatorRNModule(analytics: Analytics) {
+    @ReactNativeMethod
+    fun add(a: Int, b: Int): Int {
+        analytics.log("add", mapOf("a" to a, "b" to b))
+        return a + b
+    }
+}
+```
+
+To do this dependency into your native module you would need to pass it in from the platform specific code:
+
+#### Android
+
+```kotlin
+// androidMain
+
+class MyRNPackage(coroutineScope: CoroutineScope, analytics: Analytics) : ReactPackage {
+    // ...
+
+    override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
+        return listOf<NativeModule>(
+            CalculatorRNModuleAndroid(reactContext, coroutineScope, analytics),
+            CalendarRNModuleAndroid(reactContext, coroutineScope, analytics),
+            PermissionRNModuleAndroid(reactContext, coroutineScope, analytics),
+            // ...
+        )
+    }
+}
+```
+
+#### iOS
+
+```kotlin
+// iosMain
+
+class MyIOSRNModules(analytics: Analytics) {
+    val coroutineScope = CoroutineScope(Dispatchers.Default)
+
+    fun createNativeModules(): List<RCTBridgeModuleProtocol> {
+        return listOf(
+            CalculatorRNModuleIOS(coroutineScope, analytics),
+            CalendarRNModuleIOS(coroutineScope, analytics),
+            PermissionRNModuleIOS(coroutineScope, analytics),
+            // ...
+        )
+    }
+}
+```
+
+To avoid duplicating your dependency injection you can use the toolkits _Module Providers_. For each `@ReactNativeModule` annotated class, the toolkit will generate a `ReactNativeModuleProvider` which can be used from common code.
+
 The provider has the same constructor as the class annotated with `@ReactNativeModule`.
+
+```kotlin
+// commonMain
+
+fun getRNModuleProviders(analytics: Analytics) {
+    return listOf(
+        CalculatorRNModuleProvider(analytics),
+        CalendarRNModuleProvider(analytics),
+        PermissionRNModuleProvider(analytics),
+        // ...
+    )
+}
+```
+
 This allows you to create a list of all your native modules in common code and in the platform specific code you can get the actual native module instances from the provider via `getModule`.
+
+#### Android
+
+```kotlin
+// androidMain
+
+class MyRNPackage(coroutineScope: CoroutineScope, analytics: Analytics) : ReactPackage {
+    // ...
+
+    override fun createNativeModules(
+        reactContext: ReactApplicationContext
+    ): List<NativeModule> {
+        return getRNModuleProviders(analytics).getModules(reactContext, coroutineScope)
+    }
+}
+```
+
+#### iOS
+
+```kotlin
+// iosMain
+
+class MyIOSRNModules(analytics: Analytics) {
+    val coroutineScope = CoroutineScope(Dispatchers.Default)
+
+    fun createNativeModules(): List<RCTBridgeModuleProtocol> {
+        return getRNModuleProviders(analytics).getModules(coroutineScope)
+    }
+}
+```
 
 The `getModule` function takes different parameters depending on the platform.
 For android you need to pass in the `ReactApplicationContext` and the `CoroutineScope` and for iOS you need to pass in the `CoroutineScope`.
@@ -213,7 +332,7 @@ On the JS side we interact with this flow using the `useFlow` hook:
 ```typescript
 import { useFlow, Next } from "reakt-native-toolkit";
 import { NativeModules } from "react-native";
-import { Counter } from "./modules";
+import { Counter } from "./generated/modules";
 
 function useCounter() {
   const count = useFlow(Counter.count);
