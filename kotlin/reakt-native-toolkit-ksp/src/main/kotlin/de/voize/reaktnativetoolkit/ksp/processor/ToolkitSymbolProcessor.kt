@@ -678,7 +678,11 @@ class ToolkitSymbolProcessor(
             }
 
             val flowBridgeMethodWrappers = rnModule.reactNativeFlows.map { ksFunctionDeclaration ->
-                iosBridgeMethodWrapper(ksFunctionDeclaration, promiseVarName, isReactNativeFlow = true)
+                iosBridgeMethodWrapper(
+                    ksFunctionDeclaration,
+                    promiseVarName,
+                    isReactNativeFlow = true
+                )
             }
 
             addFunction(
@@ -849,11 +853,16 @@ class ToolkitSymbolProcessor(
         ksFunctionDeclaration: KSFunctionDeclaration,
         promiseVarName: String,
         isReactNativeFlow: Boolean = false,
-        ): CodeBlock {
+    ): CodeBlock {
         val useJsonSerialization = true
         val functionName = ksFunctionDeclaration.simpleName.asString()
         return buildCodeBlock {
-            val argsVarName = "args"
+            val argsVarName =
+                if (isReactNativeFlow || ksFunctionDeclaration.parameters.isNotEmpty()) {
+                    "args"
+                } else {
+                    "_"
+                }
             add(
                 "%T(%S) { %N, %N -> %N(",
                 ClassName("$toolkitPackageName.util", "RCTBridgeMethodWrapper"),
@@ -865,7 +874,14 @@ class ToolkitSymbolProcessor(
             add(
                 buildList {
                     if (isReactNativeFlow) {
-                        add(CodeBlock.of("%N[%L] as %T", argsVarName, 0, STRING.copy(nullable = true)))
+                        add(
+                            CodeBlock.of(
+                                "%N[%L] as %T",
+                                argsVarName,
+                                0,
+                                STRING.copy(nullable = true)
+                            )
+                        )
                     }
                     addAll(ksFunctionDeclaration.parameters.map { it.toParameterSpec() }
                         .map<ParameterSpec, ParameterSpec>(if (useJsonSerialization) ::mapKotlinTypeToReactNativeIOSTypeJson else ::mapKotlinTypeToReactNativeIOSType)
@@ -873,7 +889,11 @@ class ToolkitSymbolProcessor(
                             CodeBlock.of(
                                 "%N[%L] as %T",
                                 argsVarName,
-                                if (isReactNativeFlow) { index + 1 } else { index },
+                                if (isReactNativeFlow) {
+                                    index + 1
+                                } else {
+                                    index
+                                },
                                 parameter.type
                             )
                         }
