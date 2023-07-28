@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.6.1
 
 - Fix iOS generation for @ReactNativeFlow methods
 
