@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Handle unused parameter in ios wrapper
+
 ## v0.6.1
 
 - Fix iOS generation for @ReactNativeFlow methods
