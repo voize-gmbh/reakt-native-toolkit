@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Fix iOS generation for @ReactNativeFlow methods
+
 ## v0.6.0
 
 - Add @ReactNativeFlow annotation to expose Flows to RN
