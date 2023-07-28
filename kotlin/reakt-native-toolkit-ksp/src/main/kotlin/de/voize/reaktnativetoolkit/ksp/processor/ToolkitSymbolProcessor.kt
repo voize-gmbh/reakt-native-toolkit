@@ -726,6 +726,7 @@ class ToolkitSymbolProcessor(
             }
 
             addFunctions(functionSpecs)
+            addFunctions(flowFunctionSpecs)
 
             addType(TypeSpec.companionObjectBuilder().apply {
                 superclass(ClassName("platform.darwin", "NSObjectMeta"))
@@ -838,7 +839,8 @@ class ToolkitSymbolProcessor(
                         if (isReactNativeFlow) {
                             add(".%M(%N)", FlowToReactMember, previousVarName)
                         }
-                    })
+                    }
+                )
             )
         }.build()
     }
@@ -863,7 +865,7 @@ class ToolkitSymbolProcessor(
             add(
                 buildList {
                     if (isReactNativeFlow) {
-                        add(CodeBlock.of("%N as %T", argsVarName, List::class.asTypeName().copy(nullable = true)))
+                        add(CodeBlock.of("%N[%L] as %T", argsVarName, 0, STRING.copy(nullable = true)))
                     }
                     addAll(ksFunctionDeclaration.parameters.map { it.toParameterSpec() }
                         .map<ParameterSpec, ParameterSpec>(if (useJsonSerialization) ::mapKotlinTypeToReactNativeIOSTypeJson else ::mapKotlinTypeToReactNativeIOSType)
@@ -871,7 +873,7 @@ class ToolkitSymbolProcessor(
                             CodeBlock.of(
                                 "%N[%L] as %T",
                                 argsVarName,
-                                index,
+                                if (isReactNativeFlow) { index + 1 } else { index },
                                 parameter.type
                             )
                         }
