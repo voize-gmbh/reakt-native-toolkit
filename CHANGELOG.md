@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.6.2
 
 - Handle unused parameter in ios wrapper
 - Handle external class declarations
