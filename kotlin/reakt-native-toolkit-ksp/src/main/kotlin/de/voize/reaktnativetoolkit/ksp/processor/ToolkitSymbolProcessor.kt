@@ -228,7 +228,7 @@ class ToolkitSymbolProcessor(
         }
 
         if (!invoked && JvmPlatform in platformNames && NativePlatform in platformNames) {
-            resolver.generateTypescript(rnModules, codeGenerator)
+            TypescriptGenerator(resolver, codeGenerator).generate(rnModules)
         }
 
         invoked = true
