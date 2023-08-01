@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Stub all external classes with any in TypeScript generation
+
 ## v0.6.2
 
 - Handle unused parameter in ios wrapper
