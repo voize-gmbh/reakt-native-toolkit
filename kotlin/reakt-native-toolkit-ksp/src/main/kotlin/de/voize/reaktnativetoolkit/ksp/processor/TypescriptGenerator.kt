@@ -36,6 +36,7 @@ private const val modelsModule = "models"
 class TypescriptGenerator(
     private val resolver: Resolver,
     private val codeGenerator: CodeGenerator,
+    private val logger: KSPLogger,
 ) {
     fun generate(rnModules: List<ToolkitSymbolProcessor.RNModule>) {
         // Collect all types of function parameters and return types
@@ -399,7 +400,11 @@ class TypescriptGenerator(
                     when (declaration.classKind) {
                         ClassKind.INTERFACE -> error("Interfaces are not supported")
                         ClassKind.CLASS -> {
-                            if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
+                            if (declaration.origin != Origin.KOTLIN) {
+                                // TODO support external classes
+                                logger.warn("External classes are not supported and are stubbed with any: ${declaration.qualifiedName?.asString()}")
+                                TypeName.ANY
+                            } else if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
                                 // data class
                                 TypeName.namedImport(
                                     declaration.getTypescriptNameWithNamespace(),
@@ -410,9 +415,6 @@ class TypescriptGenerator(
                                     declaration.getTypescriptNameWithNamespace(),
                                     module
                                 )
-                            } else if (declaration.origin != Origin.KOTLIN) {
-                                // TODO support external classes
-                                TypeName.ANY
                             } else {
                                 error("Only data classes and sealed classes are supported, found: $declaration")
                             }
