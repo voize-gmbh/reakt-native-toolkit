@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.6.3
 
 - Stub all external classes with any in TypeScript generation
 
