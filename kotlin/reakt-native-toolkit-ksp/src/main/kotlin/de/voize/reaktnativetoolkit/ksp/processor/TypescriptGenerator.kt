@@ -400,16 +400,17 @@ class TypescriptGenerator(
             "kotlinx.datetime.LocalDate" -> TypeName.STRING
             "kotlinx.datetime.LocalDateTime" -> TypeName.STRING
             "kotlinx.datetime.LocalTime" -> TypeName.STRING
-            else -> when (val declaration = ksType.declaration) {
-                is KSClassDeclaration -> {
-                    when (declaration.classKind) {
+            else -> {
+                val declaration = ksType.declaration
+                if (declaration.origin != Origin.KOTLIN) {
+                    // TODO support external classes
+                    logger.warn("External declarations are not supported and are stubbed with any: ${declaration.qualifiedName?.asString()}")
+                    TypeName.ANY
+                } else when (declaration) {
+                    is KSClassDeclaration -> when (declaration.classKind) {
                         ClassKind.INTERFACE -> error("Interfaces are not supported")
                         ClassKind.CLASS -> {
-                            if (declaration.origin != Origin.KOTLIN) {
-                                // TODO support external classes
-                                logger.warn("External classes are not supported and are stubbed with any: ${declaration.qualifiedName?.asString()}")
-                                TypeName.ANY
-                            } else if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
+                            if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
                                 // data class
                                 TypeName.namedImport(
                                     declaration.getTypescriptNameWithNamespace(),
@@ -440,28 +441,28 @@ class TypescriptGenerator(
 
                         ClassKind.ANNOTATION_CLASS -> error("Annotation classes are not supported")
                     }
-                }
 
-                is KSFunctionDeclaration -> {
-                    error("Function declarations are not supported")
-                }
+                    is KSFunctionDeclaration -> {
+                        error("Function declarations are not supported")
+                    }
 
-                is KSTypeAlias -> {
-                    // TODO support type aliases
-                    TypeName.namedImport(declaration.getTypescriptNameWithNamespace(), module)
-                }
+                    is KSTypeAlias -> {
+                        // TODO support type aliases
+                        TypeName.namedImport(declaration.getTypescriptNameWithNamespace(), module)
+                    }
 
-                is KSPropertyDeclaration -> {
-                    error("Property declarations are not supported")
-                }
+                    is KSPropertyDeclaration -> {
+                        error("Property declarations are not supported")
+                    }
 
-                is KSTypeParameter -> {
-                    // TODO handle bounds
-                    TypeName.typeVariable(declaration.name.asString())
-                }
+                    is KSTypeParameter -> {
+                        // TODO handle bounds
+                        TypeName.typeVariable(declaration.name.asString())
+                    }
 
-                else -> {
-                    error("Unsupported declaration: $declaration")
+                    else -> {
+                        error("Unsupported declaration: $declaration")
+                    }
                 }
             }
         }
