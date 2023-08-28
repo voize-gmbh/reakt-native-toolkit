@@ -1,6 +1,7 @@
 package de.voize.reaktnativetoolkit.ksp.processor
 
-import com.google.devtools.ksp.getClassDeclarationByName
+import com.google.devtools.ksp.KspExperimental
+import com.google.devtools.ksp.getAnnotationsByType
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
@@ -28,6 +29,10 @@ import io.outfoxx.typescriptpoet.ParameterSpec
 import io.outfoxx.typescriptpoet.PropertySpec
 import io.outfoxx.typescriptpoet.TypeAliasSpec
 import io.outfoxx.typescriptpoet.TypeName
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonClassDiscriminator
 import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
 
@@ -569,11 +574,17 @@ class TypescriptGenerator(
             }
     }
 
-    private val Resolver.serialNameAnnotationType
-        get() =
-            this.getClassDeclarationByName("kotlinx.serialization.SerialName")
-                ?.asType(emptyList())
-                ?: error("Could not find SerialName annotation")
+    @OptIn(KspExperimental::class)
+    private fun KSDeclaration.getSerialNameAnnotationOrNull(): SerialName? =
+        getAnnotationsByType(SerialName::class).singleOrNull()
+
+    @OptIn(KspExperimental::class)
+    private fun KSDeclaration.assertSerializable(message: () -> String) =
+        getAnnotationsByType(Serializable::class).singleOrNull() ?: error(message)
+
+    @OptIn(KspExperimental::class, ExperimentalSerializationApi::class)
+    private fun KSDeclaration.getJsonClassDiscriminatorAnnotationOrNull(): JsonClassDiscriminator? =
+        getAnnotationsByType(JsonClassDiscriminator::class).singleOrNull()
 
     private fun createTypescriptNamespace(namespace: NamespaceNode): ModuleSpec {
         return ModuleSpec.builder(namespace.name)
@@ -588,14 +599,11 @@ class TypescriptGenerator(
             }.build()
     }
 
+    @OptIn(ExperimentalSerializationApi::class)
     private fun createTypescriptTypeDeclaration(
         declaration: KSDeclaration,
         typescriptFileBuilder: ModuleSpec.Builder,
     ) {
-        val serializableAnnotationType =
-            resolver.getClassDeclarationByName("kotlinx.serialization.Serializable")
-                ?.asType(emptyList())
-                ?: error("Could not find Serializable annotation")
         when (declaration.qualifiedName) {
             else -> when (declaration) {
                 is KSClassDeclaration -> {
@@ -618,8 +626,8 @@ class TypescriptGenerator(
                         ClassKind.CLASS -> {
                             if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
                                 // data class
-                                if (declaration.annotations.none { it.annotationType.resolve() == serializableAnnotationType }) {
-                                    error("Data classes must be annotated with @Serializable: $declaration")
+                                declaration.assertSerializable {
+                                    "Data classes must be annotated with @Serializable: $declaration"
                                 }
                                 val interfaceSpec =
                                     InterfaceSpec.builder(declaration.getTypescriptName()).apply {
@@ -641,17 +649,14 @@ class TypescriptGenerator(
                                 if (sealedBaseType != null) {
                                     error("Sealed classes as direct members of other sealed classes are not supported: $declaration")
                                 }
-                                if (declaration.annotations.none { it.annotationType.resolve() == serializableAnnotationType }) {
-                                    error("Sealed classes must be annotated with @Serializable: $declaration")
+                                declaration.assertSerializable {
+                                    "Sealed classes must be annotated with @Serializable: $declaration"
                                 }
                                 val subclasses = declaration.getSealedSubclasses()
                                 val subclassesToDiscriminator =
                                     subclasses.associateWith { subclassDeclaration ->
-                                        if (subclassDeclaration.annotations.none { it.annotationType.resolve() == resolver.serialNameAnnotationType }) {
-                                            error("Sealed subclasses must be annotated with @SerialName: $subclassDeclaration")
-                                        }
-                                        subclassDeclaration.annotations.single { it.annotationType.resolve() == resolver.serialNameAnnotationType }
-                                            .arguments.single().value as String
+                                        subclassDeclaration.getSerialNameAnnotationOrNull()?.value
+                                            ?: error("Sealed subclasses must be annotated with @SerialName: $subclassDeclaration")
                                     }
                                 val typeEnumName = declaration.getTypescriptName() + "Type"
                                 val typeEnumTypeName = TypeName.implicit(typeEnumName)
@@ -667,6 +672,10 @@ class TypescriptGenerator(
                                     typescriptFileBuilder.addEnum(it)
                                 }
                                 val baseTypeName = declaration.getTypescriptName() + "Base"
+
+                                val defaultDiscriminatorKey = "type"
+                                val discriminatorKey = declaration.getJsonClassDiscriminatorAnnotationOrNull()?.discriminator ?: defaultDiscriminatorKey
+
                                 InterfaceSpec.builder(baseTypeName).apply {
                                     val typeVariable =
                                         TypeName.typeVariable(
@@ -676,7 +685,7 @@ class TypescriptGenerator(
                                     addTypeVariable(typeVariable)
                                     addProperty(
                                         PropertySpec.builder(
-                                            "type",
+                                            discriminatorKey,
                                             typeVariable,
                                         ).build()
                                     )
@@ -700,8 +709,8 @@ class TypescriptGenerator(
                         }
 
                         ClassKind.ENUM_CLASS -> {
-                            if (declaration.annotations.none { it.annotationType.resolve() == serializableAnnotationType }) {
-                                error("Enums must be annotated with @Serializable: $declaration")
+                            declaration.assertSerializable {
+                                "Enums must be annotated with @Serializable: $declaration"
                             }
                             val enumSpec = EnumSpec.builder(declaration.getTypescriptName()).apply {
                                 addModifiers(Modifier.EXPORT)
@@ -721,8 +730,8 @@ class TypescriptGenerator(
 
                         ClassKind.ENUM_ENTRY -> error("Enum entries are not supported")
                         ClassKind.OBJECT -> {
-                            if (declaration.annotations.none { it.annotationType.resolve() == serializableAnnotationType }) {
-                                error("Objects must be annotated with @Serializable: $declaration")
+                            declaration.assertSerializable {
+                                "Objects must be annotated with @Serializable: $declaration"
                             }
                             val interfaceSpec =
                                 InterfaceSpec.builder(declaration.getTypescriptName()).apply {
@@ -802,8 +811,7 @@ class TypescriptGenerator(
 
     private fun toTypescriptPropertySpec(propertyDeclaration: KSPropertyDeclaration): PropertySpec {
         val name =
-            propertyDeclaration.annotations.singleOrNull { it.annotationType.resolve() == resolver.serialNameAnnotationType }
-                ?.let { it.arguments.single().value as String }
+            propertyDeclaration.getSerialNameAnnotationOrNull()?.value
                 ?: propertyDeclaration.simpleName.asString()
         return PropertySpec.builder(
             name,

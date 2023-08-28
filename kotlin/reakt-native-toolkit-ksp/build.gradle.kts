@@ -21,6 +21,7 @@ dependencies {
     implementation(libs.kotlinpoet.metadata)
     implementation(libs.kotlinpoet.ksp)
     implementation(libs.typescriptpoet)
+    implementation(libs.kotlinx.serialization.json)
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {

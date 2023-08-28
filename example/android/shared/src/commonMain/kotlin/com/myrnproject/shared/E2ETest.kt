@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.flowOf
 import de.voize.reaktnativetoolkit.annotation.ReactNativeMethod
 import de.voize.reaktnativetoolkit.annotation.ReactNativeModule
 import de.voize.reaktnativetoolkit.annotation.ReactNativeFlow
+import kotlinx.serialization.json.JsonClassDiscriminator
 
 @ReactNativeModule("E2ETest")
 class E2ETest {
@@ -115,6 +116,11 @@ class E2ETest {
     fun testSealedSubtype(test: TestSealedType.Option1): TestSealedType.Option1 {
         return test
     }
+
+    @ReactNativeMethod
+    fun testSealedCustomDiscriminator(test: TestSealedTypeWithCustomDiscriminator) {
+
+    }
 }
 
 
@@ -158,6 +164,33 @@ sealed class TestSealedType {
     @Serializable
     @SerialName("option3")
     object Option3 : TestSealedType()
+}
+
+@Serializable
+@JsonClassDiscriminator("customType")
+sealed class TestSealedTypeWithCustomDiscriminator {
+    @Serializable
+    @SerialName("option1")
+    data class Option1(
+        val name: String,
+        val nested: Nested,
+    ) : TestSealedTypeWithCustomDiscriminator() {
+        @Serializable
+        data class Nested(
+            val nullable: String?
+        )
+    }
+
+    @Serializable
+    @SerialName("option2")
+    data class Option2(
+        val number: Int,
+        val nonNested: NonNested,
+    ) : TestSealedTypeWithCustomDiscriminator()
+
+    @Serializable
+    @SerialName("option3")
+    object Option3 : TestSealedTypeWithCustomDiscriminator()
 }
 
 @Serializable
