@@ -54,6 +54,23 @@ export namespace com {
        */
       export type TestTypeAlias = Test;
 
+      export enum TestSealedTypeWithCustomDiscriminatorType {
+        Option1 = 'option1',
+        Option2 = 'option2',
+        Option3 = 'option3'
+      }
+
+      interface TestSealedTypeWithCustomDiscriminatorBase<T extends TestSealedTypeWithCustomDiscriminatorType> {
+
+        customType: T;
+
+      }
+
+      /**
+       * Sealed class generated from {@link com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator}
+       */
+      export type TestSealedTypeWithCustomDiscriminator = TestSealedTypeWithCustomDiscriminator.Option1 | TestSealedTypeWithCustomDiscriminator.Option2 | TestSealedTypeWithCustomDiscriminator.Option3;
+
       /**
        * Object generated from {@link com.myrnproject.shared.FlowTest}
        */
@@ -103,6 +120,51 @@ export namespace com {
 
           /**
            * Data class generated from {@link com.myrnproject.shared.TestSealedType.Option1.Nested}
+           */
+          export interface Nested {
+
+            nullable: string | null;
+
+          }
+
+        }
+
+      }
+
+      export namespace TestSealedTypeWithCustomDiscriminator {
+
+        /**
+         * Data class generated from {@link com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option1}
+         */
+        export interface Option1 extends TestSealedTypeWithCustomDiscriminatorBase<TestSealedTypeWithCustomDiscriminatorType.Option1> {
+
+          name: string;
+
+          nested: Option1.Nested;
+
+        }
+
+        /**
+         * Data class generated from {@link com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option2}
+         */
+        export interface Option2 extends TestSealedTypeWithCustomDiscriminatorBase<TestSealedTypeWithCustomDiscriminatorType.Option2> {
+
+          number: number;
+
+          nonNested: NonNested;
+
+        }
+
+        /**
+         * Object generated from {@link com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option3}
+         */
+        export interface Option3 extends TestSealedTypeWithCustomDiscriminatorBase<TestSealedTypeWithCustomDiscriminatorType.Option3> {
+        }
+
+        export namespace Option1 {
+
+          /**
+           * Data class generated from {@link com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option1.Nested}
            */
           export interface Nested {
 

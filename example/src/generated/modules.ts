@@ -70,6 +70,8 @@ interface NativeE2ETestInterface {
 
   testSealedSubtype(test: string): Promise<string>;
 
+  testSealedCustomDiscriminator(test: string): Promise<void>;
+
 }
 
 /**
@@ -142,6 +144,8 @@ export interface E2ETestInterface {
 
   testSealedSubtype(test: com.myrnproject.shared.TestSealedType.Option1): Promise<com.myrnproject.shared.TestSealedType.Option1>;
 
+  testSealedCustomDiscriminator(test: com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator): Promise<void>;
+
 }
 
 interface NativeNameManagerInterface {
@@ -191,7 +195,8 @@ export const E2ETest: E2ETestInterface = {
   example: (input: com.myrnproject.shared.TestSealedType, testEnum: com.myrnproject.shared.Enum | null) => NativeE2ETest.example(JSON.stringify(input), JSON.stringify(testEnum)).then(JSON.parse),
   testKotlinDateTime: (instant: string, localDateTime: string) => NativeE2ETest.testKotlinDateTime(JSON.stringify(instant), JSON.stringify(localDateTime)).then(JSON.parse),
   testTypeAlias: (test: com.myrnproject.shared.TestTypeAlias) => NativeE2ETest.testTypeAlias(JSON.stringify(test)).then(JSON.parse),
-  testSealedSubtype: (test: com.myrnproject.shared.TestSealedType.Option1) => NativeE2ETest.testSealedSubtype(JSON.stringify(test)).then(JSON.parse)
+  testSealedSubtype: (test: com.myrnproject.shared.TestSealedType.Option1) => NativeE2ETest.testSealedSubtype(JSON.stringify(test)).then(JSON.parse),
+  testSealedCustomDiscriminator: (test: com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator) => NativeE2ETest.testSealedCustomDiscriminator(JSON.stringify(test))
 }
 const NativeNameManager = NativeModules.NameManager as NativeNameManagerInterface
 export const NameManager: NameManagerInterface = {
