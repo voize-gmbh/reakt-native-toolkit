@@ -5,6 +5,13 @@ import useIsMounted from './useIsMounted';
 import useMemoArray from './useMemoArray';
 import { Next, Next1, Next2, NextX } from './useFlow.types';
 
+function serializeArg(arg: any): any {
+  if (typeof arg === 'object') {
+    return JSON.stringify(arg);
+  }
+  return arg;
+}
+
 function useFlow<T>(next: Next<T>): T | null;
 function useFlow<T, T1>(next: Next1<T, T1>, arg1: T1): T | null;
 function useFlow<T, T1, T2>(
@@ -33,7 +40,7 @@ function useFlow<T>(next: NextX<T>, ...args: any[]) {
   useEffect(() => {
     (async () => {
       try {
-        const nextState = await next(value, ...memoizedArgs);
+        const nextState = await next(value, ...memoizedArgs.map(serializeArg));
 
         if (isMounted.current) {
           setState((previousState) => {
