@@ -21,6 +21,9 @@ function useFlow<T>(next: NextX<T>, ...args: any[]) {
     args: any[];
   }>({ value: null, args: memoizedArgs });
 
+  /**
+   * When args change, reset the value to null.
+   */
   useEffect(() => {
     if (!_.isEqual(memoizedArgs, valueArgs)) {
       setState({ value: null, args: memoizedArgs });
@@ -35,6 +38,9 @@ function useFlow<T>(next: NextX<T>, ...args: any[]) {
         if (isMounted.current) {
           setState((previousState) => {
             if (!_.isEqual(memoizedArgs, previousState.args)) {
+              /**
+               * We wait until the above useEffect hook resets the value to null before we use any new value.
+               */
               return previousState;
             } else {
               return { value: nextState, args: memoizedArgs };

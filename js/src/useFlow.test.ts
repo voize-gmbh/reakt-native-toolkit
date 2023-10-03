@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react-hooks';
 
 import useFlow from './useFlow';
+import { Next1 } from './useFlow.types';
 
 describe('useFlow', () => {
   it('returns updated value when promise resolves', async () => {
@@ -61,5 +62,35 @@ describe('useFlow', () => {
     await act(async () => promiseReject(new Error('error')));
 
     expect(result.current).toBe(null);
+  });
+
+  describe('arguments', () => {
+    it('returns null when arguments change until next value is available', async () => {
+      let promiseResolve: (value: string) => void = () => {};
+
+      const next: Next1<string, number> = () =>
+        new Promise((resolve) => {
+          promiseResolve = resolve;
+        });
+
+      let arg = 1;
+
+      const { result, rerender } = renderHook(() => useFlow(next, arg));
+
+      expect(result.current).toBe(null);
+
+      await act(async () => promiseResolve('"value1"'));
+
+      expect(result.current).toBe('value1');
+
+      arg = 2;
+      rerender();
+
+      expect(result.current).toBe(null);
+
+      await act(async () => promiseResolve('"value2"'));
+
+      expect(result.current).toBe('value2');
+    });
   });
 });
