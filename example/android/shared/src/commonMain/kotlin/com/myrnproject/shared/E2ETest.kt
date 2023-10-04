@@ -103,7 +103,27 @@ class E2ETest {
     }
 
     @ReactNativeFlow
-    fun testFlowType(test: Int): Flow<FlowTest> {
+    fun testFlowParameterized(arg1: Int): Flow<FlowTest> {
+        return flowOf()
+    }
+
+    @ReactNativeFlow
+    fun testFlowParameterized2(arg1: Int, arg2: String): Flow<FlowTest> {
+        return flowOf()
+    }
+
+    @ReactNativeFlow
+    fun testFlowParameterizedComplex(arg1: Test): Flow<FlowTest> {
+        return flowOf()
+    }
+
+    @ReactNativeFlow
+    fun testFlowParameterizedComplex2(arg1: List<Test>, arg2: Map<String, Test>): Flow<FlowTest> {
+        return flowOf()
+    }
+
+    @ReactNativeFlow
+    fun testFlowParameterizedMany(arg1: Int, arg2: String, arg3: List<String>, arg4: Map<String, Test>): Flow<FlowTest> {
         return flowOf()
     }
 
