@@ -16,6 +16,7 @@ import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeAlias
 import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSTypeReference
+import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.Origin
 import io.outfoxx.typescriptpoet.CodeBlock
 import io.outfoxx.typescriptpoet.CodeBlock.Companion.joinToCode
@@ -212,29 +213,33 @@ class TypescriptGenerator(
                 TypeName.implicit(interfaceName),
                 nativeRNModule,
                 buildList {
-                    addAll(rnModule.reactNativeMethods.map { functionDeclaration ->
-                        val parameters = functionDeclaration.parameters.map {
+                    fun KSValueParameter.toTypedParameterCodeBlock() = CodeBlock.of(
+                        "%N: %T",
+                        name?.asString() ?: error("Parameter must have a name"),
+                        getTypescriptTypeName(type.resolve()),
+                    )
+
+                    fun KSValueParameter.toPassedParameterCodeBlock(): CodeBlock {
+                        val name = name?.asString() ?: error("Parameter must have a name")
+                        return if (needsSerialization(type.resolve())) {
                             CodeBlock.of(
-                                "%N: %T",
-                                it.name?.asString() ?: error("Parameter must have a name"),
-                                getTypescriptTypeName(it.type.resolve()),
+                                "%T.%N(%N)",
+                                TypescriptJsonTypeName,
+                                "stringify",
+                                name,
                             )
+                        } else {
+                            CodeBlock.of("%N", name)
+                        }
+                    }
+
+                    addAll((rnModule.reactNativeMethods).map { functionDeclaration ->
+                        val parameters = functionDeclaration.parameters.map {
+                            it.toTypedParameterCodeBlock()
                         }.joinToCode()
 
                         val parameterSerialization = functionDeclaration.parameters.map {
-                            if (needsSerialization(it.type.resolve())) {
-                                CodeBlock.of(
-                                    "%T.%N(%N)",
-                                    TypescriptJsonTypeName,
-                                    "stringify",
-                                    it.name?.asString() ?: error("Parameter must have a name")
-                                )
-                            } else {
-                                CodeBlock.of(
-                                    "%N",
-                                    it.name?.asString() ?: error("Parameter must have a name")
-                                )
-                            }
+                            it.toPassedParameterCodeBlock()
                         }.joinToCode()
 
                         val returnValueDeserialization =
@@ -262,6 +267,34 @@ class TypescriptGenerator(
                             functionDeclaration.simpleName.asString(),
                             parameterSerialization,
                             returnValueDeserialization,
+                        )
+                    })
+                    addAll((rnModule.reactNativeFlows).map { functionDeclaration ->
+                        val currentValueName = "currentValue"
+
+                        val currentValueParameter = CodeBlock.of(
+                            "%N: %T",
+                            currentValueName,
+                            TypeName.STRING.asNullable(),
+                        )
+
+                        val parameters = functionDeclaration.parameters.map {
+                            it.toTypedParameterCodeBlock()
+                        }
+
+                        val currentValuePassedParameter = CodeBlock.of("%N", currentValueName)
+
+                        val parameterSerialization = functionDeclaration.parameters.map {
+                            it.toPassedParameterCodeBlock()
+                        }
+
+                        CodeBlock.of(
+                            "%N: (%L) => %N.%N(%L)",
+                            functionDeclaration.simpleName.asString(),
+                            (listOf(currentValueParameter) + parameters).joinToCode(),
+                            nativeRNModule,
+                            functionDeclaration.simpleName.asString(),
+                            (listOf(currentValuePassedParameter) + parameterSerialization).joinToCode(),
                         )
                     })
                     if (withEventEmitter) {

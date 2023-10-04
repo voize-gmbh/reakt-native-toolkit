@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Fix that complex ReactNativeFlow parameters are not serialized in JS
+
 ## v0.7.0
 ## v0.6.3
 
