@@ -5,6 +5,10 @@
 - Fix that complex ReactNativeFlow parameters are not serialized in JS
 
 ## v0.7.0
+
+- Add TS generation support for custom sealed class discriminator keys
+- Fix that external enum classes are not stubbed with any in TS generation
+
 ## v0.6.3
 
 - Stub all external classes with any in TypeScript generation
