@@ -129,7 +129,7 @@ class TypescriptGenerator(
             )
             addProperties(
                 rnModule.reactNativeFlows.map { functionDeclaration ->
-                    reactNativeFlowToNextProperty(functionDeclaration)
+                    reactNativeFlowToNextProperty(functionDeclaration, true)
                 }
             )
         }.build()
@@ -184,7 +184,7 @@ class TypescriptGenerator(
             }
             addProperties(
                 rnModule.reactNativeFlows.map { functionDeclaration ->
-                    reactNativeFlowToNextProperty(functionDeclaration)
+                    reactNativeFlowToNextProperty(functionDeclaration, false)
                 }
             )
         }.build()
@@ -346,13 +346,20 @@ class TypescriptGenerator(
         )
     }
 
-    private fun reactNativeFlowToNextProperty(functionDeclaration: KSFunctionDeclaration): PropertySpec {
+    private fun reactNativeFlowToNextProperty(
+        functionDeclaration: KSFunctionDeclaration,
+        useSerializedParameterTypes: Boolean,
+    ): PropertySpec {
         val returnTypeName = getTypescriptTypeName(
             (functionDeclaration.returnType!!.resolve().arguments.single().type
                 ?: error("Flow Type can not use star projection")).resolve()
         )
         val parameters = functionDeclaration.parameters.map {
-            getTypescriptTypeName(it.type.resolve())
+            if (useSerializedParameterTypes) {
+                getTypescriptSerializedTypeName(it.type.resolve())
+            } else {
+                getTypescriptTypeName(it.type.resolve())
+            }
         }
 
         val nextTypeName = when (parameters.size) {
