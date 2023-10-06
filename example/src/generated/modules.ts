@@ -16,9 +16,9 @@ interface NativeE2ETestInterface {
 
   testFlowParameterized2: Next2<com.myrnproject.shared.FlowTest, number, string>;
 
-  testFlowParameterizedComplex: Next1<com.myrnproject.shared.FlowTest, com.myrnproject.shared.Test>;
+  testFlowParameterizedComplex: Next1<com.myrnproject.shared.FlowTest, string>;
 
-  testFlowParameterizedComplex2: Next2<com.myrnproject.shared.FlowTest, Array<com.myrnproject.shared.Test>, Record<string, com.myrnproject.shared.Test>>;
+  testFlowParameterizedComplex2: Next2<com.myrnproject.shared.FlowTest, string, string>;
 
   testFlowParameterizedMany: NextX<com.myrnproject.shared.FlowTest>;
 
