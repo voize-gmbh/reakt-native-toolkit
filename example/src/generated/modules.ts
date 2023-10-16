@@ -72,7 +72,15 @@ interface NativeE2ETestInterface {
 
   example(input: string, testEnum: string): Promise<string>;
 
-  testKotlinDateTime(instant: string, localDateTime: string): Promise<string>;
+  testKotlinDateTime(
+      instant: string,
+      date: string,
+      localDateTime: string,
+      test: string,
+      dateOrNull: string
+  ): Promise<string>;
+
+  getDateTimeTest(): Promise<string>;
 
   testTypeAlias(test: string): Promise<string>;
 
@@ -154,7 +162,15 @@ export interface E2ETestInterface {
   example(input: com.myrnproject.shared.TestSealedType,
       testEnum: com.myrnproject.shared.Enum | null): Promise<com.myrnproject.shared.Test>;
 
-  testKotlinDateTime(instant: string, localDateTime: string): Promise<string>;
+  testKotlinDateTime(
+      instant: string,
+      date: Date,
+      localDateTime: string,
+      test: com.myrnproject.shared.DateTimeTest,
+      dateOrNull: Date | null
+  ): Promise<string>;
+
+  getDateTimeTest(): Promise<com.myrnproject.shared.DateTimeTest>;
 
   testTypeAlias(test: com.myrnproject.shared.TestTypeAlias): Promise<com.myrnproject.shared.TestTypeAlias>;
 
@@ -204,29 +220,341 @@ type _workaround = NativeEventEmitter;
 const NativeE2ETest = NativeModules.E2ETest as NativeE2ETestInterface
 export const E2ETest: E2ETestInterface = {
   ...NativeE2ETest,
-  testDefaultTypes: (string: string, int: number, long: number, float: number, double: number, boolean: boolean, byte: number, char: number, short: number) => NativeE2ETest.testDefaultTypes(string, int, long, float, double, boolean, byte, char, short),
-  testDefaultTypesNullable: (string: string | null, int: number | null, long: number | null, float: number | null, double: number | null, boolean: boolean | null, byte: number | null, char: number | null, short: number | null) => NativeE2ETest.testDefaultTypesNullable(string, int, long, float, double, boolean, byte, char, short),
-  testListAndMap: (list: Array<string>, map: Record<string, string>, nestedList: Array<Array<string>>, nestedMap: Record<string, Record<string, string>>, complexList: Array<com.myrnproject.shared.Test>, complexMap: Record<string, com.myrnproject.shared.Test>) => NativeE2ETest.testListAndMap(JSON.stringify(list), JSON.stringify(map), JSON.stringify(nestedList), JSON.stringify(nestedMap), JSON.stringify(complexList), JSON.stringify(complexMap)).then(JSON.parse),
-  testListAndMapNullable: (list: Array<string> | null, map: Record<string, string> | null, nestedList: Array<Array<string>> | null, nestedMap: Record<string, Record<string, string>> | null, complexList: Array<com.myrnproject.shared.Test> | null, complexMap: Record<string, com.myrnproject.shared.Test> | null, listNullable: Array<string | null>, mapNullable: Record<string, string | null>, nestedListNullable: Array<Array<string | null> | null>, nestedMapNullable: Record<string, Record<string, string | null> | null>, complexListNullable: Array<com.myrnproject.shared.Test | null>, complexMapNullable: Record<string, com.myrnproject.shared.Test | null>) => NativeE2ETest.testListAndMapNullable(JSON.stringify(list), JSON.stringify(map), JSON.stringify(nestedList), JSON.stringify(nestedMap), JSON.stringify(complexList), JSON.stringify(complexMap), JSON.stringify(listNullable), JSON.stringify(mapNullable), JSON.stringify(nestedListNullable), JSON.stringify(nestedMapNullable), JSON.stringify(complexListNullable), JSON.stringify(complexMapNullable)).then(JSON.parse),
-  example: (input: com.myrnproject.shared.TestSealedType, testEnum: com.myrnproject.shared.Enum | null) => NativeE2ETest.example(JSON.stringify(input), JSON.stringify(testEnum)).then(JSON.parse),
-  testKotlinDateTime: (instant: string, localDateTime: string) => NativeE2ETest.testKotlinDateTime(JSON.stringify(instant), JSON.stringify(localDateTime)).then(JSON.parse),
-  testTypeAlias: (test: com.myrnproject.shared.TestTypeAlias) => NativeE2ETest.testTypeAlias(JSON.stringify(test)).then(JSON.parse),
-  testSealedSubtype: (test: com.myrnproject.shared.TestSealedType.Option1) => NativeE2ETest.testSealedSubtype(JSON.stringify(test)).then(JSON.parse),
-  testSealedCustomDiscriminator: (test: com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator) => NativeE2ETest.testSealedCustomDiscriminator(JSON.stringify(test)),
+  testDefaultTypes: (string: string, int: number, long: number, float: number, double: number, boolean: boolean, byte: number, char: number, short: number) =>
+      NativeE2ETest.testDefaultTypes((() => {
+    const temp = string;
+    return temp;
+  })(), (() => {
+    const temp = int;
+    return temp;
+  })(), (() => {
+    const temp = long;
+    return temp;
+  })(), (() => {
+    const temp = float;
+    return temp;
+  })(), (() => {
+    const temp = double;
+    return temp;
+  })(), (() => {
+    const temp = boolean;
+    return temp;
+  })(), (() => {
+    const temp = byte;
+    return temp;
+  })(), (() => {
+    const temp = char;
+    return temp;
+  })(), (() => {
+    const temp = short;
+    return temp;
+  })()).then((result) => (() => {
+    const temp = result;
+    return temp;
+  })()),
+  testDefaultTypesNullable: (string: string | null, int: number | null, long: number | null, float: number | null, double: number | null, boolean: boolean | null, byte: number | null, char: number | null, short: number | null) =>
+      NativeE2ETest.testDefaultTypesNullable((() => {
+    const temp = string;
+    return temp === null ? null : (temp);
+  })(), (() => {
+    const temp = int;
+    return temp === null ? null : (temp);
+  })(), (() => {
+    const temp = long;
+    return temp === null ? null : (temp);
+  })(), (() => {
+    const temp = float;
+    return temp === null ? null : (temp);
+  })(), (() => {
+    const temp = double;
+    return temp === null ? null : (temp);
+  })(), (() => {
+    const temp = boolean;
+    return temp === null ? null : (temp);
+  })(), (() => {
+    const temp = byte;
+    return temp === null ? null : (temp);
+  })(), (() => {
+    const temp = char;
+    return temp === null ? null : (temp);
+  })(), (() => {
+    const temp = short;
+    return temp === null ? null : (temp);
+  })()).then((result) => (() => {
+    const temp = result;
+    return temp === null ? null : (temp);
+  })()),
+  testListAndMap: (list: Array<string>, map: Record<string, string>, nestedList: Array<Array<string>>, nestedMap: Record<string, Record<string, string>>, complexList: Array<com.myrnproject.shared.Test>, complexMap: Record<string, com.myrnproject.shared.Test>) =>
+      NativeE2ETest.testListAndMap(JSON.stringify((() => {
+    const temp = list;
+    return temp.map((it: any) => (() => {
+      const temp_ = it;
+      return temp_;
+    })());
+  })()), JSON.stringify((() => {
+    const temp = map;
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+      const temp_ = value;
+      return temp_;
+    })()]));
+  })()), JSON.stringify((() => {
+    const temp = nestedList;
+    return temp.map((it: any) => (() => {
+      const temp_ = it;
+      return temp_.map((it_: any) => (() => {
+        const temp__ = it_;
+        return temp__;
+      })());
+    })());
+  })()), JSON.stringify((() => {
+    const temp = nestedMap;
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+      const temp_ = value;
+      return Object.fromEntries(Object.entries(temp_).map(([key_, value_]: [string, any]) => [key_, (() => {
+        const temp__ = value_;
+        return temp__;
+      })()]));
+    })()]));
+  })()), JSON.stringify((() => {
+    const temp = complexList;
+    return temp.map((it: any) => (() => {
+      const temp_ = it;
+      return com.myrnproject.shared.toJsonTest(temp_);
+    })());
+  })()), JSON.stringify((() => {
+    const temp = complexMap;
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+      const temp_ = value;
+      return com.myrnproject.shared.toJsonTest(temp_);
+    })()]));
+  })())).then(JSON.parse).then((result) => (() => {
+    const temp = result;
+    return temp.map((it: any) => (() => {
+      const temp_ = it;
+      return temp_;
+    })());
+  })()),
+  testListAndMapNullable: (list: Array<string> | null, map: Record<string, string> | null, nestedList: Array<Array<string>> | null, nestedMap: Record<string, Record<string, string>> | null, complexList: Array<com.myrnproject.shared.Test> | null, complexMap: Record<string, com.myrnproject.shared.Test> | null, listNullable: Array<string | null>, mapNullable: Record<string, string | null>, nestedListNullable: Array<Array<string | null> | null>, nestedMapNullable: Record<string, Record<string, string | null> | null>, complexListNullable: Array<com.myrnproject.shared.Test | null>, complexMapNullable: Record<string, com.myrnproject.shared.Test | null>) =>
+      NativeE2ETest.testListAndMapNullable(JSON.stringify((() => {
+    const temp = list;
+    return temp === null ? null : (temp.map((it: any) => (() => {
+      const temp_ = it;
+      return temp_;
+    })()));
+  })()), JSON.stringify((() => {
+    const temp = map;
+    return temp === null ? null : (Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+      const temp_ = value;
+      return temp_;
+    })()])));
+  })()), JSON.stringify((() => {
+    const temp = nestedList;
+    return temp === null ? null : (temp.map((it: any) => (() => {
+      const temp_ = it;
+      return temp_.map((it_: any) => (() => {
+        const temp__ = it_;
+        return temp__;
+      })());
+    })()));
+  })()), JSON.stringify((() => {
+    const temp = nestedMap;
+    return temp === null ? null : (Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+      const temp_ = value;
+      return Object.fromEntries(Object.entries(temp_).map(([key_, value_]: [string, any]) => [key_, (() => {
+        const temp__ = value_;
+        return temp__;
+      })()]));
+    })()])));
+  })()), JSON.stringify((() => {
+    const temp = complexList;
+    return temp === null ? null : (temp.map((it: any) => (() => {
+      const temp_ = it;
+      return com.myrnproject.shared.toJsonTest(temp_);
+    })()));
+  })()), JSON.stringify((() => {
+    const temp = complexMap;
+    return temp === null ? null : (Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+      const temp_ = value;
+      return com.myrnproject.shared.toJsonTest(temp_);
+    })()])));
+  })()), JSON.stringify((() => {
+    const temp = listNullable;
+    return temp.map((it: any) => (() => {
+      const temp_ = it;
+      return temp_ === null ? null : (temp_);
+    })());
+  })()), JSON.stringify((() => {
+    const temp = mapNullable;
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+      const temp_ = value;
+      return temp_ === null ? null : (temp_);
+    })()]));
+  })()), JSON.stringify((() => {
+    const temp = nestedListNullable;
+    return temp.map((it: any) => (() => {
+      const temp_ = it;
+      return temp_ === null ? null : (temp_.map((it_: any) => (() => {
+        const temp__ = it_;
+        return temp__ === null ? null : (temp__);
+      })()));
+    })());
+  })()), JSON.stringify((() => {
+    const temp = nestedMapNullable;
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+      const temp_ = value;
+      return temp_ === null ? null : (Object.fromEntries(Object.entries(temp_).map(([key_, value_]: [string, any]) => [key_, (() => {
+        const temp__ = value_;
+        return temp__ === null ? null : (temp__);
+      })()])));
+    })()]));
+  })()), JSON.stringify((() => {
+    const temp = complexListNullable;
+    return temp.map((it: any) => (() => {
+      const temp_ = it;
+      return temp_ === null ? null : (com.myrnproject.shared.toJsonTest(temp_));
+    })());
+  })()), JSON.stringify((() => {
+    const temp = complexMapNullable;
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+      const temp_ = value;
+      return temp_ === null ? null : (com.myrnproject.shared.toJsonTest(temp_));
+    })()]));
+  })())).then(JSON.parse).then((result) => (() => {
+    const temp = result;
+    return temp.map((it: any) => (() => {
+      const temp_ = it;
+      return temp_ === null ? null : (temp_);
+    })());
+  })()),
+  example: (input: com.myrnproject.shared.TestSealedType, testEnum: com.myrnproject.shared.Enum | null) =>
+      NativeE2ETest.example(JSON.stringify((() => {
+    const temp = input;
+    return com.myrnproject.shared.toJsonTestSealedType(temp);
+  })()), JSON.stringify((() => {
+    const temp = testEnum;
+    return temp === null ? null : (com.myrnproject.shared.toJsonEnum(temp));
+  })())).then(JSON.parse).then((result) => (() => {
+    const temp = result;
+    return com.myrnproject.shared.fromJsonTest(temp);
+  })()),
+  testKotlinDateTime: (instant: string, date: Date, localDateTime: string, test: com.myrnproject.shared.DateTimeTest, dateOrNull: Date | null) =>
+      NativeE2ETest.testKotlinDateTime(JSON.stringify((() => {
+    const temp = instant;
+    return temp;
+  })()), JSON.stringify((() => {
+    const temp = date;
+    return temp.toISOString();
+  })()), JSON.stringify((() => {
+    const temp = localDateTime;
+    return temp;
+  })()), JSON.stringify((() => {
+    const temp = test;
+    return com.myrnproject.shared.toJsonDateTimeTest(temp);
+  })()), JSON.stringify((() => {
+    const temp = dateOrNull;
+    return temp === null ? null : (temp.toISOString());
+  })())).then(JSON.parse).then((result) => (() => {
+    const temp = result;
+    return temp;
+  })()),
+  getDateTimeTest: () => NativeE2ETest.getDateTimeTest().then(JSON.parse).then((result) => (() => {
+    const temp = result;
+    return com.myrnproject.shared.fromJsonDateTimeTest(temp);
+  })()),
+  testTypeAlias: (test: com.myrnproject.shared.TestTypeAlias) =>
+      NativeE2ETest.testTypeAlias(JSON.stringify((() => {
+    const temp = test;
+    return temp;
+  })())).then(JSON.parse).then((result) => (() => {
+    const temp = result;
+    return temp;
+  })()),
+  testSealedSubtype: (test: com.myrnproject.shared.TestSealedType.Option1) =>
+      NativeE2ETest.testSealedSubtype(JSON.stringify((() => {
+    const temp = test;
+    return com.myrnproject.shared.TestSealedType.toJsonOption1(temp);
+  })())).then(JSON.parse).then((result) => (() => {
+    const temp = result;
+    return com.myrnproject.shared.TestSealedType.fromJsonOption1(temp);
+  })()),
+  testSealedCustomDiscriminator: (test: com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator) =>
+      NativeE2ETest.testSealedCustomDiscriminator(JSON.stringify((() => {
+    const temp = test;
+    return com.myrnproject.shared.toJsonTestSealedTypeWithCustomDiscriminator(temp);
+  })())).then((result) => (() => {
+    const temp = result;
+    return temp;
+  })()),
   testFlow: (currentValue: string | null) => NativeE2ETest.testFlow(currentValue),
   testFlowNullable: (currentValue: string | null) => NativeE2ETest.testFlowNullable(currentValue),
   testFlowComplex: (currentValue: string | null) => NativeE2ETest.testFlowComplex(currentValue),
-  testFlowParameterized: (currentValue: string | null, arg1: number) => NativeE2ETest.testFlowParameterized(currentValue, arg1),
-  testFlowParameterized2: (currentValue: string | null, arg1: number, arg2: string) => NativeE2ETest.testFlowParameterized2(currentValue, arg1, arg2),
-  testFlowParameterizedComplex: (currentValue: string | null, arg1: com.myrnproject.shared.Test) => NativeE2ETest.testFlowParameterizedComplex(currentValue, JSON.stringify(arg1)),
-  testFlowParameterizedComplex2: (currentValue: string | null, arg1: Array<com.myrnproject.shared.Test>, arg2: Record<string, com.myrnproject.shared.Test>) => NativeE2ETest.testFlowParameterizedComplex2(currentValue, JSON.stringify(arg1), JSON.stringify(arg2)),
-  testFlowParameterizedMany: (currentValue: string | null, arg1: number, arg2: string, arg3: Array<string>, arg4: Record<string, com.myrnproject.shared.Test>) => NativeE2ETest.testFlowParameterizedMany(currentValue, arg1, arg2, JSON.stringify(arg3), JSON.stringify(arg4))
+  testFlowParameterized: (currentValue: string | null, arg1: number) =>
+      NativeE2ETest.testFlowParameterized(currentValue, (() => {
+    const temp = arg1;
+    return temp;
+  })()),
+  testFlowParameterized2: (currentValue: string | null, arg1: number, arg2: string) =>
+      NativeE2ETest.testFlowParameterized2(currentValue, (() => {
+    const temp = arg1;
+    return temp;
+  })(), (() => {
+    const temp = arg2;
+    return temp;
+  })()),
+  testFlowParameterizedComplex: (currentValue: string | null, arg1: com.myrnproject.shared.Test) =>
+      NativeE2ETest.testFlowParameterizedComplex(currentValue, JSON.stringify((() => {
+    const temp = arg1;
+    return com.myrnproject.shared.toJsonTest(temp);
+  })())),
+  testFlowParameterizedComplex2: (currentValue: string | null, arg1: Array<com.myrnproject.shared.Test>, arg2: Record<string, com.myrnproject.shared.Test>) =>
+      NativeE2ETest.testFlowParameterizedComplex2(currentValue, JSON.stringify((() => {
+    const temp = arg1;
+    return temp.map((it: any) => (() => {
+      const temp_ = it;
+      return com.myrnproject.shared.toJsonTest(temp_);
+    })());
+  })()), JSON.stringify((() => {
+    const temp = arg2;
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+      const temp_ = value;
+      return com.myrnproject.shared.toJsonTest(temp_);
+    })()]));
+  })())),
+  testFlowParameterizedMany: (currentValue: string | null, arg1: number, arg2: string, arg3: Array<string>, arg4: Record<string, com.myrnproject.shared.Test>) =>
+      NativeE2ETest.testFlowParameterizedMany(currentValue, (() => {
+    const temp = arg1;
+    return temp;
+  })(), (() => {
+    const temp = arg2;
+    return temp;
+  })(), JSON.stringify((() => {
+    const temp = arg3;
+    return temp.map((it: any) => (() => {
+      const temp_ = it;
+      return temp_;
+    })());
+  })()), JSON.stringify((() => {
+    const temp = arg4;
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+      const temp_ = value;
+      return com.myrnproject.shared.toJsonTest(temp_);
+    })()]));
+  })()))
 }
 const NativeNameManager = NativeModules.NameManager as NativeNameManagerInterface
 export const NameManager: NameManagerInterface = {
   ...NativeNameManager,
-  setName: (name: string) => NativeNameManager.setName(name),
-  getName: () => NativeNameManager.getName(),
+  setName: (name: string) => NativeNameManager.setName((() => {
+    const temp = name;
+    return temp;
+  })()).then((result) => (() => {
+    const temp = result;
+    return temp;
+  })()),
+  getName: () => NativeNameManager.getName().then((result) => (() => {
+    const temp = result;
+    return temp === null ? null : (temp);
+  })()),
   name: (currentValue: string | null) => NativeNameManager.name(currentValue)
 }
 const NativeNotificationDemo = NativeModules.NotificationDemo as NativeNotificationDemoInterface

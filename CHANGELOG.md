@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Add mapping kotlin date types to js support
+
 ## v0.7.1
 
 - Fix that complex ReactNativeFlow parameters are not serialized in JS

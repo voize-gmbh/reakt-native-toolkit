@@ -16,6 +16,7 @@ private const val NativePlatform = "Native"
 class ToolkitSymbolProcessor(
     private val codeGenerator: CodeGenerator,
     private val platforms: List<PlatformInfo>,
+    private val options: Map<String, String>,
     private val logger: KSPLogger,
 ) : SymbolProcessor {
     private var invoked = false
@@ -228,7 +229,7 @@ class ToolkitSymbolProcessor(
         }
 
         if (!invoked && JvmPlatform in platformNames && NativePlatform in platformNames) {
-            TypescriptGenerator(resolver, codeGenerator, logger).generate(rnModules)
+            TypescriptGenerator(resolver, codeGenerator, options, logger).generate(rnModules)
         }
 
         invoked = true
@@ -1143,6 +1144,7 @@ class ToolkitSymbolProcessorProvider : SymbolProcessorProvider {
         return ToolkitSymbolProcessor(
             environment.codeGenerator,
             environment.platforms,
+            environment.options,
             environment.logger
         )
     }

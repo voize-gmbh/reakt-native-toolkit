@@ -301,6 +301,7 @@ There are also helper `getModules` to convert a `List<ReactNativeModuleProvider>
 ### Expose Kotlin flows to React Native
 
 The toolkit allows you to directly expose Kotlin Flows to React Native and supplies you with utilities to interact with them.
+This is usefull for flows which represent a state.
 
 A flow exposed to React Native could look like this:
 
@@ -345,6 +346,7 @@ function useCounter() {
 ```
 
 With `useFlow(Counter.count)` we can "subscribe" to the flow value. The hook will trigger a rerender whenever the flow value changes.
+For each subscription the native flow is consumed multiple times, a new subscription is created after each value change. Make sure your flow returns the same value ("state") for each new subscription and does not return initial values or replay values.
 
 The `count` method of the `Counter` native module is typed as `Next<T>` which is a type alias for `(currentValue: string | null) => Promise<string>`.
 Flow values are JSON serialized and deserialized when they are sent to and from the native module.
@@ -359,6 +361,37 @@ This is why `previous` is a string.
 
 `useFlow` initiates an interaction loop with this suspension: It initially calls the native module method with `null` as the `previous` value and suspends until the native module responds with a new value. It then calls the native module again with the new value and suspends again until the native module responds with a new value. This loop continues until the component is unmounted.
 
+### Mapping Kotlin types to JS types
+
+The toolkit will automatically map Kotlin types to JS types and vice versa.
+Primitive types like `Int`, `Double`, `Boolean` and `String` are mapped to their JS equivalents.
+`List` and `Map` are mapped to their JS equivalents.
+Complex types are mapped to JS objects with matching generated Typescript interfaces.
+The mapping of date time types can be configured via the `@JSType` annotation or via ksp arguments.
+By default all date time types are mapped to their string representation in js.
+The default for `Instant` can be overridden with the ksp argument `reakt.native.toolkit.defaultInstantJsType`.
+Either `string` or `date` can be used as the value for this argument or the `@JSType` annotation.
+
+
+```kotlin
+// build.gradle.kts
+ksp {
+    arg("reakt.native.toolkit.defaultInstantJsType", "string")
+}
+```
+
+```kotlin
+import kotlinx.datetime.Instant
+import kotlinx.serialization.Serializable
+import de.voize.reaktnativetoolkit.annotation.JSType
+
+@Serializable
+data class Test(
+    val instant: Instant, // mapped to string in js
+    val date: @JSType("date") Instant, // mapped to date in js
+    val string: @JSType("string") Instant, // mapped to string in js
+)
+```
 ### Using event emitter
 
 With the toolkit you can also use event emitter in your common class module and the platform-specific event emitter setup is generated for you.
