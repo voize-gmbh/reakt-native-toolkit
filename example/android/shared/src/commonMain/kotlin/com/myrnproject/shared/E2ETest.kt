@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.flowOf
 import de.voize.reaktnativetoolkit.annotation.ReactNativeMethod
 import de.voize.reaktnativetoolkit.annotation.ReactNativeModule
 import de.voize.reaktnativetoolkit.annotation.ReactNativeFlow
+import de.voize.reaktnativetoolkit.annotation.JSType
 import kotlinx.serialization.json.JsonClassDiscriminator
 
 @ReactNativeModule("E2ETest")
@@ -83,8 +84,13 @@ class E2ETest {
 
 
     @ReactNativeMethod
-    fun testKotlinDateTime(instant: Instant, localDateTime: LocalDateTime): Duration {
+    fun testKotlinDateTime(instant: Instant, date: @JSType("date") Instant, localDateTime: LocalDateTime, test: DateTimeTest, dateOrNull: @JSType("date") Instant?): Duration {
         return 5.seconds
+    }
+
+    @ReactNativeMethod
+    fun getDateTimeTest(): DateTimeTest {
+        error("Not implemented")
     }
 
     @ReactNativeFlow
@@ -229,3 +235,14 @@ enum class Enum {
 object FlowTest
 
 typealias TestTypeAlias = Test
+
+@Serializable
+data class DateTimeTest(
+    val instant: Instant,
+    val date: @JSType("date") Instant,
+    val dateAsString: @JSType("string") Instant,
+    val localDateTime: LocalDateTime,
+    val duration: Duration,
+    val map: Map<String, @JSType("date") Instant>,
+    val dateOrNull: @JSType("date") Instant?,
+)
