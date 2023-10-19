@@ -107,7 +107,10 @@ export namespace com {
               })(),
               map: (() => {
                 const temp = json['map'];
-                return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+                return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+                  const temp_ = key;
+                  return temp_;
+                })(), (() => {
                   const temp_ = value;
                   return com.myrnproject.shared.Test.fromJsonNested(temp_);
                 })()]));
@@ -141,7 +144,10 @@ export namespace com {
               })(),
               map: (() => {
                 const temp = value['map'];
-                return Object.fromEntries(Object.entries(temp).map(([key, value_]: [string, any]) => [key, (() => {
+                return Object.fromEntries(Object.entries(temp).map(([key, value_]: [any, any]) => [(() => {
+                  const temp_ = key;
+                  return temp_;
+                })(), (() => {
                   const temp_ = value_;
                   return com.myrnproject.shared.Test.toJsonNested(temp_);
                 })()]));
@@ -205,7 +211,10 @@ export namespace com {
               })(),
               map: (() => {
                 const temp = json['map'];
-                return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+                return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+                  const temp_ = key;
+                  return temp_;
+                })(), (() => {
                   const temp_ = value;
                   return new Date(temp_);
                 })()]));
@@ -244,7 +253,10 @@ export namespace com {
               })(),
               map: (() => {
                 const temp = value['map'];
-                return Object.fromEntries(Object.entries(temp).map(([key, value_]: [string, any]) => [key, (() => {
+                return Object.fromEntries(Object.entries(temp).map(([key, value_]: [any, any]) => [(() => {
+                  const temp_ = key;
+                  return temp_;
+                })(), (() => {
                   const temp_ = value_;
                   return temp_.toISOString();
                 })()]));

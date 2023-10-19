@@ -88,6 +88,8 @@ interface NativeE2ETestInterface {
 
   testSealedCustomDiscriminator(test: string): Promise<void>;
 
+  testMapWithEnumKey(map: string): Promise<string>;
+
 }
 
 /**
@@ -177,6 +179,8 @@ export interface E2ETestInterface {
   testSealedSubtype(test: com.myrnproject.shared.TestSealedType.Option1): Promise<com.myrnproject.shared.TestSealedType.Option1>;
 
   testSealedCustomDiscriminator(test: com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator): Promise<void>;
+
+  testMapWithEnumKey(map: Record<com.myrnproject.shared.Enum, string>): Promise<Record<com.myrnproject.shared.Enum, string>>;
 
 }
 
@@ -293,7 +297,10 @@ export const E2ETest: E2ETestInterface = {
     })());
   })()), JSON.stringify((() => {
     const temp = map;
-    return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+      const temp_ = key;
+      return temp_;
+    })(), (() => {
       const temp_ = value;
       return temp_;
     })()]));
@@ -308,9 +315,15 @@ export const E2ETest: E2ETestInterface = {
     })());
   })()), JSON.stringify((() => {
     const temp = nestedMap;
-    return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+      const temp_ = key;
+      return temp_;
+    })(), (() => {
       const temp_ = value;
-      return Object.fromEntries(Object.entries(temp_).map(([key_, value_]: [string, any]) => [key_, (() => {
+      return Object.fromEntries(Object.entries(temp_).map(([key_, value_]: [any, any]) => [(() => {
+        const temp__ = key_;
+        return temp__;
+      })(), (() => {
         const temp__ = value_;
         return temp__;
       })()]));
@@ -323,7 +336,10 @@ export const E2ETest: E2ETestInterface = {
     })());
   })()), JSON.stringify((() => {
     const temp = complexMap;
-    return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+      const temp_ = key;
+      return temp_;
+    })(), (() => {
       const temp_ = value;
       return com.myrnproject.shared.toJsonTest(temp_);
     })()]));
@@ -343,7 +359,10 @@ export const E2ETest: E2ETestInterface = {
     })()));
   })()), JSON.stringify((() => {
     const temp = map;
-    return temp === null ? null : (Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+    return temp === null ? null : (Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+      const temp_ = key;
+      return temp_;
+    })(), (() => {
       const temp_ = value;
       return temp_;
     })()])));
@@ -358,9 +377,15 @@ export const E2ETest: E2ETestInterface = {
     })()));
   })()), JSON.stringify((() => {
     const temp = nestedMap;
-    return temp === null ? null : (Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+    return temp === null ? null : (Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+      const temp_ = key;
+      return temp_;
+    })(), (() => {
       const temp_ = value;
-      return Object.fromEntries(Object.entries(temp_).map(([key_, value_]: [string, any]) => [key_, (() => {
+      return Object.fromEntries(Object.entries(temp_).map(([key_, value_]: [any, any]) => [(() => {
+        const temp__ = key_;
+        return temp__;
+      })(), (() => {
         const temp__ = value_;
         return temp__;
       })()]));
@@ -373,7 +398,10 @@ export const E2ETest: E2ETestInterface = {
     })()));
   })()), JSON.stringify((() => {
     const temp = complexMap;
-    return temp === null ? null : (Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+    return temp === null ? null : (Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+      const temp_ = key;
+      return temp_;
+    })(), (() => {
       const temp_ = value;
       return com.myrnproject.shared.toJsonTest(temp_);
     })()])));
@@ -385,7 +413,10 @@ export const E2ETest: E2ETestInterface = {
     })());
   })()), JSON.stringify((() => {
     const temp = mapNullable;
-    return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+      const temp_ = key;
+      return temp_;
+    })(), (() => {
       const temp_ = value;
       return temp_ === null ? null : (temp_);
     })()]));
@@ -400,9 +431,15 @@ export const E2ETest: E2ETestInterface = {
     })());
   })()), JSON.stringify((() => {
     const temp = nestedMapNullable;
-    return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+      const temp_ = key;
+      return temp_;
+    })(), (() => {
       const temp_ = value;
-      return temp_ === null ? null : (Object.fromEntries(Object.entries(temp_).map(([key_, value_]: [string, any]) => [key_, (() => {
+      return temp_ === null ? null : (Object.fromEntries(Object.entries(temp_).map(([key_, value_]: [any, any]) => [(() => {
+        const temp__ = key_;
+        return temp__;
+      })(), (() => {
         const temp__ = value_;
         return temp__ === null ? null : (temp__);
       })()])));
@@ -415,7 +452,10 @@ export const E2ETest: E2ETestInterface = {
     })());
   })()), JSON.stringify((() => {
     const temp = complexMapNullable;
-    return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+      const temp_ = key;
+      return temp_;
+    })(), (() => {
       const temp_ = value;
       return temp_ === null ? null : (com.myrnproject.shared.toJsonTest(temp_));
     })()]));
@@ -485,6 +525,26 @@ export const E2ETest: E2ETestInterface = {
     const temp = result;
     return temp;
   })()),
+  testMapWithEnumKey: (map: Record<com.myrnproject.shared.Enum, string>) =>
+      NativeE2ETest.testMapWithEnumKey(JSON.stringify((() => {
+    const temp = map;
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+      const temp_ = key;
+      return com.myrnproject.shared.toJsonEnum(temp_);
+    })(), (() => {
+      const temp_ = value;
+      return temp_;
+    })()]));
+  })())).then(JSON.parse).then((result) => (() => {
+    const temp = result;
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+      const temp_ = key;
+      return com.myrnproject.shared.fromJsonEnum(temp_);
+    })(), (() => {
+      const temp_ = value;
+      return temp_;
+    })()]));
+  })()),
   testFlow: (currentValue: string | null) => NativeE2ETest.testFlow(currentValue),
   testFlowNullable: (currentValue: string | null) => NativeE2ETest.testFlowNullable(currentValue),
   testFlowComplex: (currentValue: string | null) => NativeE2ETest.testFlowComplex(currentValue),
@@ -515,7 +575,10 @@ export const E2ETest: E2ETestInterface = {
     })());
   })()), JSON.stringify((() => {
     const temp = arg2;
-    return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+      const temp_ = key;
+      return temp_;
+    })(), (() => {
       const temp_ = value;
       return com.myrnproject.shared.toJsonTest(temp_);
     })()]));
@@ -535,7 +598,10 @@ export const E2ETest: E2ETestInterface = {
     })());
   })()), JSON.stringify((() => {
     const temp = arg4;
-    return Object.fromEntries(Object.entries(temp).map(([key, value]: [string, any]) => [key, (() => {
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+      const temp_ = key;
+      return temp_;
+    })(), (() => {
       const temp_ = value;
       return com.myrnproject.shared.toJsonTest(temp_);
     })()]));

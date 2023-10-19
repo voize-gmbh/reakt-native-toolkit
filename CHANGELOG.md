@@ -2,6 +2,8 @@
 
 ## unreleased
 
+- Map keys of maps correctly in JS
+
 ## v0.8.1
 
 - Fix trigger for publish artifact job

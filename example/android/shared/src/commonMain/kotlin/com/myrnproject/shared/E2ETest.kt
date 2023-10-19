@@ -147,6 +147,11 @@ class E2ETest {
     fun testSealedCustomDiscriminator(test: TestSealedTypeWithCustomDiscriminator) {
 
     }
+
+    @ReactNativeMethod
+    fun testMapWithEnumKey(map: Map<Enum, String>): Map<Enum, String> {
+        return map
+    }
 }
 
 

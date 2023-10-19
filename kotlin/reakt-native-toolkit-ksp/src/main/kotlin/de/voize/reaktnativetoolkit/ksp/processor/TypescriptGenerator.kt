@@ -768,7 +768,7 @@ class TypescriptGenerator(
                     nameAllocator.newName("key", mapItemKeyTag)
                     nameAllocator.newName("value", mapItemValueTag)
                     CodeBlock.of(
-                        "%T.%N(%T.%N(%N).map(([%N, %N]: [%T, %T]) => [%N, %L]))",
+                        "%T.%N(%T.%N(%N).map(([%N, %N]: [%T, %T]) => [%L, %L]))",
                         TypescriptObjectTypeName,
                         "fromEntries",
                         TypescriptObjectTypeName,
@@ -776,10 +776,10 @@ class TypescriptGenerator(
                         nonNullVariableName,
                         nameAllocator[mapItemKeyTag],
                         nameAllocator[mapItemValueTag],
-                        TypeName.STRING,
                         TypeName.ANY,
-                        nameAllocator[mapItemKeyTag],
-                        convertTypeArgument(CodeBlock.of("%N", nameAllocator[mapItemValueTag]), 1)
+                        TypeName.ANY,
+                        convertTypeArgument(CodeBlock.of("%N", nameAllocator[mapItemKeyTag]), 0),
+                        convertTypeArgument(CodeBlock.of("%N", nameAllocator[mapItemValueTag]), 1),
                     )
                 }
 
@@ -947,7 +947,7 @@ class TypescriptGenerator(
                     nameAllocator.newName("key", mapItemKeyTag)
                     nameAllocator.newName("value", mapItemValueTag)
                     CodeBlock.of(
-                        "%T.%N(%T.%N(%N).map(([%N, %N]: [%T, %T]) => [%N, %L]))",
+                        "%T.%N(%T.%N(%N).map(([%N, %N]: [%T, %T]) => [%L, %L]))",
                         TypescriptObjectTypeName,
                         "fromEntries",
                         TypescriptObjectTypeName,
@@ -955,10 +955,10 @@ class TypescriptGenerator(
                         nonNullVariableName,
                         nameAllocator[mapItemKeyTag],
                         nameAllocator[mapItemValueTag],
-                        TypeName.STRING,
                         TypeName.ANY,
-                        nameAllocator[mapItemKeyTag],
-                        convertTypeArgument(CodeBlock.of("%N", nameAllocator[mapItemValueTag]), 1)
+                        TypeName.ANY,
+                        convertTypeArgument(CodeBlock.of("%N", nameAllocator[mapItemKeyTag]), 0),
+                        convertTypeArgument(CodeBlock.of("%N", nameAllocator[mapItemValueTag]), 1),
                     )
                 }
 
