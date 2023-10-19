@@ -2,6 +2,8 @@
 
 ## unreleased
 
+## v0.8.0
+
 - Add mapping kotlin date types to js support
 
 ## v0.7.1
