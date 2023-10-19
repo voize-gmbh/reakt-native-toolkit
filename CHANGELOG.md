@@ -2,6 +2,8 @@
 
 ## unreleased
 
+## v0.8.1
+
 - Fix trigger for publish artifact job
 
 ## v0.8.0
