@@ -1,7 +1,7 @@
 name: Publish artifacts
 on:
   release:
-    types: [created]
+    types: [published]
 jobs:
   publish-npm:
     name: Build and publish to NPM

@@ -2,6 +2,8 @@
 
 ## unreleased
 
+- Fix trigger for publish artifact job
+
 ## v0.8.0
 
 - Add mapping kotlin date types to js support
