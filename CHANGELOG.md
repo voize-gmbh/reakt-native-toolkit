@@ -2,6 +2,8 @@
 
 ## unreleased
 
+## v0.8.2
+
 - Map keys of maps correctly in JS
 
 ## v0.8.1
