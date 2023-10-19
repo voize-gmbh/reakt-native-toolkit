@@ -133,6 +133,16 @@ class E2ETest {
         return flowOf()
     }
 
+    @ReactNativeFlow
+    fun testFlowReturnInstant(): Flow<Instant> {
+        return flowOf()
+    }
+
+    @ReactNativeFlow
+    fun testFlowReturnInstantAsDate(): Flow<@JSType("date") Instant> {
+        return flowOf()
+    }
+
     @ReactNativeMethod
     fun testTypeAlias(test: TestTypeAlias): TestTypeAlias {
         return test

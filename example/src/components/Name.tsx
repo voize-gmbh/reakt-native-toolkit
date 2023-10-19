@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { Button, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useFlow } from 'reakt-native-toolkit';
 import { NameManager } from '../generated/modules';
 
 const Name: React.FC = () => {
   const [input, setInput] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const name = useFlow(NameManager.name);
+  const name = NameManager.useName();
 
   const setNameInNative = async () => {
     try {

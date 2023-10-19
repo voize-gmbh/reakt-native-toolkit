@@ -12,6 +12,7 @@ function useFlow<T, T1, T2>(
   arg1: T1,
   arg2: T2,
 ): T | null;
+function useFlow<T>(next: NextX<T>, ...args: any[]): T | null;
 function useFlow<T>(next: NextX<T>, ...args: any[]) {
   const memoizedArgs = useMemoArray(args);
   const isMounted = useIsMounted();
@@ -51,7 +52,7 @@ function useFlow<T>(next: NextX<T>, ...args: any[]) {
         console.error(`Next value promise in useFlow was rejected: ${error}`);
       }
     })();
-  }, [next, value, memoizedArgs]);
+  }, [next, value, memoizedArgs, isMounted]);
 
   return useMemo<T | null>(
     () =>

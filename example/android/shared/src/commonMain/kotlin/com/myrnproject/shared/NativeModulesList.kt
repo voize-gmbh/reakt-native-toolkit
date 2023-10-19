@@ -10,5 +10,6 @@ fun getNativeModuleProviders(
     return listOf(
         NameManagerProvider(persistentConfig),
         NotificationDemoProvider(lifecycleScope),
+        TimeProviderProvider(lifecycleScope),
     )
 }

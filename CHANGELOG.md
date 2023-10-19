@@ -2,6 +2,10 @@
 
 ## unreleased
 
+- Generate hooks for flows in RN modules
+- Map types returned by flows in JS
+- Update documentation to use generated hooks instead of useFlow
+
 ## v0.8.2
 
 - Map keys of maps correctly in JS
