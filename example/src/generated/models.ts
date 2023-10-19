@@ -94,36 +94,36 @@ export namespace com {
        */
       export function fromJsonTest(json: any): Test {
         return {
-              name: (() => {
-                const temp = json['name'];
-                return temp;
-              })(),
-              list: (() => {
-                const temp = json['list'];
-                return temp.map((it: any) => (() => {
-                  const temp_ = it;
-                  return com.myrnproject.shared.Test.fromJsonNested(temp_);
-                })());
-              })(),
-              map: (() => {
-                const temp = json['map'];
-                return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
-                  const temp_ = key;
-                  return temp_;
-                })(), (() => {
-                  const temp_ = value;
-                  return com.myrnproject.shared.Test.fromJsonNested(temp_);
-                })()]));
-              })(),
-              long: (() => {
-                const temp = json['long'];
-                return temp;
-              })(),
-              bar: (() => {
-                const temp = json['bar'];
-                return temp;
-              })()
-            };
+          name: ((() => {
+            const temp = json['name'];
+            return temp;
+          })()) as string,
+          list: ((() => {
+            const temp = json['list'];
+            return temp.map((it: any) => ((() => {
+              const temp_ = it;
+              return com.myrnproject.shared.Test.fromJsonNested(temp_);
+            })()) as com.myrnproject.shared.Test.Nested);
+          })()) as Array<com.myrnproject.shared.Test.Nested>,
+          map: ((() => {
+            const temp = json['map'];
+            return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [((() => {
+              const temp_ = key;
+              return temp_;
+            })()) as string, ((() => {
+              const temp_ = value;
+              return com.myrnproject.shared.Test.fromJsonNested(temp_);
+            })()) as com.myrnproject.shared.Test.Nested]));
+          })()) as Record<string, com.myrnproject.shared.Test.Nested>,
+          long: ((() => {
+            const temp = json['long'];
+            return temp;
+          })()) as number,
+          bar: ((() => {
+            const temp = json['bar'];
+            return temp;
+          })()) as number
+        };
       }
 
       /**
@@ -131,36 +131,36 @@ export namespace com {
        */
       export function toJsonTest(value: Test): any {
         return {
-              name: (() => {
-                const temp = value['name'];
-                return temp;
-              })(),
-              list: (() => {
-                const temp = value['list'];
-                return temp.map((it: any) => (() => {
-                  const temp_ = it;
-                  return com.myrnproject.shared.Test.toJsonNested(temp_);
-                })());
-              })(),
-              map: (() => {
-                const temp = value['map'];
-                return Object.fromEntries(Object.entries(temp).map(([key, value_]: [any, any]) => [(() => {
-                  const temp_ = key;
-                  return temp_;
-                })(), (() => {
-                  const temp_ = value_;
-                  return com.myrnproject.shared.Test.toJsonNested(temp_);
-                })()]));
-              })(),
-              long: (() => {
-                const temp = value['long'];
-                return temp;
-              })(),
-              bar: (() => {
-                const temp = value['bar'];
-                return temp;
-              })()
-            };
+          name: (() => {
+            const temp = value['name'];
+            return temp;
+          })(),
+          list: (() => {
+            const temp = value['list'];
+            return temp.map((it: any) => (() => {
+              const temp_ = it;
+              return com.myrnproject.shared.Test.toJsonNested(temp_);
+            })());
+          })(),
+          map: (() => {
+            const temp = value['map'];
+            return Object.fromEntries(Object.entries(temp).map(([key, value_]: [any, any]) => [(() => {
+              const temp_ = key;
+              return temp_;
+            })(), (() => {
+              const temp_ = value_;
+              return com.myrnproject.shared.Test.toJsonNested(temp_);
+            })()]));
+          })(),
+          long: (() => {
+            const temp = value['long'];
+            return temp;
+          })(),
+          bar: (() => {
+            const temp = value['bar'];
+            return temp;
+          })()
+        };
       }
 
       /**
@@ -189,41 +189,41 @@ export namespace com {
        */
       export function fromJsonDateTimeTest(json: any): DateTimeTest {
         return {
-              instant: (() => {
-                const temp = json['instant'];
-                return temp;
-              })(),
-              date: (() => {
-                const temp = json['date'];
-                return new Date(temp);
-              })(),
-              dateAsString: (() => {
-                const temp = json['dateAsString'];
-                return temp;
-              })(),
-              localDateTime: (() => {
-                const temp = json['localDateTime'];
-                return temp;
-              })(),
-              duration: (() => {
-                const temp = json['duration'];
-                return temp;
-              })(),
-              map: (() => {
-                const temp = json['map'];
-                return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
-                  const temp_ = key;
-                  return temp_;
-                })(), (() => {
-                  const temp_ = value;
-                  return new Date(temp_);
-                })()]));
-              })(),
-              dateOrNull: (() => {
-                const temp = json['dateOrNull'];
-                return temp === null ? null : (new Date(temp));
-              })()
-            };
+          instant: ((() => {
+            const temp = json['instant'];
+            return temp;
+          })()) as string,
+          date: ((() => {
+            const temp = json['date'];
+            return new Date(temp);
+          })()) as Date,
+          dateAsString: ((() => {
+            const temp = json['dateAsString'];
+            return temp;
+          })()) as string,
+          localDateTime: ((() => {
+            const temp = json['localDateTime'];
+            return temp;
+          })()) as string,
+          duration: ((() => {
+            const temp = json['duration'];
+            return temp;
+          })()) as string,
+          map: ((() => {
+            const temp = json['map'];
+            return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [((() => {
+              const temp_ = key;
+              return temp_;
+            })()) as string, ((() => {
+              const temp_ = value;
+              return new Date(temp_);
+            })()) as Date]));
+          })()) as Record<string, Date>,
+          dateOrNull: ((() => {
+            const temp = json['dateOrNull'];
+            return temp === null ? null : (new Date(temp));
+          })()) as Date | null
+        };
       }
 
       /**
@@ -231,41 +231,41 @@ export namespace com {
        */
       export function toJsonDateTimeTest(value: DateTimeTest): any {
         return {
-              instant: (() => {
-                const temp = value['instant'];
-                return temp;
-              })(),
-              date: (() => {
-                const temp = value['date'];
-                return temp.toISOString();
-              })(),
-              dateAsString: (() => {
-                const temp = value['dateAsString'];
-                return temp;
-              })(),
-              localDateTime: (() => {
-                const temp = value['localDateTime'];
-                return temp;
-              })(),
-              duration: (() => {
-                const temp = value['duration'];
-                return temp;
-              })(),
-              map: (() => {
-                const temp = value['map'];
-                return Object.fromEntries(Object.entries(temp).map(([key, value_]: [any, any]) => [(() => {
-                  const temp_ = key;
-                  return temp_;
-                })(), (() => {
-                  const temp_ = value_;
-                  return temp_.toISOString();
-                })()]));
-              })(),
-              dateOrNull: (() => {
-                const temp = value['dateOrNull'];
-                return temp === null ? null : (temp.toISOString());
-              })()
-            };
+          instant: (() => {
+            const temp = value['instant'];
+            return temp;
+          })(),
+          date: (() => {
+            const temp = value['date'];
+            return temp.toISOString();
+          })(),
+          dateAsString: (() => {
+            const temp = value['dateAsString'];
+            return temp;
+          })(),
+          localDateTime: (() => {
+            const temp = value['localDateTime'];
+            return temp;
+          })(),
+          duration: (() => {
+            const temp = value['duration'];
+            return temp;
+          })(),
+          map: (() => {
+            const temp = value['map'];
+            return Object.fromEntries(Object.entries(temp).map(([key, value_]: [any, any]) => [(() => {
+              const temp_ = key;
+              return temp_;
+            })(), (() => {
+              const temp_ = value_;
+              return temp_.toISOString();
+            })()]));
+          })(),
+          dateOrNull: (() => {
+            const temp = value['dateOrNull'];
+            return temp === null ? null : (temp.toISOString());
+          })()
+        };
       }
 
       /**
@@ -277,10 +277,11 @@ export namespace com {
        * Mapping generated from {@link com.myrnproject.shared.TestTypeAlias}
        */
       export function fromJsonTestTypeAlias(json: any): Test {
-        return (() => {
+        return ((() => {
           const temp = json;
           return com.myrnproject.shared.fromJsonTest(temp);
-        })()}
+        })()) as com.myrnproject.shared.Test;
+      }
 
       /**
        * Mapping generated from {@link com.myrnproject.shared.TestTypeAlias}
@@ -289,7 +290,8 @@ export namespace com {
         return (() => {
           const temp = value;
           return com.myrnproject.shared.toJsonTest(temp);
-        })()}
+        })();
+      }
 
       export enum TestSealedTypeWithCustomDiscriminatorType {
         Option1 = 'option1',
@@ -368,11 +370,11 @@ export namespace com {
        */
       export function fromJsonNonNested(json: any): NonNested {
         return {
-              bar: (() => {
-                const temp = json['bar'];
-                return temp;
-              })()
-            };
+          bar: ((() => {
+            const temp = json['bar'];
+            return temp;
+          })()) as string
+        };
       }
 
       /**
@@ -380,11 +382,11 @@ export namespace com {
        */
       export function toJsonNonNested(value: NonNested): any {
         return {
-              bar: (() => {
-                const temp = value['bar'];
-                return temp;
-              })()
-            };
+          bar: (() => {
+            const temp = value['bar'];
+            return temp;
+          })()
+        };
       }
 
       export namespace TestSealedType {
@@ -405,16 +407,16 @@ export namespace com {
          */
         export function fromJsonOption1(json: any): Option1 {
           return {
-                type: com.myrnproject.shared.TestSealedTypeType.Option1,
-                name: (() => {
-                  const temp = json['name'];
-                  return temp;
-                })(),
-                nested: (() => {
-                  const temp = json['nested'];
-                  return com.myrnproject.shared.TestSealedType.Option1.fromJsonNested(temp);
-                })()
-              };
+            type: com.myrnproject.shared.TestSealedTypeType.Option1,
+            name: ((() => {
+              const temp = json['name'];
+              return temp;
+            })()) as string,
+            nested: ((() => {
+              const temp = json['nested'];
+              return com.myrnproject.shared.TestSealedType.Option1.fromJsonNested(temp);
+            })()) as com.myrnproject.shared.TestSealedType.Option1.Nested
+          };
         }
 
         /**
@@ -422,16 +424,16 @@ export namespace com {
          */
         export function toJsonOption1(value: Option1): any {
           return {
-                type: com.myrnproject.shared.TestSealedTypeType.Option1,
-                name: (() => {
-                  const temp = value['name'];
-                  return temp;
-                })(),
-                nested: (() => {
-                  const temp = value['nested'];
-                  return com.myrnproject.shared.TestSealedType.Option1.toJsonNested(temp);
-                })()
-              };
+            type: com.myrnproject.shared.TestSealedTypeType.Option1,
+            name: (() => {
+              const temp = value['name'];
+              return temp;
+            })(),
+            nested: (() => {
+              const temp = value['nested'];
+              return com.myrnproject.shared.TestSealedType.Option1.toJsonNested(temp);
+            })()
+          };
         }
 
         /**
@@ -450,16 +452,16 @@ export namespace com {
          */
         export function fromJsonOption2(json: any): Option2 {
           return {
-                type: com.myrnproject.shared.TestSealedTypeType.Option2,
-                number: (() => {
-                  const temp = json['number'];
-                  return temp;
-                })(),
-                nonNested: (() => {
-                  const temp = json['nonNested'];
-                  return com.myrnproject.shared.fromJsonNonNested(temp);
-                })()
-              };
+            type: com.myrnproject.shared.TestSealedTypeType.Option2,
+            number: ((() => {
+              const temp = json['number'];
+              return temp;
+            })()) as number,
+            nonNested: ((() => {
+              const temp = json['nonNested'];
+              return com.myrnproject.shared.fromJsonNonNested(temp);
+            })()) as com.myrnproject.shared.NonNested
+          };
         }
 
         /**
@@ -467,16 +469,16 @@ export namespace com {
          */
         export function toJsonOption2(value: Option2): any {
           return {
-                type: com.myrnproject.shared.TestSealedTypeType.Option2,
-                number: (() => {
-                  const temp = value['number'];
-                  return temp;
-                })(),
-                nonNested: (() => {
-                  const temp = value['nonNested'];
-                  return com.myrnproject.shared.toJsonNonNested(temp);
-                })()
-              };
+            type: com.myrnproject.shared.TestSealedTypeType.Option2,
+            number: (() => {
+              const temp = value['number'];
+              return temp;
+            })(),
+            nonNested: (() => {
+              const temp = value['nonNested'];
+              return com.myrnproject.shared.toJsonNonNested(temp);
+            })()
+          };
         }
 
         /**
@@ -515,11 +517,11 @@ export namespace com {
            */
           export function fromJsonNested(json: any): Nested {
             return {
-                  nullable: (() => {
-                    const temp = json['nullable'];
-                    return temp === null ? null : (temp);
-                  })()
-                };
+              nullable: ((() => {
+                const temp = json['nullable'];
+                return temp === null ? null : (temp);
+              })()) as string | null
+            };
           }
 
           /**
@@ -527,11 +529,11 @@ export namespace com {
            */
           export function toJsonNested(value: Nested): any {
             return {
-                  nullable: (() => {
-                    const temp = value['nullable'];
-                    return temp === null ? null : (temp);
-                  })()
-                };
+              nullable: (() => {
+                const temp = value['nullable'];
+                return temp === null ? null : (temp);
+              })()
+            };
           }
 
         }
@@ -556,16 +558,16 @@ export namespace com {
          */
         export function fromJsonOption1(json: any): Option1 {
           return {
-                customType: com.myrnproject.shared.TestSealedTypeWithCustomDiscriminatorType.Option1,
-                name: (() => {
-                  const temp = json['name'];
-                  return temp;
-                })(),
-                nested: (() => {
-                  const temp = json['nested'];
-                  return com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option1.fromJsonNested(temp);
-                })()
-              };
+            customType: com.myrnproject.shared.TestSealedTypeWithCustomDiscriminatorType.Option1,
+            name: ((() => {
+              const temp = json['name'];
+              return temp;
+            })()) as string,
+            nested: ((() => {
+              const temp = json['nested'];
+              return com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option1.fromJsonNested(temp);
+            })()) as com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option1.Nested
+          };
         }
 
         /**
@@ -573,16 +575,16 @@ export namespace com {
          */
         export function toJsonOption1(value: Option1): any {
           return {
-                customType: com.myrnproject.shared.TestSealedTypeWithCustomDiscriminatorType.Option1,
-                name: (() => {
-                  const temp = value['name'];
-                  return temp;
-                })(),
-                nested: (() => {
-                  const temp = value['nested'];
-                  return com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option1.toJsonNested(temp);
-                })()
-              };
+            customType: com.myrnproject.shared.TestSealedTypeWithCustomDiscriminatorType.Option1,
+            name: (() => {
+              const temp = value['name'];
+              return temp;
+            })(),
+            nested: (() => {
+              const temp = value['nested'];
+              return com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option1.toJsonNested(temp);
+            })()
+          };
         }
 
         /**
@@ -601,16 +603,16 @@ export namespace com {
          */
         export function fromJsonOption2(json: any): Option2 {
           return {
-                customType: com.myrnproject.shared.TestSealedTypeWithCustomDiscriminatorType.Option2,
-                number: (() => {
-                  const temp = json['number'];
-                  return temp;
-                })(),
-                nonNested: (() => {
-                  const temp = json['nonNested'];
-                  return com.myrnproject.shared.fromJsonNonNested(temp);
-                })()
-              };
+            customType: com.myrnproject.shared.TestSealedTypeWithCustomDiscriminatorType.Option2,
+            number: ((() => {
+              const temp = json['number'];
+              return temp;
+            })()) as number,
+            nonNested: ((() => {
+              const temp = json['nonNested'];
+              return com.myrnproject.shared.fromJsonNonNested(temp);
+            })()) as com.myrnproject.shared.NonNested
+          };
         }
 
         /**
@@ -618,16 +620,16 @@ export namespace com {
          */
         export function toJsonOption2(value: Option2): any {
           return {
-                customType: com.myrnproject.shared.TestSealedTypeWithCustomDiscriminatorType.Option2,
-                number: (() => {
-                  const temp = value['number'];
-                  return temp;
-                })(),
-                nonNested: (() => {
-                  const temp = value['nonNested'];
-                  return com.myrnproject.shared.toJsonNonNested(temp);
-                })()
-              };
+            customType: com.myrnproject.shared.TestSealedTypeWithCustomDiscriminatorType.Option2,
+            number: (() => {
+              const temp = value['number'];
+              return temp;
+            })(),
+            nonNested: (() => {
+              const temp = value['nonNested'];
+              return com.myrnproject.shared.toJsonNonNested(temp);
+            })()
+          };
         }
 
         /**
@@ -666,11 +668,11 @@ export namespace com {
            */
           export function fromJsonNested(json: any): Nested {
             return {
-                  nullable: (() => {
-                    const temp = json['nullable'];
-                    return temp === null ? null : (temp);
-                  })()
-                };
+              nullable: ((() => {
+                const temp = json['nullable'];
+                return temp === null ? null : (temp);
+              })()) as string | null
+            };
           }
 
           /**
@@ -678,11 +680,11 @@ export namespace com {
            */
           export function toJsonNested(value: Nested): any {
             return {
-                  nullable: (() => {
-                    const temp = value['nullable'];
-                    return temp === null ? null : (temp);
-                  })()
-                };
+              nullable: (() => {
+                const temp = value['nullable'];
+                return temp === null ? null : (temp);
+              })()
+            };
           }
 
         }
@@ -707,15 +709,15 @@ export namespace com {
          */
         export function fromJsonNested(json: any): Nested {
           return {
-                name: (() => {
-                  const temp = json['name'];
-                  return temp;
-                })(),
-                age: (() => {
-                  const temp = json['age'];
-                  return temp;
-                })()
-              };
+            name: ((() => {
+              const temp = json['name'];
+              return temp;
+            })()) as string,
+            age: ((() => {
+              const temp = json['age'];
+              return temp;
+            })()) as number
+          };
         }
 
         /**
@@ -723,15 +725,15 @@ export namespace com {
          */
         export function toJsonNested(value: Nested): any {
           return {
-                name: (() => {
-                  const temp = value['name'];
-                  return temp;
-                })(),
-                age: (() => {
-                  const temp = value['age'];
-                  return temp;
-                })()
-              };
+            name: (() => {
+              const temp = value['name'];
+              return temp;
+            })(),
+            age: (() => {
+              const temp = value['age'];
+              return temp;
+            })()
+          };
         }
 
       }

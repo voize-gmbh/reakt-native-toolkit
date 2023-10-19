@@ -331,12 +331,10 @@ A flow is exposed via a `@ReactNativeFlow` annotated function.
 On the JS side we interact with this flow using the `useFlow` hook:
 
 ```typescript
-import { useFlow, Next } from "reakt-native-toolkit";
-import { NativeModules } from "react-native";
 import { Counter } from "./generated/modules";
 
 function useCounter() {
-  const count = useFlow(Counter.count);
+  const count = Counter.useCount();
 
   return {
     count,
@@ -345,21 +343,24 @@ function useCounter() {
 }
 ```
 
-With `useFlow(Counter.count)` we can "subscribe" to the flow value. The hook will trigger a rerender whenever the flow value changes.
+With `Counter.useCount()` we can "subscribe" to the flow value. The hook will trigger a rerender whenever the flow value changes.
 For each subscription the native flow is consumed multiple times, a new subscription is created after each value change. Make sure your flow returns the same value ("state") for each new subscription and does not return initial values or replay values.
 
-The `count` method of the `Counter` native module is typed as `Next<T>` which is a type alias for `(currentValue: string | null) => Promise<string>`.
-Flow values are JSON serialized and deserialized when they are sent to and from the native module.
-Although internally `Next<T>` is only operating on `string` the `useFlow` hook type is able to restore the type `T` in `Next<T>`.
+`useFlow` deserializes the returned values, but does not apply the custom mapping in JS, such as mapping strings to date types.
 
-#### How do `ReactNativeFlow` and `useFlow` work?
+#### How do `ReactNativeFlow` and the generated hooks work?
 
 The `@ReactNativeFlow` annotation generates a native module method with an additional `previous` argument.
 The generated code calls `toReact(previous)` on the returned flow and returns the result of the `toReact` call.
 The extension function `Flow<T>.toReact(previous)` will JSON serialize the value of the flow and suspend until the value is different from the `previous` ([see in source](https://github.com/voize-gmbh/reakt-native-toolkit/blob/main/kotlin/reakt-native-toolkit/src/commonMain/kotlin/de/voize/reaktnativetoolkit/util/flowToReact.kt#L51)).
 This is why `previous` is a string.
 
-`useFlow` initiates an interaction loop with this suspension: It initially calls the native module method with `null` as the `previous` value and suspends until the native module responds with a new value. It then calls the native module again with the new value and suspends again until the native module responds with a new value. This loop continues until the component is unmounted.
+In JS for each flow a property is added to the native module, with the Type `Next<T>` which is a type alias for `(currentValue: string | null) => Promise<string>`.
+Additionally a hook is generated for each flow with the name `use<FlowName>` which uses the `useFlow` util hook internally.
+The hook manages the subscription to the flow and calls the native module method with the current value of the flow.
+The `useFlow` hook initiates an interaction loop with this suspension: It initially calls the native module method with `null` as the `previous` value and suspends until the native module responds with a new value. It then calls the native module again with the new value and suspends again until the native module responds with a new value. This loop continues until the component is unmounted.
+Flow values are JSON serialized and deserialized when they are sent to and from the native module.
+The generated hook maps the deserialized value to the correct type and returns it.
 
 ### Mapping Kotlin types to JS types
 
