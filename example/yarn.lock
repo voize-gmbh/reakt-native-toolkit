@@ -5813,10 +5813,10 @@ readline@^1.3.0:
   resolved "https://registry.yarnpkg.com/readline/-/readline-1.3.0.tgz#c580d77ef2cfc8752b132498060dc9793a7ac01c"
   integrity sha512-k2d6ACCkiNYz222Fs/iNze30rRJ1iIicW7JuX/7/cozvih6YCkFZH+J6mAFDVgv0dRBaAyr4jDqC95R2y4IADg==
 
-reakt-native-toolkit@^0.2.0:
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/reakt-native-toolkit/-/reakt-native-toolkit-0.2.0.tgz#74446de52a640268a303ab86bcd9a516074d684b"
-  integrity sha512-EZxVdGZm68yN5gNoyoIoWCOyk5aDbb/y0U8q1tBsc+KQlrP50xTPXylAKUGMFM9x/XmoX2Tbz7SmfOE4TEjo3A==
+reakt-native-toolkit@^0.8.0:
+  version "0.8.2"
+  resolved "https://registry.yarnpkg.com/reakt-native-toolkit/-/reakt-native-toolkit-0.8.2.tgz#9ec2870280fc69165484b018a0798057864939cb"
+  integrity sha512-/sLLNG1oqhJRyNZqtSXd2RQsfmoya9GM/dBSmybRYXH7kQvyfmlFdDtvzUe9S5meVpoUPOoxj9+RItI9fpsepQ==
   dependencies:
     lodash "^4.17.21"
 

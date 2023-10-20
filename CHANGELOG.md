@@ -2,6 +2,8 @@
 
 ## unreleased
 
+## v0.9.0
+
 - Generate hooks for flows in RN modules
 - Map types returned by flows in JS
 - Update documentation to use generated hooks instead of useFlow
