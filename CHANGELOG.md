@@ -2,6 +2,8 @@
 
 ## unreleased
 
+- Add missing project setup instruction to README
+
 ## v0.9.0
 
 - Generate hooks for flows in RN modules

@@ -22,11 +22,13 @@ plugins {
 ```
 
 Then add the `reakt-native-toolkit` to the `commonMain` source set dependencies.
+Also add the generated common source set to the `commonMain` source set:
 
 ```kotlin
 // android/shared/build.gradle.kts
 
 val commonMain by getting {
+    kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
     dependencies {
         // ...
         implementation("de.voize:reakt-native-toolkit:<version>")
