@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.10.0
 
 - Add missing project setup instruction to README
 - Cancel subscriptions of useFlow on unmount and parameter change
