@@ -422,6 +422,17 @@ class ToolkitSymbolProcessor(
             )
         }
 
+        val unsubscribeFlowFunctionSpec = FunSpec.builder("unsubscribeFromToolkitUseFlow").run {
+            val subscriptionIdVarName = "subscriptionId"
+            addParameter(subscriptionIdVarName, String::class)
+            addAnnotation(ReactNativeMethodAndroidClassName)
+            addStatement(
+                "%M(%N)",
+                UnsubscribeFromFlowMember,
+                subscriptionIdVarName,
+            )
+        }.build()
+
         val classSpec = TypeSpec.classBuilder(className).apply {
             if (rnModule.isInternal) {
                 addModifiers(KModifier.INTERNAL)
@@ -494,6 +505,7 @@ class ToolkitSymbolProcessor(
             )
             addFunctions(functionSpecs)
             addFunctions(flowFunctionSpecs)
+            addFunction(unsubscribeFlowFunctionSpec)
             val containingFile = rnModule.wrappedClassDeclaration.containingFile
             if (containingFile != null) {
                 addOriginatingKSFile(containingFile)
@@ -540,6 +552,22 @@ class ToolkitSymbolProcessor(
             )
         }
 
+        val unsubscribeFlowFunctionSpec = FunSpec.builder("unsubscribeFromToolkitUseFlow").run {
+            val subscriptionIdVarName = "subscriptionId"
+            addParameter(subscriptionIdVarName, String::class)
+            addParameter(promiseVarName, PromiseIOSClassName)
+            addCode(
+                promiseVarName.promiseLaunchIOS(
+                    coroutineScopeVarName,
+                    useJsonSerialization = true,
+                    CodeBlock.of(
+                        "%M(%N)",
+                        UnsubscribeFromFlowMember,
+                        subscriptionIdVarName,
+                    )
+                )
+            )
+        }.build()
 
         val classSpec = TypeSpec.classBuilder(className).apply {
             if (rnModule.isInternal) {
@@ -642,7 +670,7 @@ class ToolkitSymbolProcessor(
                 listOf(
                     CodeBlock.of(
                         "%T(%S) { %N, %N -> %N(%N[0] as %T, %N as %T) }",
-                        ClassName("$toolkitPackageName.util", "RCTBridgeMethodWrapper"),
+                        RCTBridgeMethodWrapperClassName,
                         "addListener",
                         argsVarName,
                         promiseVarName,
@@ -654,7 +682,7 @@ class ToolkitSymbolProcessor(
                     ),
                     CodeBlock.of(
                         "%T(%S) { %N, %N -> %N(%N[0] as %T, %N as %T) }",
-                        ClassName("$toolkitPackageName.util", "RCTBridgeMethodWrapper"),
+                        RCTBridgeMethodWrapperClassName,
                         "removeListeners",
                         argsVarName,
                         promiseVarName,
@@ -686,6 +714,22 @@ class ToolkitSymbolProcessor(
                 )
             }
 
+            val unsubscribeBridgeMethodWrapper = run {
+                val argsVarName = "args"
+                CodeBlock.of(
+                    "%T(%S) { %N, %N -> %N(%N[0] as %T, %N as %T) }",
+                    RCTBridgeMethodWrapperClassName,
+                    "unsubscribeFromToolkitUseFlow",
+                    argsVarName,
+                    promiseVarName,
+                    "unsubscribeFromToolkitUseFlow",
+                    argsVarName,
+                    STRING,
+                    promiseVarName,
+                    PromiseIOSClassName,
+                )
+            }
+
             addFunction(
                 FunSpec.builder("methodsToExport")
                     .addModifiers(KModifier.OVERRIDE)
@@ -706,7 +750,14 @@ class ToolkitSymbolProcessor(
                     .addCode(
                         CodeBlock.of(
                             "return %L",
-                            listOfCode((bridgeMethodWrappers + flowBridgeMethodWrappers + eventEmitterFunctionsToExpose))
+                            listOfCode(
+                                buildList {
+                                    addAll(bridgeMethodWrappers)
+                                    addAll(flowBridgeMethodWrappers)
+                                    add(unsubscribeBridgeMethodWrapper)
+                                    addAll(eventEmitterFunctionsToExpose)
+                                }
+                            )
                         )
                     ).build()
             )
@@ -732,6 +783,7 @@ class ToolkitSymbolProcessor(
 
             addFunctions(functionSpecs)
             addFunctions(flowFunctionSpecs)
+            addFunction(unsubscribeFlowFunctionSpec)
 
             addType(TypeSpec.companionObjectBuilder().apply {
                 superclass(ClassName("platform.darwin", "NSObjectMeta"))
@@ -780,13 +832,15 @@ class ToolkitSymbolProcessor(
         isReactNativeFlow: Boolean = false,
     ): FunSpec {
         val parameters = functionDeclaration.parameters.map { it.toParameterSpec() }
-        val promiseVarName = "promise"
+        val subscriptionIdVarName = "subscriptionId"
         val previousVarName = "previous"
+        val promiseVarName = "promise"
         val useJsonSerialization = true
 
         return FunSpec.builder(functionDeclaration.simpleName.asString()).apply {
             addAnnotation(ReactNativeMethodAndroidClassName)
             if (isReactNativeFlow) {
+                addParameter(subscriptionIdVarName, STRING)
                 addParameter(previousVarName, STRING.copy(nullable = true))
             }
             addParameters(parameters.map(if (useJsonSerialization) ::mapKotlinTypeToReactNativeAndroidTypeJson else ::mapKotlinTypeToReactNativeAndroidType))
@@ -804,7 +858,12 @@ class ToolkitSymbolProcessor(
                                 .joinToCode()
                         )
                         if (isReactNativeFlow) {
-                            add(".%M(%N)", FlowToReactMember, previousVarName)
+                            add(
+                                ".%M(%N, %N)",
+                                FlowToReactMember,
+                                subscriptionIdVarName,
+                                previousVarName
+                            )
                         }
                     }
                 )
@@ -820,11 +879,13 @@ class ToolkitSymbolProcessor(
         isReactNativeFlow: Boolean = false,
     ): FunSpec {
         val parameters = functionDeclaration.parameters.map { it.toParameterSpec() }
+        val subscriptionIdVarName = "subscriptionId"
         val previousVarName = "previous"
         val useJsonSerialization = true
 
         return FunSpec.builder(functionDeclaration.simpleName.asString()).apply {
             if (isReactNativeFlow) {
+                addParameter(subscriptionIdVarName, STRING)
                 addParameter(previousVarName, STRING.copy(nullable = true))
             }
             addParameters(parameters.map(if (useJsonSerialization) ::mapKotlinTypeToReactNativeIOSTypeJson else ::mapKotlinTypeToReactNativeIOSType))
@@ -842,7 +903,12 @@ class ToolkitSymbolProcessor(
                                 .joinToCode()
                         )
                         if (isReactNativeFlow) {
-                            add(".%M(%N)", FlowToReactMember, previousVarName)
+                            add(
+                                ".%M(%N, %N)",
+                                FlowToReactMember,
+                                subscriptionIdVarName,
+                                previousVarName
+                            )
                         }
                     }
                 )
@@ -866,7 +932,7 @@ class ToolkitSymbolProcessor(
                 }
             add(
                 "%T(%S) { %N, %N -> %N(",
-                ClassName("$toolkitPackageName.util", "RCTBridgeMethodWrapper"),
+                RCTBridgeMethodWrapperClassName,
                 functionName,
                 argsVarName,
                 promiseVarName,
@@ -875,11 +941,21 @@ class ToolkitSymbolProcessor(
             add(
                 buildList {
                     if (isReactNativeFlow) {
+                        // subscriptionId
                         add(
                             CodeBlock.of(
                                 "%N[%L] as %T",
                                 argsVarName,
                                 0,
+                                STRING
+                            )
+                        )
+                        // previous
+                        add(
+                            CodeBlock.of(
+                                "%N[%L] as %T",
+                                argsVarName,
+                                1,
                                 STRING.copy(nullable = true)
                             )
                         )
@@ -891,7 +967,7 @@ class ToolkitSymbolProcessor(
                                 "%N[%L] as %T",
                                 argsVarName,
                                 if (isReactNativeFlow) {
-                                    index + 1
+                                    index + 2
                                 } else {
                                     index
                                 },
@@ -1212,6 +1288,7 @@ private val reactNativeInteropNamespace = "react_native"
 private val toolkitPackageName = "de.voize.reaktnativetoolkit"
 private val toolkitUtilPackageName = "$toolkitPackageName.util"
 
+
 private val ReactNativeMethodAndroidClassName =
     ClassName("com.facebook.react.bridge", "ReactMethod")
 private val ReactApplicationContextClassName =
@@ -1230,3 +1307,7 @@ private val JsonClassName = ClassName("kotlinx.serialization.json", "Json")
 private val EncodeToStringMember = MemberName("kotlinx.serialization", "encodeToString")
 private val DecodeFromStringMember = MemberName("kotlinx.serialization", "decodeFromString")
 private val FlowToReactMember = MemberName("$toolkitPackageName.util", "toReact")
+private val UnsubscribeFromFlowMember =
+    MemberName("$toolkitPackageName.util", "unsubscribeFromFlow")
+private val RCTBridgeMethodWrapperClassName =
+    ClassName("$toolkitPackageName.util", "RCTBridgeMethodWrapper")

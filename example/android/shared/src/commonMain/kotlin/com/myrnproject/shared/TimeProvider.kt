@@ -18,5 +18,12 @@ class TimeProvider(
     fun time(): Flow<@JSType("date") Instant> = timeEverySecond
 
     @ReactNativeFlow
+    fun isAfter(time: String): Flow<Boolean> = timeEverySecond.map { now ->
+        val time = Instant.parse(time)
+        println("isAfter: $now > $time = ${now > time}")
+        now > time
+    }
+
+    @ReactNativeFlow
     fun timeAsState(): Flow<@JSType("date") Instant> = timeAsState
 }

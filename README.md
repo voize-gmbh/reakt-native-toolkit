@@ -357,8 +357,8 @@ The generated code calls `toReact(previous)` on the returned flow and returns th
 The extension function `Flow<T>.toReact(previous)` will JSON serialize the value of the flow and suspend until the value is different from the `previous` ([see in source](https://github.com/voize-gmbh/reakt-native-toolkit/blob/main/kotlin/reakt-native-toolkit/src/commonMain/kotlin/de/voize/reaktnativetoolkit/util/flowToReact.kt#L51)).
 This is why `previous` is a string.
 
-In JS for each flow a property is added to the native module, with the Type `Next<T>` which is a type alias for `(currentValue: string | null) => Promise<string>`.
-Additionally a hook is generated for each flow with the name `use<FlowName>` which uses the `useFlow` util hook internally.
+In JS for each flow a property is added to the native module, with the Type `Next<T>` which is a type alias for `(subscriptionId: string, currentValue: string | null) => Promise<string>`.
+Additionally a hook is generated for each flow with the name `use{FlowName}` which uses the `useFlow` util hook internally.
 The hook manages the subscription to the flow and calls the native module method with the current value of the flow.
 The `useFlow` hook initiates an interaction loop with this suspension: It initially calls the native module method with `null` as the `previous` value and suspends until the native module responds with a new value. It then calls the native module again with the new value and suspends again until the native module responds with a new value. This loop continues until the component is unmounted.
 Flow values are JSON serialized and deserialized when they are sent to and from the native module.
