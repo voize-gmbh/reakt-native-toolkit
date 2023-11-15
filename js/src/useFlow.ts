@@ -5,15 +5,27 @@ import useIsMounted from './useIsMounted';
 import useMemoArray from './useMemoArray';
 import { Next, Next1, Next2, NextX } from './useFlow.types';
 
-function useFlow<T>(next: Next<T>): T | null;
-function useFlow<T, T1>(next: Next1<T, T1>, arg1: T1): T | null;
+type Unsubscribe = (subscriptionId: string) => Promise<void>;
+
+function useFlow<T>(next: Next<T>, unsubscribe: Unsubscribe): T | null;
+function useFlow<T, T1>(
+  next: Next1<T, T1>,
+  unsubscribe: Unsubscribe,
+  arg1: T1,
+): T | null;
 function useFlow<T, T1, T2>(
   next: Next2<T, T1, T2>,
+  unsubscribe: Unsubscribe,
   arg1: T1,
   arg2: T2,
 ): T | null;
-function useFlow<T>(next: NextX<T>, ...args: any[]): T | null;
-function useFlow<T>(next: NextX<T>, ...args: any[]) {
+function useFlow<T>(
+  next: NextX<T>,
+  unsubscribe: Unsubscribe,
+  ...args: any[]
+): T | null;
+function useFlow<T>(next: NextX<T>, unsubscribe: Unsubscribe, ...args: any[]) {
+  const [subscriptionId] = useState(_.uniqueId());
   const memoizedArgs = useMemoArray(args);
   const isMounted = useIsMounted();
 
@@ -34,7 +46,7 @@ function useFlow<T>(next: NextX<T>, ...args: any[]) {
   useEffect(() => {
     (async () => {
       try {
-        const nextState = await next(value, ...memoizedArgs);
+        const nextState = await next(subscriptionId, value, ...memoizedArgs);
 
         if (isMounted.current) {
           setState((previousState) => {
@@ -49,10 +61,29 @@ function useFlow<T>(next: NextX<T>, ...args: any[]) {
           });
         }
       } catch (error) {
+        /**
+         * We ignore this error because it is thrown when the subscription is cancelled.
+         */
+        if (
+          error instanceof Error &&
+          error.message.includes(
+            'ReactNativeUseFlowSubscriptionCancellationException',
+          )
+        ) {
+          return;
+        }
+
         console.error(`Next value promise in useFlow was rejected: ${error}`);
       }
     })();
-  }, [next, value, memoizedArgs, isMounted]);
+  }, [next, value, memoizedArgs, isMounted, subscriptionId]);
+
+  // cancel subscription on unmount
+  useEffect(() => {
+    return () => {
+      void unsubscribe(subscriptionId);
+    };
+  }, [subscriptionId, unsubscribe]);
 
   return useMemo<T | null>(
     () =>

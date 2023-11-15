@@ -84,7 +84,7 @@ RCT_EXTERN dispatch_queue_t RCTJSThread;
  * and the bridge will populate the methodQueue property for you automatically
  * when it initializes the module.
  */
-@property (nonatomic, strong, readonly) dispatch_queue_t methodQueue;
+@property (nonatomic, readonly) dispatch_queue_t methodQueue;
 
 
 /**

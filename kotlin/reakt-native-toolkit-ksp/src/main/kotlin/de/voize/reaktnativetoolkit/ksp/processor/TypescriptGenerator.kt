@@ -133,6 +133,8 @@ class TypescriptGenerator(
         fileBuilder: FileSpec.Builder
     ) {
         val withEventEmitter = rnModule.supportedEvents.isNotEmpty()
+        val unsubscribeFromToolkitUseFlow = "unsubscribeFromToolkitUseFlow"
+        val subscriptionIdVarName = "subscriptionId"
 
         val nativeInterfaceName = "Native" + rnModule.moduleName + "Interface"
         val nativeRNModuleInterface = InterfaceSpec.builder(nativeInterfaceName).apply {
@@ -157,6 +159,18 @@ class TypescriptGenerator(
                 rnModule.reactNativeFlows.map { functionDeclaration ->
                     reactNativeFlowToNextProperty(functionDeclaration, true)
                 }
+            )
+            addFunction(
+                FunctionSpec.builder(unsubscribeFromToolkitUseFlow)
+                    .addModifiers(Modifier.ABSTRACT)
+                    .addParameter(
+                        ParameterSpec.builder(
+                            subscriptionIdVarName,
+                            TypeName.STRING,
+                        ).build()
+                    )
+                    .returns(TypeName.PROMISE.parameterized(TypeName.VOID))
+                    .build()
             )
         }.build()
 
@@ -347,16 +361,27 @@ class TypescriptGenerator(
                         // flows
                         addAll((rnModule.reactNativeFlows).map { functionDeclaration ->
                             val functionNameAllocator = nameAllocator.copy()
+                            val subscriptionIdTag = UUID.randomUUID()
                             val currentValueTag = UUID.randomUUID()
+                            functionNameAllocator.newName("subscriptionId", subscriptionIdTag)
                             functionNameAllocator.newName("currentValue", currentValueTag)
+
+                            val subscriptionIdParameter = parameter(
+                                functionNameAllocator[subscriptionIdTag],
+                                TypeName.STRING,
+                            )
 
                             val currentValueParameter = parameter(
                                 functionNameAllocator[currentValueTag],
                                 TypeName.STRING.asNullable(),
                             )
 
+                            val subscriptionIdPassedParameter =
+                                functionNameAllocator[subscriptionIdTag].asCodeBlock()
+
                             val currentValuePassedParameter =
                                 functionNameAllocator[currentValueTag].asCodeBlock()
+
 
                             val (parameters, parameterSerialization) = functionDeclaration.toParametersAndPassedValues(
                                 functionNameAllocator
@@ -365,10 +390,16 @@ class TypescriptGenerator(
                             property(
                                 functionDeclaration.simpleName.asString(),
                                 lambda(
-                                    args = (listOf(currentValueParameter) + parameters),
+                                    args = (listOf(
+                                        subscriptionIdParameter,
+                                        currentValueParameter
+                                    ) + parameters),
                                     body = nativeRNModuleSymbol.nested(functionDeclaration.simpleName.asString())
                                         .asCodeBlock().invoke(
-                                            listOf(currentValuePassedParameter) + parameterSerialization
+                                            listOf(
+                                                subscriptionIdPassedParameter,
+                                                currentValuePassedParameter
+                                            ) + parameterSerialization
                                         )
                                 ),
                             )
@@ -410,6 +441,11 @@ class TypescriptGenerator(
                                                         add(
                                                             exportedRNModuleSymbol.nested(
                                                                 functionDeclaration.simpleName.asString(),
+                                                            ).asCodeBlock()
+                                                        )
+                                                        add(
+                                                            nativeRNModuleSymbol.nested(
+                                                                unsubscribeFromToolkitUseFlow,
                                                             ).asCodeBlock()
                                                         )
                                                         addAll(args)

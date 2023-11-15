@@ -1,4 +1,5 @@
 import { Next, Next1, Next2, NextX } from './useFlow.types';
+import _ from 'lodash';
 
 const resolvablePromise = <T>() => {
   let resolve: (value: T | PromiseLike<T>) => void = () => {};
@@ -23,6 +24,7 @@ function flowAsState<T, T1, T2>(
   arg2: T2,
 ): State<T>;
 function flowAsState<T>(next: NextX<T>, ...args: any[]) {
+  const subscriptionId = _.uniqueId();
   const { promise, resolve } = resolvablePromise<T>();
   const state: State<T> = { value: null, first: promise };
 
@@ -36,7 +38,7 @@ function flowAsState<T>(next: NextX<T>, ...args: any[]) {
     let encodedValue: string | null = null;
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      encodedValue = await next(encodedValue, ...args);
+      encodedValue = await next(subscriptionId, encodedValue, ...args);
       setState(encodedValue);
     }
   };

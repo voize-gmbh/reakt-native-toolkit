@@ -3,6 +3,10 @@
 ## unreleased
 
 - Add missing project setup instruction to README
+- Cancel subscriptions of useFlow on unmount and parameter change
+- The useFlow hook a new parameter "unsubscribe" to cancel subscriptions
+- Add subscriptionId to the Next<T> typealias
+- Add unsubscribeFromToolkitUseFlow function to generated RN modules to cancel subscriptions
 
 ## v0.9.0
 
