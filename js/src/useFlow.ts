@@ -5,26 +5,59 @@ import useIsMounted from './useIsMounted';
 import useMemoArray from './useMemoArray';
 import { Next, Next1, Next2, NextX } from './useFlow.types';
 
+export type UseFlowErrorInterceptor = (
+  error: any,
+  flowName: string,
+) => Promise<void>;
+
+let errorInterceptor: UseFlowErrorInterceptor = async (
+  error: any,
+  flowName: string,
+) => {
+  console.error(`Failed to get next value of '${flowName}': ${error}`);
+};
+
+/**
+ * Sets the error interceptor for all useFlow hooks. The interceptor is called when the next value promise is rejected.
+ */
+export function setErrorInterceptor(
+  interceptor: (error: any, flowName: string) => Promise<void>,
+) {
+  errorInterceptor = interceptor;
+}
+
 type Unsubscribe = (subscriptionId: string) => Promise<void>;
 
-function useFlow<T>(next: Next<T>, unsubscribe: Unsubscribe): T | null;
+function useFlow<T>(
+  next: Next<T>,
+  unsubscribe: Unsubscribe,
+  flowName: string,
+): T | null;
 function useFlow<T, T1>(
   next: Next1<T, T1>,
   unsubscribe: Unsubscribe,
+  flowName: string,
   arg1: T1,
 ): T | null;
 function useFlow<T, T1, T2>(
   next: Next2<T, T1, T2>,
   unsubscribe: Unsubscribe,
+  flowName: string,
   arg1: T1,
   arg2: T2,
 ): T | null;
 function useFlow<T>(
   next: NextX<T>,
   unsubscribe: Unsubscribe,
+  flowName: string,
   ...args: any[]
 ): T | null;
-function useFlow<T>(next: NextX<T>, unsubscribe: Unsubscribe, ...args: any[]) {
+function useFlow<T>(
+  next: NextX<T>,
+  unsubscribe: Unsubscribe,
+  flowName: string,
+  ...args: any[]
+) {
   const [subscriptionId] = useState(_.uniqueId());
   const memoizedArgs = useMemoArray(args);
   const isMounted = useIsMounted();
@@ -73,10 +106,10 @@ function useFlow<T>(next: NextX<T>, unsubscribe: Unsubscribe, ...args: any[]) {
           return;
         }
 
-        console.error(`Next value promise in useFlow was rejected: ${error}`);
+        await errorInterceptor(error, flowName);
       }
     })();
-  }, [next, value, memoizedArgs, isMounted, subscriptionId]);
+  }, [next, value, memoizedArgs, isMounted, subscriptionId, flowName]);
 
   // cancel subscription on unmount
   useEffect(() => {

@@ -1,9 +1,12 @@
 import { act, renderHook } from '@testing-library/react-hooks';
 
-import useFlow from './useFlow';
+import useFlow, { setErrorInterceptor } from './useFlow';
 import { Next1 } from './useFlow.types';
 
 describe('useFlow', () => {
+  const errorInterceptor = jest.fn(async () => {});
+  setErrorInterceptor(errorInterceptor);
+
   it('returns updated value when promise resolves', async () => {
     let promiseResolve: (value: string) => void = () => {};
 
@@ -14,7 +17,7 @@ describe('useFlow', () => {
 
     const cancel = async () => {};
 
-    const { result } = renderHook(() => useFlow(next, cancel));
+    const { result } = renderHook(() => useFlow(next, cancel, 'test'));
 
     expect(result.current).toBe(null);
 
@@ -38,7 +41,7 @@ describe('useFlow', () => {
 
     const cancel = async () => {};
 
-    const { result } = renderHook(() => useFlow(next, cancel));
+    const { result } = renderHook(() => useFlow(next, cancel, 'test'));
 
     expect(result.current).toBe(null);
 
@@ -61,11 +64,15 @@ describe('useFlow', () => {
 
     const cancel = async () => {};
 
-    const { result } = renderHook(() => useFlow(next, cancel));
+    const { result } = renderHook(() => useFlow(next, cancel, 'foo'));
 
     expect(result.current).toBe(null);
 
-    await act(async () => promiseReject(new Error('error')));
+    const error = new Error('error');
+    await act(async () => promiseReject(error));
+
+    expect(errorInterceptor).toHaveBeenCalledTimes(1);
+    expect(errorInterceptor).toHaveBeenCalledWith(error, 'foo');
 
     expect(result.current).toBe(null);
   });
@@ -80,7 +87,7 @@ describe('useFlow', () => {
 
     const cancel = jest.fn(async () => {});
 
-    const { result, unmount } = renderHook(() => useFlow(next, cancel));
+    const { result, unmount } = renderHook(() => useFlow(next, cancel, 'test'));
 
     expect(result.current).toBe(null);
 
@@ -104,7 +111,9 @@ describe('useFlow', () => {
 
       let arg = 1;
 
-      const { result, rerender } = renderHook(() => useFlow(next, cancel, arg));
+      const { result, rerender } = renderHook(() =>
+        useFlow(next, cancel, 'test', arg),
+      );
 
       expect(result.current).toBe(null);
 

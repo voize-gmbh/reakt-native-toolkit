@@ -187,6 +187,32 @@ import { Calculator } from "src/generated/modules";
 const result = await Calculator.add(1, 2);
 ```
 
+#### Exception handling
+
+Exceptions thrown in your native module will be propagated to JS and converted to JS errors.
+You can customize the JS errors and log exception in Kotlin by implementing an ExceptionInterceptor in Kotlin:
+    
+```kotlin
+import de.voize.reaktnativetoolkit.util.exceptionInterceptor
+
+fun setExceptionInterceptor() {
+    exceptionInterceptor = { exception ->
+        logger.error(exception) { "Error in native module" }
+        mapOf(
+            "NATIVE_STACK_TRACE" to it.stackTraceToString(),
+        )
+    }
+}
+```
+
+The return value (Map<String,Any?>) of the interceptor will be added to the `userInfo` property of the JS error.
+
+```typescript
+console.log(error.userInfo.NATIVE_STACK_TRACE);
+```
+
+Be aware Boolean values are converted to 0 or 1 in JS on iOS.
+
 ### Streamline dependency injection using Module Providers
 
 If you want your RN module to use some external functionality you would pass it in via the constructor:
@@ -205,7 +231,66 @@ class CalculatorRNModule(analytics: Analytics) {
 }
 ```
 
-To do this dependency into your native module you would need to pass it in from the platform specific code:
+The dependency must then be injected when creating the native module instance.
+
+#### Common 
+
+To avoid duplicating your dependency injection in Android and iOS you can use the toolkits _Module Providers_. For each `@ReactNativeModule` annotated class, the toolkit will generate a `ReactNativeModuleProvider` which can be used from common code.
+
+The provider has the same constructor as the class annotated with `@ReactNativeModule`.
+
+```kotlin
+// commonMain
+
+fun getRNModuleProviders(analytics: Analytics) {
+    return listOf(
+        CalculatorRNModuleProvider(analytics),
+        CalendarRNModuleProvider(analytics),
+        PermissionRNModuleProvider(analytics),
+        // ...
+    )
+}
+```
+
+This allows you to create a list of all your native modules in common code and in the platform specific code you can get the actual native module instances from the provider via `getModule`.
+
+##### Android
+
+```kotlin
+// androidMain
+
+class MyRNPackage(coroutineScope: CoroutineScope, analytics: Analytics) : ReactPackage {
+    // ...
+
+    override fun createNativeModules(
+        reactContext: ReactApplicationContext
+    ): List<NativeModule> {
+        return getRNModuleProviders(analytics).getModules(reactContext, coroutineScope)
+    }
+}
+```
+
+##### iOS
+
+```kotlin
+// iosMain
+
+class MyIOSRNModules(analytics: Analytics) {
+    val coroutineScope = CoroutineScope(Dispatchers.Default)
+
+    fun createNativeModules(): List<RCTBridgeModuleProtocol> {
+        return getRNModuleProviders(analytics).getModules(coroutineScope)
+    }
+}
+```
+
+The `getModule` function takes different parameters depending on the platform.
+For android you need to pass in the `ReactApplicationContext` and the `CoroutineScope` and for iOS you need to pass in the `CoroutineScope`.
+
+There are also helper `getModules` to convert a `List<ReactNativeModuleProvider>` to a list of native modules for each platform.
+`ReactNativeModuleProvider` is very useful for large projects with many native modules.
+
+#### Platform specific dependency injection
 
 #### Android
 
@@ -244,61 +329,6 @@ class MyIOSRNModules(analytics: Analytics) {
     }
 }
 ```
-
-To avoid duplicating your dependency injection you can use the toolkits _Module Providers_. For each `@ReactNativeModule` annotated class, the toolkit will generate a `ReactNativeModuleProvider` which can be used from common code.
-
-The provider has the same constructor as the class annotated with `@ReactNativeModule`.
-
-```kotlin
-// commonMain
-
-fun getRNModuleProviders(analytics: Analytics) {
-    return listOf(
-        CalculatorRNModuleProvider(analytics),
-        CalendarRNModuleProvider(analytics),
-        PermissionRNModuleProvider(analytics),
-        // ...
-    )
-}
-```
-
-This allows you to create a list of all your native modules in common code and in the platform specific code you can get the actual native module instances from the provider via `getModule`.
-
-#### Android
-
-```kotlin
-// androidMain
-
-class MyRNPackage(coroutineScope: CoroutineScope, analytics: Analytics) : ReactPackage {
-    // ...
-
-    override fun createNativeModules(
-        reactContext: ReactApplicationContext
-    ): List<NativeModule> {
-        return getRNModuleProviders(analytics).getModules(reactContext, coroutineScope)
-    }
-}
-```
-
-#### iOS
-
-```kotlin
-// iosMain
-
-class MyIOSRNModules(analytics: Analytics) {
-    val coroutineScope = CoroutineScope(Dispatchers.Default)
-
-    fun createNativeModules(): List<RCTBridgeModuleProtocol> {
-        return getRNModuleProviders(analytics).getModules(coroutineScope)
-    }
-}
-```
-
-The `getModule` function takes different parameters depending on the platform.
-For android you need to pass in the `ReactApplicationContext` and the `CoroutineScope` and for iOS you need to pass in the `CoroutineScope`.
-
-There are also helper `getModules` to convert a `List<ReactNativeModuleProvider>` to a list of native modules for each platform.
-`ReactNativeModuleProvider` is very useful for large projects with many native modules.
 
 ### Expose Kotlin flows to React Native
 
@@ -395,6 +425,19 @@ data class Test(
     val string: @JSType("string") Instant, // mapped to string in js
 )
 ```
+
+### Handling exceptions thrown by flows in JS
+
+If a flow which is used in JS throws an exception, the exception is propagated from Kotlin to the `useFlow` hook. You can set an global error interceptor for useFlow with `setErrorInterceptor`:
+
+```typescript
+import { setErrorInterceptor } from "reakt-native-toolkit";
+
+setErrorInterceptor(async (error, flowName) => {
+  console.error(`Error in flow ${flowName}: ${error}`);
+});
+```
+
 ### Using event emitter
 
 With the toolkit you can also use event emitter in your common class module and the platform-specific event emitter setup is generated for you.

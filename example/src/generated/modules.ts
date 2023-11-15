@@ -685,7 +685,7 @@ export const E2ETest: E2ETestInterface = {
   testFlowReturnInstantAsDate: (subscriptionId: string, currentValue: string | null) =>
       NativeE2ETest.testFlowReturnInstantAsDate(subscriptionId, currentValue),
   useTestFlow: () => {
-    const value = useFlow(E2ETest.testFlow, NativeE2ETest.unsubscribeFromToolkitUseFlow);
+    const value = useFlow(E2ETest.testFlow, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlow');
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -695,7 +695,7 @@ export const E2ETest: E2ETestInterface = {
     })(), [value]);
   },
   useTestFlowNullable: () => {
-    const value = useFlow(E2ETest.testFlowNullable, NativeE2ETest.unsubscribeFromToolkitUseFlow);
+    const value = useFlow(E2ETest.testFlowNullable, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowNullable');
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -705,7 +705,7 @@ export const E2ETest: E2ETestInterface = {
     })(), [value]);
   },
   useTestFlowComplex: () => {
-    const value = useFlow(E2ETest.testFlowComplex, NativeE2ETest.unsubscribeFromToolkitUseFlow);
+    const value = useFlow(E2ETest.testFlowComplex, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowComplex');
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -715,7 +715,7 @@ export const E2ETest: E2ETestInterface = {
     })(), [value]);
   },
   useTestFlowParameterized: (arg1: number) => {
-    const value = useFlow(E2ETest.testFlowParameterized, NativeE2ETest.unsubscribeFromToolkitUseFlow, arg1);
+    const value = useFlow(E2ETest.testFlowParameterized, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowParameterized', arg1);
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -725,7 +725,7 @@ export const E2ETest: E2ETestInterface = {
     })(), [value]);
   },
   useTestFlowParameterized2: (arg1_: number, arg2: string) => {
-    const value = useFlow(E2ETest.testFlowParameterized2, NativeE2ETest.unsubscribeFromToolkitUseFlow, arg1_, arg2);
+    const value = useFlow(E2ETest.testFlowParameterized2, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowParameterized2', arg1_, arg2);
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -735,7 +735,7 @@ export const E2ETest: E2ETestInterface = {
     })(), [value]);
   },
   useTestFlowParameterizedComplex: (arg1__: com.myrnproject.shared.Test) => {
-    const value = useFlow(E2ETest.testFlowParameterizedComplex, NativeE2ETest.unsubscribeFromToolkitUseFlow, arg1__);
+    const value = useFlow(E2ETest.testFlowParameterizedComplex, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowParameterizedComplex', arg1__);
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -746,7 +746,7 @@ export const E2ETest: E2ETestInterface = {
   },
   useTestFlowParameterizedComplex2: (arg1___: Array<com.myrnproject.shared.Test>, arg2_: Record<string, com.myrnproject.shared.Test>) =>
       {
-    const value = useFlow(E2ETest.testFlowParameterizedComplex2, NativeE2ETest.unsubscribeFromToolkitUseFlow, arg1___, arg2_);
+    const value = useFlow(E2ETest.testFlowParameterizedComplex2, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowParameterizedComplex2', arg1___, arg2_);
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -757,7 +757,7 @@ export const E2ETest: E2ETestInterface = {
   },
   useTestFlowParameterizedMany: (arg1____: number, arg2__: string, arg3: Array<string>, arg4: Record<string, com.myrnproject.shared.Test>) =>
       {
-    const value = useFlow(E2ETest.testFlowParameterizedMany, NativeE2ETest.unsubscribeFromToolkitUseFlow, arg1____, arg2__, arg3, arg4);
+    const value = useFlow(E2ETest.testFlowParameterizedMany, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowParameterizedMany', arg1____, arg2__, arg3, arg4);
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -767,7 +767,7 @@ export const E2ETest: E2ETestInterface = {
     })(), [value]);
   },
   useTestFlowReturnInstant: () => {
-    const value = useFlow(E2ETest.testFlowReturnInstant, NativeE2ETest.unsubscribeFromToolkitUseFlow);
+    const value = useFlow(E2ETest.testFlowReturnInstant, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowReturnInstant');
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -777,7 +777,7 @@ export const E2ETest: E2ETestInterface = {
     })(), [value]);
   },
   useTestFlowReturnInstantAsDate: () => {
-    const value = useFlow(E2ETest.testFlowReturnInstantAsDate, NativeE2ETest.unsubscribeFromToolkitUseFlow);
+    const value = useFlow(E2ETest.testFlowReturnInstantAsDate, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowReturnInstantAsDate');
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -806,7 +806,7 @@ export const NameManager: NameManagerInterface = {
   name: (subscriptionId: string, currentValue: string | null) =>
       NativeNameManager.name(subscriptionId, currentValue),
   useName: () => {
-    const value = useFlow(NameManager.name, NativeNameManager.unsubscribeFromToolkitUseFlow);
+    const value = useFlow(NameManager.name, NativeNameManager.unsubscribeFromToolkitUseFlow, 'NameManager.name');
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -841,7 +841,7 @@ export const TimeProvider: TimeProviderInterface = {
   timeAsState: (subscriptionId: string, currentValue: string | null) =>
       NativeTimeProvider.timeAsState(subscriptionId, currentValue),
   useTime: () => {
-    const value = useFlow(TimeProvider.time, NativeTimeProvider.unsubscribeFromToolkitUseFlow);
+    const value = useFlow(TimeProvider.time, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProvider.time');
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -851,7 +851,7 @@ export const TimeProvider: TimeProviderInterface = {
     })(), [value]);
   },
   useIsAfter: (time: string) => {
-    const value = useFlow(TimeProvider.isAfter, NativeTimeProvider.unsubscribeFromToolkitUseFlow, time);
+    const value = useFlow(TimeProvider.isAfter, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProvider.isAfter', time);
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -861,7 +861,7 @@ export const TimeProvider: TimeProviderInterface = {
     })(), [value]);
   },
   useTimeAsState: () => {
-    const value = useFlow(TimeProvider.timeAsState, NativeTimeProvider.unsubscribeFromToolkitUseFlow);
+    const value = useFlow(TimeProvider.timeAsState, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProvider.timeAsState');
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {

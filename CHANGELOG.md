@@ -7,6 +7,8 @@
 - The useFlow hook a new parameter "unsubscribe" to cancel subscriptions
 - Add subscriptionId to the Next<T> typealias
 - Add unsubscribeFromToolkitUseFlow function to generated RN modules to cancel subscriptions
+- Add UseFlowErrorInterceptor to customize error handling of useFlow
+- Add "flowName" to useFlow hook to improve error messages
 
 ## v0.9.0
 

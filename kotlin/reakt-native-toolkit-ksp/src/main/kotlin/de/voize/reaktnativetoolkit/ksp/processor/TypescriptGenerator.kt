@@ -448,6 +448,12 @@ class TypescriptGenerator(
                                                                 unsubscribeFromToolkitUseFlow,
                                                             ).asCodeBlock()
                                                         )
+                                                        add(
+                                                            CodeBlock.of(
+                                                                "%S",
+                                                                "${exportedRNModuleName}.${functionDeclaration.simpleName.asString()}",
+                                                            )
+                                                        )
                                                         addAll(args)
                                                     }
                                                 )
