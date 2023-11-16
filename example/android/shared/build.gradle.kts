@@ -89,8 +89,6 @@ dependencies {
 tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinCompile<*>>().configureEach {
     if(name != "kspCommonMainKotlinMetadata") {
         dependsOn("kspCommonMainKotlinMetadata")
-    } else {
-        finalizedBy("copyGeneratedTypescriptFiles")
     }
 }
 
@@ -110,4 +108,24 @@ android {
 }
 repositories {
     mavenCentral()
+}
+
+// workaround for https://youtrack.jetbrains.com/issue/KT-55751
+val dummy = Attribute.of("dummy", String::class.java)
+listOf(
+    "debugFrameworkIosArm64",
+    "debugFrameworkIosX64",
+    "debugFrameworkIosSimulatorArm64",
+    "debugFrameworkIosFat",
+    "releaseFrameworkIosArm64",
+    "releaseFrameworkIosX64",
+    "releaseFrameworkIosSimulatorArm64",
+    "releaseFrameworkIosFat",
+    "podDebugFrameworkIosFat"
+).forEach {
+    configurations.named(it).configure {
+        attributes {
+            attribute(dummy, it)
+        }
+    }
 }

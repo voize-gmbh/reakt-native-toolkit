@@ -8,7 +8,8 @@ This toolkit allows you to combine React Native with Kotlin Multiplatform Mobile
 ## Installation
 
 **Prerequisite:** Your project must be a Kotlin Multiplatform Mobile project, see [our guide](docs/project-setup.md) on how to setup Kotlin Multiplatform Mobile in your existing React Native project.
-The toolkit was tested with React Native 0.69 but may work with other versions as well.
+Starting with kotlin 1.9.0 your project must have android and ios targets configured.
+The toolkit was tested with React Native 0.69 and 0.72 but may work with other versions as well.
 
 Add the KSP gradle plugin to your multiplatform project's `build.gradle.kts` file, if you have subprojects, add it to the subject project's `build.gradle.kts` file.
 
@@ -53,6 +54,7 @@ dependencies {
 And configure the ksp task dependencies and copy the generated typescript files to your react native project:
 
 ```kotlin
+// android/shared/build.gradle.kts
 tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinCompile<*>>().configureEach {
     if(name != "kspCommonMainKotlinMetadata") {
         dependsOn("kspCommonMainKotlinMetadata")
@@ -65,6 +67,20 @@ tasks.register<Copy>("copyGeneratedTypescriptFiles") {
     dependsOn("kspCommonMainKotlinMetadata")
     from("build/generated/ksp/metadata/commonMain/resources")
     into("../../src/generated")
+}
+```
+
+Add copyGeneratedTypescriptFiles task as a dependency to your react native bundle task:
+```kotlin
+// android/app/build.gradle
+// React Native 0.71.x and above with Hermes
+tasks.withType(com.facebook.react.tasks.BundleHermesCTask).configureEach {
+    dependsOn(":shared:copyGeneratedTypescriptFiles")
+}
+
+// React Native 0.70.x and below
+tasks.named("bundleReleaseJsAndAssets") {
+    dependsOn(":shared:copyGeneratedTypescriptFiles")
 }
 ```
 
