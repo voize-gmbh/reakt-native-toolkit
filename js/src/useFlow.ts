@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import _ from 'lodash';
-
+import { v4 as uuidv4 } from 'uuid';
 import useIsMounted from './useIsMounted';
 import useMemoArray from './useMemoArray';
 import { Next, Next1, Next2, NextX } from './useFlow.types';
@@ -58,7 +58,7 @@ function useFlow<T>(
   flowName: string,
   ...args: any[]
 ) {
-  const [subscriptionId] = useState(_.uniqueId());
+  const [subscriptionId] = useState(uuidv4());
   const memoizedArgs = useMemoArray(args);
   const isMounted = useIsMounted();
 

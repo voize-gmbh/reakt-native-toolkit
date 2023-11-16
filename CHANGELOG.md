@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Replace lodash uniqueId with uuid v4
+
 ## v0.10.1
 
 - Resubscribe in useFlow after native timeout returning previous value
