@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.10.1
 
 - Resubscribe in useFlow after native timeout returning previous value
 - Fix that flow subscription cancellation exception is not ignored on iOS
