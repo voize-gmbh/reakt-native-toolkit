@@ -12,7 +12,7 @@ inline fun <reified T> Promise.runCatchingWithArguments(action: () -> T, argumen
             else -> argumentsTransform(result)
         }
     }.onSuccess(::resolve).onFailure {
-        reject(null, it.allMessages(), it, Arguments.makeNativeMap(exceptionInterceptor(it)))
+        reject(null, it.allMessages(), it, Arguments.makeNativeMap(it.getJSExtraData()))
     }
 }
 

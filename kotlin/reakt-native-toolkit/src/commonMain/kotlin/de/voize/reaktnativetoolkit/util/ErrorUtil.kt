@@ -11,4 +11,12 @@ fun Throwable.allMessages(): String {
 
 typealias ExceptionInterceptor = (throwable: Throwable) -> Map<String, Any?>
 
+fun Throwable.getJSExtraData(): Map<String, Any?> {
+    // Do not call exceptionInterceptor for internal ReactNativeUseFlowSubscriptionCancellationException
+    if (this is ReactNativeUseFlowSubscriptionCancellationException) {
+        return emptyMap()
+    }
+    return exceptionInterceptor(this)
+}
+
 var exceptionInterceptor: ExceptionInterceptor = { emptyMap() }

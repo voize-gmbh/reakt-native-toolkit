@@ -13,7 +13,7 @@ inline fun <reified T> PromiseIOS.runCatchingWithArguments(action: () -> T, argu
         .runCatching { argumentsTransform(action()) }
         .onSuccess(resolve)
         .onFailure {
-            reject(it, exceptionInterceptor(it))
+            reject(it, it.getJSExtraData())
         }
 }
 
