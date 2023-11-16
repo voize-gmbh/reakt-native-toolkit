@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.10.2
 
 - Replace lodash uniqueId with uuid v4
 - Do not call exceptionInterceptor for internal ReactNativeUseFlowSubscriptionCancellationException
