@@ -1,6 +1,10 @@
 # CHANGELOG
 
 ## unreleased
+
+- Update kotlin to 1.9.20
+- Update react-native to 0.72.7 in example
+
 ## v0.11.0
 
 - Change typescript type mapping using computed property names syntax

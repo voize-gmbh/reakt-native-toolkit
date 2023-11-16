@@ -8,6 +8,7 @@ plugins {
 }
 
 android {
+    namespace = "de.voize.reaktnativetoolkit"
     compileSdk = 33
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
 
@@ -28,15 +29,10 @@ repositories {
     }
 }
 
-@OptIn(ExperimentalKotlinGradlePluginApi::class)
 kotlin {
-    jvmToolchain {
-        (this as JavaToolchainSpec).languageVersion.set(JavaLanguageVersion.of("11"))
-    }
+    jvmToolchain(11)
 
-    targetHierarchy.default()
-
-    android {
+    androidTarget {
         compilations.all {
             kotlinOptions.jvmTarget = "1.8"
         }
@@ -52,21 +48,24 @@ kotlin {
         }
     }
 
-    ios {
+    iosX64 {
+        configureReactNativeInterop()
+    }
+    iosArm64 {
         configureReactNativeInterop()
     }
     iosSimulatorArm64 {
         configureReactNativeInterop()
     }
     sourceSets {
-        val commonMain by getting {
+        commonMain.configure {
             dependencies {
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.serialization.json)
             }
         }
 
-        val androidMain by getting {
+        androidMain.configure {
             dependencies {
                 implementation("com.facebook.react:react-native:[0.69.0,)") // from node_modules
             }
@@ -74,6 +73,14 @@ kotlin {
 
         all {
             languageSettings.optIn("kotlinx.coroutines.ExperimentalCoroutinesApi")
+            languageSettings.optIn("kotlinx.cinterop.ExperimentalForeignApi")
+        }
+    }
+    targets.all {
+        compilations.all {
+            kotlinOptions {
+                freeCompilerArgs = listOf("-Xexpect-actual-classes")
+            }
         }
     }
 }

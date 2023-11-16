@@ -5,6 +5,7 @@ import platform.Foundation.NSNumber
 import platform.darwin.NSObject
 import react_native.*
 
+@OptIn(ExperimentalForeignApi::class)
 class RCTBridgeMethodWrapper(
     private val jsName: String,
     private val action: (arguments: List<*>, promise: PromiseIOS) -> Unit
