@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Resubscribe in useFlow after native timeout returning previous value
+
 ## v0.10.0
 
 - Add missing project setup instruction to README

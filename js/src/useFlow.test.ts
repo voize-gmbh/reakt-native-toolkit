@@ -98,6 +98,31 @@ describe('useFlow', () => {
     expect(cancel).toHaveBeenCalledTimes(1);
   });
 
+  it('resubscribes when next value is same as previous value', async () => {
+    let promiseResolve: (value: string) => void = () => {};
+
+    const next = () =>
+      new Promise<string>((resolve) => {
+        promiseResolve = resolve;
+      });
+
+    const cancel = async () => {};
+
+    const { result } = renderHook(() => useFlow(next, cancel, 'test'));
+
+    expect(result.current).toBe(null);
+
+    await act(async () => promiseResolve('{"i": 0}'));
+    expect(result.current).toEqual({ i: 0 });
+
+    // return same value which should trigger resubscription
+    await act(async () => promiseResolve('{"i": 0}'));
+    expect(result.current).toEqual({ i: 0 });
+
+    await act(async () => promiseResolve('{"i": 1}'));
+    expect(result.current).toEqual({ i: 1 });
+  });
+
   describe('arguments', () => {
     it('returns null when arguments change until next value is available', async () => {
       let promiseResolve: (value: string) => void = () => {};

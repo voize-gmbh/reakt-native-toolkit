@@ -79,7 +79,16 @@ function useFlow<T>(
   useEffect(() => {
     (async () => {
       try {
-        const nextState = await next(subscriptionId, value, ...memoizedArgs);
+        let nextState = value;
+
+        /**
+         * Resubscribe while value is the same.
+         * This happens because of the native timout that returns the previous value
+         * which should trigger a resubscription.
+         */
+        while (nextState === value) {
+          nextState = await next(subscriptionId, value, ...memoizedArgs);
+        }
 
         if (isMounted.current) {
           setState((previousState) => {
