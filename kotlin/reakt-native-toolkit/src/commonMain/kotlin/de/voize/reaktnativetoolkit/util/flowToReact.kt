@@ -81,6 +81,10 @@ suspend fun <T> Flow<T>.toReact(subscriptionId: String, previous: String?, seria
                 next.cancel(ReactNativeUseFlowSubscriptionCancellationException())
             }
             try {
+                /**
+                 * Clean-up subscription when JS does not request a new value for 10 minutes.
+                 * If the corresponding useFlow is still active, it will re-subscribe.
+                 */
                 withTimeoutOrNull(10.minutes) {
                     next.await()
                 } ?: previous ?: error(
