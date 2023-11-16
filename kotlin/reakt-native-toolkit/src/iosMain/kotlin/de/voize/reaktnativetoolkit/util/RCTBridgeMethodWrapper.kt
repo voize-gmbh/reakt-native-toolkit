@@ -29,7 +29,7 @@ class RCTBridgeMethodWrapper(
 
         val reject: IOSRejectPromise = { throwable, userInfo ->
             bridge.enqueueCallback(rejectCbId, listOf(buildMap {
-                put("message", throwable.message)
+                put("message", throwable.allMessages())
                 put("userInfo", userInfo)
             }
             ))

@@ -3,6 +3,8 @@
 ## unreleased
 
 - Resubscribe in useFlow after native timeout returning previous value
+- Fix that flow subscription cancellation exception is not ignored on iOS
+- Pass throwable name and all messages to JS error on iOS promise rejection
 
 ## v0.10.0
 
