@@ -77,6 +77,8 @@ interface NativeE2ETestInterface {
 
   example(input: string, testEnum: string): Promise<string>;
 
+  testSealedClassProperties(test: string): Promise<string>;
+
   testKotlinDateTime(
       instant: string,
       date: string,
@@ -175,6 +177,8 @@ export interface E2ETestInterface {
   example(input: com.myrnproject.shared.TestSealedType,
       testEnum: com.myrnproject.shared.Enum | null): Promise<com.myrnproject.shared.Test>;
 
+  testSealedClassProperties(test: com.myrnproject.shared.TestSealedClassProperties): Promise<com.myrnproject.shared.TestSealedClassProperties>;
+
   testKotlinDateTime(
       instant: string,
       date: Date,
@@ -187,7 +191,7 @@ export interface E2ETestInterface {
 
   testTypeAlias(test: com.myrnproject.shared.TestTypeAlias): Promise<com.myrnproject.shared.TestTypeAlias>;
 
-  testSealedSubtype(test: com.myrnproject.shared.TestSealedType.Option1): Promise<com.myrnproject.shared.TestSealedType.Option1>;
+  testSealedSubtype(test: Omit<com.myrnproject.shared.TestSealedType.Option1, 'type'>): Promise<Omit<com.myrnproject.shared.TestSealedType.Option1, 'type'>>;
 
   testSealedCustomDiscriminator(test: com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator): Promise<void>;
 
@@ -296,7 +300,7 @@ const NativeE2ETest = (NativeModules.E2ETest) as NativeE2ETestInterface;
 
 export const E2ETest: E2ETestInterface = {
   ...NativeE2ETest,
-  testDefaultTypes: (string: string, int: number, long: number, float: number, double: number, boolean: boolean, byte: number, char: number, short: number) =>
+  ['testDefaultTypes']: (string: string, int: number, long: number, float: number, double: number, boolean: boolean, byte: number, char: number, short: number) =>
       NativeE2ETest.testDefaultTypes((() => {
     const temp = string;
     return temp;
@@ -328,7 +332,7 @@ export const E2ETest: E2ETestInterface = {
     const temp = result;
     return temp;
   })()) as string),
-  testDefaultTypesNullable: (string: string | null, int: number | null, long: number | null, float: number | null, double: number | null, boolean: boolean | null, byte: number | null, char: number | null, short: number | null) =>
+  ['testDefaultTypesNullable']: (string: string | null, int: number | null, long: number | null, float: number | null, double: number | null, boolean: boolean | null, byte: number | null, char: number | null, short: number | null) =>
       NativeE2ETest.testDefaultTypesNullable((() => {
     const temp = string;
     return temp === null ? null : (temp);
@@ -360,7 +364,7 @@ export const E2ETest: E2ETestInterface = {
     const temp = result;
     return temp === null ? null : (temp);
   })()) as string | null),
-  testListAndMap: (list: Array<string>, map: Record<string, string>, nestedList: Array<Array<string>>, nestedMap: Record<string, Record<string, string>>, complexList: Array<com.myrnproject.shared.Test>, complexMap: Record<string, com.myrnproject.shared.Test>) =>
+  ['testListAndMap']: (list: Array<string>, map: Record<string, string>, nestedList: Array<Array<string>>, nestedMap: Record<string, Record<string, string>>, complexList: Array<com.myrnproject.shared.Test>, complexMap: Record<string, com.myrnproject.shared.Test>) =>
       NativeE2ETest.testListAndMap(JSON.stringify((() => {
     const temp = list;
     return temp.map((it: any) => (() => {
@@ -422,7 +426,7 @@ export const E2ETest: E2ETestInterface = {
       return temp_;
     })()) as number);
   })()) as Array<number>),
-  testListAndMapNullable: (list: Array<string> | null, map: Record<string, string> | null, nestedList: Array<Array<string>> | null, nestedMap: Record<string, Record<string, string>> | null, complexList: Array<com.myrnproject.shared.Test> | null, complexMap: Record<string, com.myrnproject.shared.Test> | null, listNullable: Array<string | null>, mapNullable: Record<string, string | null>, nestedListNullable: Array<Array<string | null> | null>, nestedMapNullable: Record<string, Record<string, string | null> | null>, complexListNullable: Array<com.myrnproject.shared.Test | null>, complexMapNullable: Record<string, com.myrnproject.shared.Test | null>) =>
+  ['testListAndMapNullable']: (list: Array<string> | null, map: Record<string, string> | null, nestedList: Array<Array<string>> | null, nestedMap: Record<string, Record<string, string>> | null, complexList: Array<com.myrnproject.shared.Test> | null, complexMap: Record<string, com.myrnproject.shared.Test> | null, listNullable: Array<string | null>, mapNullable: Record<string, string | null>, nestedListNullable: Array<Array<string | null> | null>, nestedMapNullable: Record<string, Record<string, string | null> | null>, complexListNullable: Array<com.myrnproject.shared.Test | null>, complexMapNullable: Record<string, com.myrnproject.shared.Test | null>) =>
       NativeE2ETest.testListAndMapNullable(JSON.stringify((() => {
     const temp = list;
     return temp === null ? null : (temp.map((it: any) => (() => {
@@ -538,7 +542,7 @@ export const E2ETest: E2ETestInterface = {
       return temp_ === null ? null : (temp_);
     })()) as number | null);
   })()) as Array<number | null>),
-  example: (input: com.myrnproject.shared.TestSealedType, testEnum: com.myrnproject.shared.Enum | null) =>
+  ['example']: (input: com.myrnproject.shared.TestSealedType, testEnum: com.myrnproject.shared.Enum | null) =>
       NativeE2ETest.example(JSON.stringify((() => {
     const temp = input;
     return com.myrnproject.shared.toJsonTestSealedType(temp);
@@ -549,7 +553,15 @@ export const E2ETest: E2ETestInterface = {
     const temp = result;
     return com.myrnproject.shared.fromJsonTest(temp);
   })()) as com.myrnproject.shared.Test),
-  testKotlinDateTime: (instant: string, date: Date, localDateTime: string, test: com.myrnproject.shared.DateTimeTest, dateOrNull: Date | null) =>
+  ['testSealedClassProperties']: (test: com.myrnproject.shared.TestSealedClassProperties) =>
+      NativeE2ETest.testSealedClassProperties(JSON.stringify((() => {
+    const temp = test;
+    return com.myrnproject.shared.toJsonTestSealedClassProperties(temp);
+  })())).then(JSON.parse).then((result) => ((() => {
+    const temp = result;
+    return com.myrnproject.shared.fromJsonTestSealedClassProperties(temp);
+  })()) as com.myrnproject.shared.TestSealedClassProperties),
+  ['testKotlinDateTime']: (instant: string, date: Date, localDateTime: string, test: com.myrnproject.shared.DateTimeTest, dateOrNull: Date | null) =>
       NativeE2ETest.testKotlinDateTime(JSON.stringify((() => {
     const temp = instant;
     return temp;
@@ -569,26 +581,26 @@ export const E2ETest: E2ETestInterface = {
     const temp = result;
     return temp;
   })()) as string),
-  getDateTimeTest: () => NativeE2ETest.getDateTimeTest().then(JSON.parse).then((result) => ((() => {
+  ['getDateTimeTest']: () => NativeE2ETest.getDateTimeTest().then(JSON.parse).then((result) => ((() => {
     const temp = result;
     return com.myrnproject.shared.fromJsonDateTimeTest(temp);
   })()) as com.myrnproject.shared.DateTimeTest),
-  testTypeAlias: (test: com.myrnproject.shared.TestTypeAlias) => NativeE2ETest.testTypeAlias(JSON.stringify((() => {
+  ['testTypeAlias']: (test: com.myrnproject.shared.TestTypeAlias) => NativeE2ETest.testTypeAlias(JSON.stringify((() => {
     const temp = test;
     return temp;
   })())).then(JSON.parse).then((result) => ((() => {
     const temp = result;
     return temp;
   })()) as com.myrnproject.shared.TestTypeAlias),
-  testSealedSubtype: (test: com.myrnproject.shared.TestSealedType.Option1) =>
+  ['testSealedSubtype']: (test: Omit<com.myrnproject.shared.TestSealedType.Option1, 'type'>) =>
       NativeE2ETest.testSealedSubtype(JSON.stringify((() => {
     const temp = test;
     return com.myrnproject.shared.TestSealedType.toJsonOption1(temp);
   })())).then(JSON.parse).then((result) => ((() => {
     const temp = result;
     return com.myrnproject.shared.TestSealedType.fromJsonOption1(temp);
-  })()) as com.myrnproject.shared.TestSealedType.Option1),
-  testSealedCustomDiscriminator: (test: com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator) =>
+  })()) as Omit<com.myrnproject.shared.TestSealedType.Option1, 'type'>),
+  ['testSealedCustomDiscriminator']: (test: com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator) =>
       NativeE2ETest.testSealedCustomDiscriminator(JSON.stringify((() => {
     const temp = test;
     return com.myrnproject.shared.toJsonTestSealedTypeWithCustomDiscriminator(temp);
@@ -596,7 +608,7 @@ export const E2ETest: E2ETestInterface = {
     const temp = result;
     return temp;
   })()) as void),
-  testMapWithEnumKey: (map: Record<com.myrnproject.shared.Enum, string>) =>
+  ['testMapWithEnumKey']: (map: Record<com.myrnproject.shared.Enum, string>) =>
       NativeE2ETest.testMapWithEnumKey(JSON.stringify((() => {
     const temp = map;
     return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
@@ -616,18 +628,18 @@ export const E2ETest: E2ETestInterface = {
       return temp_;
     })()) as string]));
   })()) as Record<com.myrnproject.shared.Enum, string>),
-  testFlow: (subscriptionId: string, currentValue: string | null) =>
+  ['testFlow']: (subscriptionId: string, currentValue: string | null) =>
       NativeE2ETest.testFlow(subscriptionId, currentValue),
-  testFlowNullable: (subscriptionId: string, currentValue: string | null) =>
+  ['testFlowNullable']: (subscriptionId: string, currentValue: string | null) =>
       NativeE2ETest.testFlowNullable(subscriptionId, currentValue),
-  testFlowComplex: (subscriptionId: string, currentValue: string | null) =>
+  ['testFlowComplex']: (subscriptionId: string, currentValue: string | null) =>
       NativeE2ETest.testFlowComplex(subscriptionId, currentValue),
-  testFlowParameterized: (subscriptionId: string, currentValue: string | null, arg1: number) =>
+  ['testFlowParameterized']: (subscriptionId: string, currentValue: string | null, arg1: number) =>
       NativeE2ETest.testFlowParameterized(subscriptionId, currentValue, (() => {
     const temp = arg1;
     return temp;
   })()),
-  testFlowParameterized2: (subscriptionId: string, currentValue: string | null, arg1: number, arg2: string) =>
+  ['testFlowParameterized2']: (subscriptionId: string, currentValue: string | null, arg1: number, arg2: string) =>
       NativeE2ETest.testFlowParameterized2(subscriptionId, currentValue, (() => {
     const temp = arg1;
     return temp;
@@ -635,12 +647,12 @@ export const E2ETest: E2ETestInterface = {
     const temp = arg2;
     return temp;
   })()),
-  testFlowParameterizedComplex: (subscriptionId: string, currentValue: string | null, arg1: com.myrnproject.shared.Test) =>
+  ['testFlowParameterizedComplex']: (subscriptionId: string, currentValue: string | null, arg1: com.myrnproject.shared.Test) =>
       NativeE2ETest.testFlowParameterizedComplex(subscriptionId, currentValue, JSON.stringify((() => {
     const temp = arg1;
     return com.myrnproject.shared.toJsonTest(temp);
   })())),
-  testFlowParameterizedComplex2: (subscriptionId: string, currentValue: string | null, arg1: Array<com.myrnproject.shared.Test>, arg2: Record<string, com.myrnproject.shared.Test>) =>
+  ['testFlowParameterizedComplex2']: (subscriptionId: string, currentValue: string | null, arg1: Array<com.myrnproject.shared.Test>, arg2: Record<string, com.myrnproject.shared.Test>) =>
       NativeE2ETest.testFlowParameterizedComplex2(subscriptionId, currentValue, JSON.stringify((() => {
     const temp = arg1;
     return temp.map((it: any) => (() => {
@@ -657,7 +669,7 @@ export const E2ETest: E2ETestInterface = {
       return com.myrnproject.shared.toJsonTest(temp_);
     })()]));
   })())),
-  testFlowParameterizedMany: (subscriptionId: string, currentValue: string | null, arg1: number, arg2: string, arg3: Array<string>, arg4: Record<string, com.myrnproject.shared.Test>) =>
+  ['testFlowParameterizedMany']: (subscriptionId: string, currentValue: string | null, arg1: number, arg2: string, arg3: Array<string>, arg4: Record<string, com.myrnproject.shared.Test>) =>
       NativeE2ETest.testFlowParameterizedMany(subscriptionId, currentValue, (() => {
     const temp = arg1;
     return temp;
@@ -680,11 +692,11 @@ export const E2ETest: E2ETestInterface = {
       return com.myrnproject.shared.toJsonTest(temp_);
     })()]));
   })())),
-  testFlowReturnInstant: (subscriptionId: string, currentValue: string | null) =>
+  ['testFlowReturnInstant']: (subscriptionId: string, currentValue: string | null) =>
       NativeE2ETest.testFlowReturnInstant(subscriptionId, currentValue),
-  testFlowReturnInstantAsDate: (subscriptionId: string, currentValue: string | null) =>
+  ['testFlowReturnInstantAsDate']: (subscriptionId: string, currentValue: string | null) =>
       NativeE2ETest.testFlowReturnInstantAsDate(subscriptionId, currentValue),
-  useTestFlow: () => {
+  ['useTestFlow']: () => {
     const value = useFlow(E2ETest.testFlow, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlow');
     return useMemo(() => (() => {
       const temp = value;
@@ -694,7 +706,7 @@ export const E2ETest: E2ETestInterface = {
       })()) as number);
     })(), [value]);
   },
-  useTestFlowNullable: () => {
+  ['useTestFlowNullable']: () => {
     const value = useFlow(E2ETest.testFlowNullable, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowNullable');
     return useMemo(() => (() => {
       const temp = value;
@@ -704,7 +716,7 @@ export const E2ETest: E2ETestInterface = {
       })()) as number | null);
     })(), [value]);
   },
-  useTestFlowComplex: () => {
+  ['useTestFlowComplex']: () => {
     const value = useFlow(E2ETest.testFlowComplex, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowComplex');
     return useMemo(() => (() => {
       const temp = value;
@@ -714,7 +726,7 @@ export const E2ETest: E2ETestInterface = {
       })()) as com.myrnproject.shared.Test);
     })(), [value]);
   },
-  useTestFlowParameterized: (arg1: number) => {
+  ['useTestFlowParameterized']: (arg1: number) => {
     const value = useFlow(E2ETest.testFlowParameterized, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowParameterized', arg1);
     return useMemo(() => (() => {
       const temp = value;
@@ -724,7 +736,7 @@ export const E2ETest: E2ETestInterface = {
       })()) as com.myrnproject.shared.FlowTest);
     })(), [value]);
   },
-  useTestFlowParameterized2: (arg1_: number, arg2: string) => {
+  ['useTestFlowParameterized2']: (arg1_: number, arg2: string) => {
     const value = useFlow(E2ETest.testFlowParameterized2, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowParameterized2', arg1_, arg2);
     return useMemo(() => (() => {
       const temp = value;
@@ -734,7 +746,7 @@ export const E2ETest: E2ETestInterface = {
       })()) as com.myrnproject.shared.FlowTest);
     })(), [value]);
   },
-  useTestFlowParameterizedComplex: (arg1__: com.myrnproject.shared.Test) => {
+  ['useTestFlowParameterizedComplex']: (arg1__: com.myrnproject.shared.Test) => {
     const value = useFlow(E2ETest.testFlowParameterizedComplex, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowParameterizedComplex', arg1__);
     return useMemo(() => (() => {
       const temp = value;
@@ -744,7 +756,7 @@ export const E2ETest: E2ETestInterface = {
       })()) as com.myrnproject.shared.FlowTest);
     })(), [value]);
   },
-  useTestFlowParameterizedComplex2: (arg1___: Array<com.myrnproject.shared.Test>, arg2_: Record<string, com.myrnproject.shared.Test>) =>
+  ['useTestFlowParameterizedComplex2']: (arg1___: Array<com.myrnproject.shared.Test>, arg2_: Record<string, com.myrnproject.shared.Test>) =>
       {
     const value = useFlow(E2ETest.testFlowParameterizedComplex2, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowParameterizedComplex2', arg1___, arg2_);
     return useMemo(() => (() => {
@@ -755,7 +767,7 @@ export const E2ETest: E2ETestInterface = {
       })()) as com.myrnproject.shared.FlowTest);
     })(), [value]);
   },
-  useTestFlowParameterizedMany: (arg1____: number, arg2__: string, arg3: Array<string>, arg4: Record<string, com.myrnproject.shared.Test>) =>
+  ['useTestFlowParameterizedMany']: (arg1____: number, arg2__: string, arg3: Array<string>, arg4: Record<string, com.myrnproject.shared.Test>) =>
       {
     const value = useFlow(E2ETest.testFlowParameterizedMany, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowParameterizedMany', arg1____, arg2__, arg3, arg4);
     return useMemo(() => (() => {
@@ -766,7 +778,7 @@ export const E2ETest: E2ETestInterface = {
       })()) as com.myrnproject.shared.FlowTest);
     })(), [value]);
   },
-  useTestFlowReturnInstant: () => {
+  ['useTestFlowReturnInstant']: () => {
     const value = useFlow(E2ETest.testFlowReturnInstant, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowReturnInstant');
     return useMemo(() => (() => {
       const temp = value;
@@ -776,7 +788,7 @@ export const E2ETest: E2ETestInterface = {
       })()) as string);
     })(), [value]);
   },
-  useTestFlowReturnInstantAsDate: () => {
+  ['useTestFlowReturnInstantAsDate']: () => {
     const value = useFlow(E2ETest.testFlowReturnInstantAsDate, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowReturnInstantAsDate');
     return useMemo(() => (() => {
       const temp = value;
@@ -792,20 +804,20 @@ const NativeNameManager = (NativeModules.NameManager) as NativeNameManagerInterf
 
 export const NameManager: NameManagerInterface = {
   ...NativeNameManager,
-  setName: (name: string) => NativeNameManager.setName((() => {
+  ['setName']: (name: string) => NativeNameManager.setName((() => {
     const temp = name;
     return temp;
   })()).then((result) => ((() => {
     const temp = result;
     return temp;
   })()) as void),
-  getName: () => NativeNameManager.getName().then((result) => ((() => {
+  ['getName']: () => NativeNameManager.getName().then((result) => ((() => {
     const temp = result;
     return temp === null ? null : (temp);
   })()) as string | null),
-  name: (subscriptionId: string, currentValue: string | null) =>
+  ['name']: (subscriptionId: string, currentValue: string | null) =>
       NativeNameManager.name(subscriptionId, currentValue),
-  useName: () => {
+  ['useName']: () => {
     const value = useFlow(NameManager.name, NativeNameManager.unsubscribeFromToolkitUseFlow, 'NameManager.name');
     return useMemo(() => (() => {
       const temp = value;
@@ -821,7 +833,7 @@ const NativeNotificationDemo = (NativeModules.NotificationDemo) as NativeNotific
 
 export const NotificationDemo: NotificationDemoInterface = {
   ...NativeNotificationDemo,
-  addEventListener: (key: string, listener: (result: any) => void) => {
+  ['addEventListener']: (key: string, listener: (result: any) => void) => {
     const eventEmitter = new NativeEventEmitter((NativeNotificationDemo) as any);
     return eventEmitter.addListener(key, listener);
   }
@@ -831,16 +843,16 @@ const NativeTimeProvider = (NativeModules.TimeProvider) as NativeTimeProviderInt
 
 export const TimeProvider: TimeProviderInterface = {
   ...NativeTimeProvider,
-  time: (subscriptionId: string, currentValue: string | null) =>
+  ['time']: (subscriptionId: string, currentValue: string | null) =>
       NativeTimeProvider.time(subscriptionId, currentValue),
-  isAfter: (subscriptionId: string, currentValue: string | null, time: string) =>
+  ['isAfter']: (subscriptionId: string, currentValue: string | null, time: string) =>
       NativeTimeProvider.isAfter(subscriptionId, currentValue, (() => {
     const temp = time;
     return temp;
   })()),
-  timeAsState: (subscriptionId: string, currentValue: string | null) =>
+  ['timeAsState']: (subscriptionId: string, currentValue: string | null) =>
       NativeTimeProvider.timeAsState(subscriptionId, currentValue),
-  useTime: () => {
+  ['useTime']: () => {
     const value = useFlow(TimeProvider.time, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProvider.time');
     return useMemo(() => (() => {
       const temp = value;
@@ -850,7 +862,7 @@ export const TimeProvider: TimeProviderInterface = {
       })()) as Date);
     })(), [value]);
   },
-  useIsAfter: (time: string) => {
+  ['useIsAfter']: (time: string) => {
     const value = useFlow(TimeProvider.isAfter, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProvider.isAfter', time);
     return useMemo(() => (() => {
       const temp = value;
@@ -860,7 +872,7 @@ export const TimeProvider: TimeProviderInterface = {
       })()) as boolean);
     })(), [value]);
   },
-  useTimeAsState: () => {
+  ['useTimeAsState']: () => {
     const value = useFlow(TimeProvider.timeAsState, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProvider.timeAsState');
     return useMemo(() => (() => {
       const temp = value;

@@ -1,6 +1,11 @@
 # CHANGELOG
 
 ## unreleased
+
+- Change typescript type mapping using computed property names syntax
+- Fix mapping of kotlin objects to empty objects in typescript
+- Correct mapping of standalone sealed subclasses in typescript, remove discriminator key
+
 ## v0.10.2
 
 - Replace lodash uniqueId with uuid v4
