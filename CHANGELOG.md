@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.11.0
 
 - Change typescript type mapping using computed property names syntax
 - Fix mapping of kotlin objects to empty objects in typescript
