@@ -691,39 +691,54 @@ class TypescriptGenerator(
                     logger.warn("External declarations are not supported and are stubbed with any: ${declaration.qualifiedName?.asString()}")
                     TypeName.ANY
                 } else when (declaration) {
-                    is KSClassDeclaration -> when (declaration.classKind) {
-                        ClassKind.INTERFACE -> error("Interfaces are not supported")
-                        ClassKind.CLASS -> {
-                            if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
-                                // data class
-                                TypeName.namedImport(
-                                    declaration.getTypescriptNameWithNamespace(),
-                                    module
-                                )
-                            } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
-                                TypeName.namedImport(
-                                    declaration.getTypescriptNameWithNamespace(),
-                                    module
-                                )
-                            } else {
-                                error("Only data classes and sealed classes are supported, found: $declaration")
+                    is KSClassDeclaration -> {
+                        val sealedSuperclass = declaration.getSealedSuperclass()
+                        when (declaration.classKind) {
+                            ClassKind.INTERFACE -> error("Interfaces are not supported")
+                            ClassKind.CLASS -> {
+                                if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
+                                    // data class
+                                    val rawTypeName = TypeName.namedImport(
+                                        declaration.getTypescriptNameWithNamespace(),
+                                        module
+                                    )
+                                    if (sealedSuperclass != null) {
+                                        rawTypeName.withoutSealedClassDiscriminator(sealedSuperclass)
+                                    } else {
+                                        rawTypeName
+                                    }
+                                } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                                    TypeName.namedImport(
+                                        declaration.getTypescriptNameWithNamespace(),
+                                        module
+                                    )
+                                } else {
+                                    error("Only data classes and sealed classes are supported, found: $declaration")
+                                }
                             }
+
+                            ClassKind.ENUM_CLASS -> {
+                                TypeName.namedImport(
+                                    declaration.getTypescriptNameWithNamespace(),
+                                    module
+                                )
+                            }
+
+                            ClassKind.ENUM_ENTRY -> error("Enum entries are not supported")
+                            ClassKind.OBJECT -> {
+                                val rawTypeName = TypeName.namedImport(
+                                    declaration.getTypescriptNameWithNamespace(),
+                                    module
+                                )
+                                if (sealedSuperclass != null) {
+                                    rawTypeName.withoutSealedClassDiscriminator(sealedSuperclass)
+                                } else {
+                                    rawTypeName
+                                }
+                            }
+
+                            ClassKind.ANNOTATION_CLASS -> error("Annotation classes are not supported")
                         }
-
-                        ClassKind.ENUM_CLASS -> {
-                            TypeName.namedImport(
-                                declaration.getTypescriptNameWithNamespace(),
-                                module
-                            )
-                        }
-
-                        ClassKind.ENUM_ENTRY -> error("Enum entries are not supported")
-                        ClassKind.OBJECT -> TypeName.namedImport(
-                            declaration.getTypescriptNameWithNamespace(),
-                            module
-                        )
-
-                        ClassKind.ANNOTATION_CLASS -> error("Annotation classes are not supported")
                     }
 
                     is KSFunctionDeclaration -> {
@@ -1465,392 +1480,31 @@ class TypescriptGenerator(
         when (declaration.qualifiedName) {
             else -> when (declaration) {
                 is KSClassDeclaration -> {
-                    val sealedSuperclass = declaration.getSealedSuperclass()
-
                     when (declaration.classKind) {
                         ClassKind.INTERFACE -> error("Interfaces are not supported")
                         ClassKind.CLASS -> {
                             if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
-                                // data class
-                                val fromJson =
-                                    FunctionSpec.builder(declaration.getTypescriptFromJsonFunctionName())
-                                        .apply {
-                                            val nameAllocator = NameAllocator()
-
-                                            addModifiers(Modifier.EXPORT)
-                                            addTSDoc(
-                                                "Mapping generated from {@link %N}\n",
-                                                declaration.qualifiedName!!.asString()
-                                            )
-                                            val jsonParameterTag = "json"
-                                            nameAllocator.newName("json", jsonParameterTag)
-                                            addParameter(
-                                                ParameterSpec.builder(
-                                                    nameAllocator[jsonParameterTag],
-                                                    TypeName.ANY,
-                                                ).build()
-                                            )
-                                            addCode(
-                                                codeBlock(brackets = false) {
-                                                    add(
-                                                        returnStatement(
-                                                            CodeBlock.of(
-                                                                "{%>%L%<}",
-                                                                buildList {
-                                                                    if (sealedSuperclass != null) {
-                                                                        val discriminatorKey =
-                                                                            sealedSuperclass.getDiscriminatorKeyForSealedClass()
-                                                                        val typeEnum =
-                                                                            declaration.getSealedSubclassTypeEnumSymbol(
-                                                                                sealedSuperclass
-                                                                            )
-                                                                        add(
-                                                                            property(
-                                                                                discriminatorKey,
-                                                                                typeEnum.asCodeBlock(),
-                                                                            )
-                                                                        )
-                                                                    }
-                                                                    addAll(
-                                                                        declaration.getAllProperties()
-                                                                            .map {
-                                                                                val name =
-                                                                                    it.getJSName()
-                                                                                property(
-                                                                                    name,
-                                                                                    convertJsonToType(
-                                                                                        CodeBlock.of(
-                                                                                            "%N[%S]",
-                                                                                            nameAllocator[jsonParameterTag],
-                                                                                            name,
-                                                                                        ),
-                                                                                        it.type.resolve(),
-                                                                                        nameAllocator.copy(),
-                                                                                    )
-                                                                                )
-                                                                            }
-                                                                    )
-                                                                }.joinToCode(
-                                                                    separator = ",\n",
-                                                                    prefix = "\n",
-                                                                    suffix = "\n"
-                                                                ),
-                                                            )
-                                                        )
-                                                    )
-                                                }
-                                            )
-                                            returns(getTypescriptTypeName(declaration.asStarProjectedType()))
-                                        }.build()
-
-                                val toJson =
-                                    FunctionSpec.builder(declaration.getTypescriptToJsonFunctionName())
-                                        .apply {
-                                            val nameAllocator = NameAllocator()
-                                            addModifiers(Modifier.EXPORT)
-                                            addTSDoc(
-                                                "Mapping generated from {@link %N}\n",
-                                                declaration.qualifiedName!!.asString()
-                                            )
-                                            val valueParameterTag = "value"
-                                            nameAllocator.newName("value", valueParameterTag)
-                                            addParameter(
-                                                ParameterSpec.builder(
-                                                    nameAllocator[valueParameterTag],
-                                                    getTypescriptTypeName(declaration.asStarProjectedType()),
-                                                ).build()
-                                            )
-                                            addCode(
-                                                codeBlock(brackets = false) {
-                                                    add(
-                                                        returnStatement(
-                                                            CodeBlock.of(
-                                                                "{%>%L%<}",
-                                                                buildList {
-                                                                    if (sealedSuperclass != null) {
-                                                                        val discriminatorKey =
-                                                                            sealedSuperclass.getDiscriminatorKeyForSealedClass()
-                                                                        val typeEnum =
-                                                                            declaration.getSealedSubclassTypeEnumSymbol(
-                                                                                sealedSuperclass
-                                                                            )
-                                                                        add(
-                                                                            property(
-                                                                                discriminatorKey,
-                                                                                typeEnum.asCodeBlock(),
-                                                                            )
-                                                                        )
-                                                                    }
-                                                                    addAll(
-                                                                        declaration.getAllProperties()
-                                                                            .map {
-                                                                                val name =
-                                                                                    it.getJSName()
-                                                                                property(
-                                                                                    name,
-                                                                                    convertTypeToJson(
-                                                                                        CodeBlock.of(
-                                                                                            "%N[%S]",
-                                                                                            nameAllocator[valueParameterTag],
-                                                                                            name,
-                                                                                        ),
-                                                                                        it.type.resolve(),
-                                                                                        nameAllocator.copy(),
-                                                                                    )
-                                                                                )
-                                                                            }
-                                                                    )
-                                                                }.joinToCode(
-                                                                    separator = ",\n",
-                                                                    prefix = "\n",
-                                                                    suffix = "\n"
-                                                                ),
-                                                            )
-                                                        )
-                                                    )
-                                                }
-                                            )
-                                            returns(TypeName.ANY)
-                                        }.build()
-                                typescriptFileBuilder.addFunction(fromJson)
-                                typescriptFileBuilder.addFunction(toJson)
+                                typescriptFileBuilder.createTypescriptTypeMappingForDataClass(
+                                    declaration
+                                )
                             } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
-                                val subclasses = declaration.getSealedSubclasses()
-                                val fromJson =
-                                    FunctionSpec.builder(declaration.getTypescriptFromJsonFunctionName())
-                                        .apply {
-                                            addModifiers(Modifier.EXPORT)
-                                            addTSDoc(
-                                                "Mapping generated from {@link %N}\n",
-                                                declaration.qualifiedName!!.asString()
-                                            )
-                                            val jsonParameterName = "json"
-                                            addParameter(
-                                                ParameterSpec.builder(
-                                                    jsonParameterName,
-                                                    TypeName.ANY,
-                                                ).build()
-                                            )
-                                            addCode(
-                                                codeBlock(brackets = false) {
-                                                    val typeVariableType = "type"
-                                                    add(
-                                                        const(
-                                                            typeVariableType,
-                                                            CodeBlock.of(
-                                                                "%N[%S]",
-                                                                jsonParameterName,
-                                                                declaration.getDiscriminatorKeyForSealedClass()
-                                                            )
-                                                        )
-                                                    )
-                                                    addStatement(
-                                                        "switch (%N) {%>%L%<}",
-                                                        typeVariableType,
-                                                        buildList {
-                                                            addAll(
-                                                                subclasses.map {
-                                                                    val typeEnum =
-                                                                        it.getSealedSubclassTypeEnumSymbol(
-                                                                            declaration
-                                                                        )
-                                                                    CodeBlock.of(
-                                                                        "case %Q: return %Q(%N);",
-                                                                        typeEnum,
-                                                                        it.getTypescriptFromJsonFunctionNameWithNamespace(),
-                                                                        jsonParameterName,
-                                                                    )
-                                                                }
-                                                            )
-                                                            add(
-                                                                CodeBlock.of(
-                                                                    "default: throw new %T(%S + %N);",
-                                                                    TypescriptErrorTypeName,
-                                                                    "Unknown discriminator value: ",
-                                                                    typeVariableType,
-                                                                )
-                                                            )
-                                                        }.joinToCode(
-                                                            separator = "\n",
-                                                            prefix = "\n",
-                                                            suffix = "\n"
-                                                        ),
-                                                    )
-                                                }
-                                            )
-                                            returns(getTypescriptTypeName(declaration.asStarProjectedType()))
-                                        }.build()
-
-                                val toJson =
-                                    FunctionSpec.builder(declaration.getTypescriptToJsonFunctionName())
-                                        .apply {
-                                            addModifiers(Modifier.EXPORT)
-                                            addTSDoc(
-                                                "Mapping generated from {@link %N}\n",
-                                                declaration.qualifiedName!!.asString()
-                                            )
-                                            val valueParameterName = "value"
-                                            addParameter(
-                                                ParameterSpec.builder(
-                                                    valueParameterName,
-                                                    getTypescriptTypeName(declaration.asStarProjectedType()),
-                                                ).build()
-                                            )
-                                            addCode(
-                                                codeBlock(brackets = false) {
-                                                    val typeVariableType = "type"
-                                                    add(
-                                                        const(
-                                                            typeVariableType,
-                                                            CodeBlock.of(
-                                                                "%N[%S]",
-                                                                valueParameterName,
-                                                                declaration.getDiscriminatorKeyForSealedClass()
-                                                            )
-                                                        )
-                                                    )
-                                                    addStatement(
-                                                        "switch (%N) {%>%L%<}",
-                                                        typeVariableType,
-                                                        buildList {
-                                                            addAll(
-                                                                subclasses.map {
-                                                                    val typeEnum =
-                                                                        it.getSealedSubclassTypeEnumSymbol(
-                                                                            declaration
-                                                                        )
-                                                                    CodeBlock.of(
-                                                                        "case %Q: return %Q(%N);",
-                                                                        typeEnum,
-                                                                        it.getTypescriptToJsonFunctionNameWithNamespace(),
-                                                                        valueParameterName,
-                                                                    )
-                                                                }
-                                                            )
-                                                            add(
-                                                                CodeBlock.of(
-                                                                    "default: throw new %T(%S + %N);",
-                                                                    TypescriptErrorTypeName,
-                                                                    "Unknown discriminator value: ",
-                                                                    typeVariableType,
-                                                                )
-                                                            )
-                                                        }.joinToCode(
-                                                            separator = "\n",
-                                                            prefix = "\n",
-                                                            suffix = "\n"
-                                                        ),
-                                                    )
-                                                }
-                                            )
-                                            returns(TypeName.ANY)
-                                        }.build()
-                                typescriptFileBuilder.addFunction(fromJson)
-                                typescriptFileBuilder.addFunction(toJson)
+                                typescriptFileBuilder.createTypescriptTypeMappingForSealedClass(
+                                    declaration
+                                )
                             } else {
                                 error("Only data classes and sealed classes are supported, found: $declaration")
                             }
                         }
 
                         ClassKind.ENUM_CLASS -> {
-                            val fromJson =
-                                FunctionSpec.builder(declaration.getTypescriptFromJsonFunctionName())
-                                    .apply {
-                                        addModifiers(Modifier.EXPORT)
-                                        addTSDoc(
-                                            "Mapping generated from {@link %N}\n",
-                                            declaration.qualifiedName!!.asString()
-                                        )
-                                        val jsonParameterName = "json"
-                                        addParameter(
-                                            ParameterSpec.builder(
-                                                jsonParameterName,
-                                                TypeName.ANY,
-                                            ).build()
-                                        )
-                                        addCode(
-                                            returnStatement(
-                                                jsonParameterName.asCodeBlock()
-                                            )
-                                        )
-                                        returns(getTypescriptTypeName(declaration.asStarProjectedType()))
-                                    }.build()
-
-                            val toJson =
-                                FunctionSpec.builder(declaration.getTypescriptToJsonFunctionName())
-                                    .apply {
-                                        addModifiers(Modifier.EXPORT)
-                                        addTSDoc(
-                                            "Mapping generated from {@link %N}\n",
-                                            declaration.qualifiedName!!.asString()
-                                        )
-                                        val valueParameterName = "value"
-                                        addParameter(
-                                            ParameterSpec.builder(
-                                                valueParameterName,
-                                                getTypescriptTypeName(declaration.asStarProjectedType()),
-                                            ).build()
-                                        )
-                                        addCode(
-                                            returnStatement(
-                                                valueParameterName.asCodeBlock()
-                                            )
-                                        )
-                                        returns(TypeName.ANY)
-                                    }.build()
-                            typescriptFileBuilder.addFunction(fromJson)
-                            typescriptFileBuilder.addFunction(toJson)
+                            typescriptFileBuilder.createTypescriptTypeMappingForEnumClass(
+                                declaration
+                            )
                         }
 
                         ClassKind.ENUM_ENTRY -> error("Enum entries are not supported")
                         ClassKind.OBJECT -> {
-                            val fromJson =
-                                FunctionSpec.builder(declaration.getTypescriptFromJsonFunctionName())
-                                    .apply {
-                                        addModifiers(Modifier.EXPORT)
-                                        addTSDoc(
-                                            "Mapping generated from {@link %N}\n",
-                                            declaration.qualifiedName!!.asString()
-                                        )
-                                        val jsonParameterName = "json"
-                                        addParameter(
-                                            ParameterSpec.builder(
-                                                jsonParameterName,
-                                                TypeName.ANY,
-                                            ).build()
-                                        )
-                                        addCode(
-                                            returnStatement(
-                                                jsonParameterName.asCodeBlock()
-                                            )
-                                        )
-                                        returns(getTypescriptTypeName(declaration.asStarProjectedType()))
-                                    }.build()
-
-                            val toJson =
-                                FunctionSpec.builder(declaration.getTypescriptToJsonFunctionName())
-                                    .apply {
-                                        addModifiers(Modifier.EXPORT)
-                                        addTSDoc(
-                                            "Mapping generated from {@link %N}\n",
-                                            declaration.qualifiedName!!.asString()
-                                        )
-                                        val valueParameterName = "value"
-                                        addParameter(
-                                            ParameterSpec.builder(
-                                                valueParameterName,
-                                                getTypescriptTypeName(declaration.asStarProjectedType()),
-                                            ).build()
-                                        )
-                                        addCode(
-                                            returnStatement(
-                                                valueParameterName.asCodeBlock()
-                                            )
-                                        )
-                                        returns(TypeName.ANY)
-                                    }.build()
-                            typescriptFileBuilder.addFunction(fromJson)
-                            typescriptFileBuilder.addFunction(toJson)
+                            typescriptFileBuilder.createTypescriptTypeMappingForObject(declaration)
                         }
 
                         ClassKind.ANNOTATION_CLASS -> error("Annotation classes are not supported")
@@ -1862,68 +1516,7 @@ class TypescriptGenerator(
                 }
 
                 is KSTypeAlias -> {
-                    val type = declaration.type.resolve()
-
-                    val fromJson =
-                        FunctionSpec.builder(declaration.getTypescriptFromJsonFunctionName())
-                            .apply {
-                                val nameAllocator = NameAllocator()
-                                addModifiers(Modifier.EXPORT)
-                                addTSDoc(
-                                    "Mapping generated from {@link %N}\n",
-                                    declaration.qualifiedName!!.asString()
-                                )
-                                val jsonParameterTag = UUID.randomUUID()
-                                nameAllocator.newName("json", jsonParameterTag)
-
-                                addParameter(
-                                    ParameterSpec.builder(
-                                        nameAllocator[jsonParameterTag],
-                                        TypeName.ANY,
-                                    ).build()
-                                )
-                                addCode(
-                                    returnStatement(
-                                        convertJsonToType(
-                                            nameAllocator[jsonParameterTag].asCodeBlock(),
-                                            type,
-                                            nameAllocator.copy(),
-                                        )
-                                    )
-                                )
-                                returns(getTypescriptTypeName(type))
-                            }.build()
-
-                    val toJson =
-                        FunctionSpec.builder(declaration.getTypescriptToJsonFunctionName())
-                            .apply {
-                                val nameAllocator = NameAllocator()
-                                addModifiers(Modifier.EXPORT)
-                                addTSDoc(
-                                    "Mapping generated from {@link %N}\n",
-                                    declaration.qualifiedName!!.asString()
-                                )
-                                val valueParameterTag = UUID.randomUUID()
-                                nameAllocator.newName("value", valueParameterTag)
-                                addParameter(
-                                    ParameterSpec.builder(
-                                        nameAllocator[valueParameterTag],
-                                        getTypescriptTypeName(type),
-                                    ).build()
-                                )
-                                addCode(
-                                    returnStatement(
-                                        convertTypeToJson(
-                                            nameAllocator[valueParameterTag].asCodeBlock(),
-                                            type,
-                                            nameAllocator.copy(),
-                                        )
-                                    )
-                                )
-                                returns(TypeName.ANY)
-                            }.build()
-                    typescriptFileBuilder.addFunction(fromJson)
-                    typescriptFileBuilder.addFunction(toJson)
+                    typescriptFileBuilder.createTypescriptTypeMappingForTypeAlias(declaration)
                 }
 
                 is KSPropertyDeclaration -> {
@@ -1939,6 +1532,475 @@ class TypescriptGenerator(
                 }
             }
         }
+    }
+
+    private fun ModuleSpec.Builder.createTypescriptTypeMappingForDataClass(
+        declaration: KSClassDeclaration
+    ) {
+        val fromJson = FunctionSpec.builder(declaration.getTypescriptFromJsonFunctionName())
+            .apply {
+                val nameAllocator = NameAllocator()
+
+                addModifiers(Modifier.EXPORT)
+                addTSDoc(
+                    "Mapping generated from {@link %N}\n",
+                    declaration.qualifiedName!!.asString()
+                )
+                val jsonParameterTag = "json"
+                nameAllocator.newName("json", jsonParameterTag)
+                addParameter(
+                    ParameterSpec.builder(
+                        nameAllocator[jsonParameterTag],
+                        TypeName.ANY,
+                    ).build()
+                )
+                addCode(
+                    codeBlock(brackets = false) {
+                        add(
+                            returnStatement(
+                                CodeBlock.of(
+                                    "{%>%L%<}",
+                                    declaration.getAllProperties()
+                                        .map {
+                                            val name = it.getJSName()
+                                            property(
+                                                name,
+                                                convertJsonToType(
+                                                    CodeBlock.of(
+                                                        "%N[%S]",
+                                                        nameAllocator[jsonParameterTag],
+                                                        name,
+                                                    ),
+                                                    it.type.resolve(),
+                                                    nameAllocator.copy(),
+                                                )
+                                            )
+                                        }.toList().joinToCode(
+                                            separator = ",\n",
+                                            prefix = "\n",
+                                            suffix = "\n"
+                                        ),
+                                )
+                            )
+                        )
+                    }
+                )
+                returns(getTypescriptTypeName(declaration.asStarProjectedType()))
+            }.build()
+
+        val toJson = FunctionSpec.builder(declaration.getTypescriptToJsonFunctionName())
+            .apply {
+                val nameAllocator = NameAllocator()
+                addModifiers(Modifier.EXPORT)
+                addTSDoc(
+                    "Mapping generated from {@link %N}\n",
+                    declaration.qualifiedName!!.asString()
+                )
+                val valueParameterTag = "value"
+                nameAllocator.newName("value", valueParameterTag)
+                addParameter(
+                    ParameterSpec.builder(
+                        nameAllocator[valueParameterTag],
+                        getTypescriptTypeName(declaration.asStarProjectedType()),
+                    ).build()
+                )
+                addCode(
+                    codeBlock(brackets = false) {
+                        add(
+                            returnStatement(
+                                CodeBlock.of(
+                                    "{%>%L%<}",
+                                    declaration.getAllProperties()
+                                        .map {
+                                            val name = it.getJSName()
+                                            property(
+                                                name,
+                                                convertTypeToJson(
+                                                    CodeBlock.of(
+                                                        "%N[%S]",
+                                                        nameAllocator[valueParameterTag],
+                                                        name,
+                                                    ),
+                                                    it.type.resolve(),
+                                                    nameAllocator.copy(),
+                                                )
+                                            )
+                                        }.toList().joinToCode(
+                                            separator = ",\n",
+                                            prefix = "\n",
+                                            suffix = "\n"
+                                        ),
+                                )
+                            )
+                        )
+                    }
+                )
+                returns(TypeName.ANY)
+            }.build()
+        addFunction(fromJson)
+        addFunction(toJson)
+    }
+
+    private fun ModuleSpec.Builder.createTypescriptTypeMappingForSealedClass(
+        declaration: KSClassDeclaration
+    ) {
+        val subclasses = declaration.getSealedSubclasses()
+        val fromJson = FunctionSpec.builder(declaration.getTypescriptFromJsonFunctionName())
+            .apply {
+                addModifiers(Modifier.EXPORT)
+                addTSDoc(
+                    "Mapping generated from {@link %N}\n",
+                    declaration.qualifiedName!!.asString()
+                )
+                val jsonParameterName = "json"
+                addParameter(
+                    ParameterSpec.builder(
+                        jsonParameterName,
+                        TypeName.ANY,
+                    ).build()
+                )
+                addCode(
+                    codeBlock(brackets = false) {
+                        val discriminatorKey = declaration.getDiscriminatorKeyForSealedClass()
+                        val typeVariableType = "type"
+                        add(
+                            const(
+                                typeVariableType,
+                                CodeBlock.of(
+                                    "%N[%S]",
+                                    jsonParameterName,
+                                    discriminatorKey
+                                )
+                            )
+                        )
+                        add(
+                            returnStatement(
+                                CodeBlock.of(
+                                    "{%>%L%<}",
+                                    buildList {
+                                        add(
+                                            CodeBlock.of(
+                                                "...%L", lambda(
+                                                    args = emptyList(),
+                                                    body = block(
+                                                        CodeBlock.of(
+                                                            "switch (%N) {%>%L%<}",
+                                                            typeVariableType,
+                                                            buildList {
+                                                                addAll(
+                                                                    subclasses.map {
+                                                                        val typeEnum =
+                                                                            it.getSealedSubclassTypeEnumSymbol(
+                                                                                declaration
+                                                                            )
+                                                                        CodeBlock.of(
+                                                                            "case %Q: return %Q(%N);",
+                                                                            typeEnum,
+                                                                            it.getTypescriptFromJsonFunctionNameWithNamespace(),
+                                                                            jsonParameterName,
+                                                                        )
+                                                                    }
+                                                                )
+                                                                add(
+                                                                    CodeBlock.of(
+                                                                        "default: throw new %T(%S + %N);",
+                                                                        TypescriptErrorTypeName,
+                                                                        "Unknown discriminator value: ",
+                                                                        typeVariableType,
+                                                                    )
+                                                                )
+                                                            }.joinToCode(
+                                                                separator = "\n",
+                                                                prefix = "\n",
+                                                                suffix = "\n"
+                                                            ),
+                                                        )
+                                                    )
+                                                ).inParentheses()
+                                                    .invoke()
+                                            ),
+                                        )
+                                        add(
+                                            property(
+                                                discriminatorKey,
+                                                typeVariableType.asCodeBlock(),
+                                            )
+                                        )
+                                    }.joinToCode(
+                                        separator = ",\n",
+                                        prefix = "\n",
+                                        suffix = "\n"
+                                    ),
+                                )
+                            )
+                        )
+                    }
+                )
+                returns(getTypescriptTypeName(declaration.asStarProjectedType()))
+            }.build()
+
+        val toJson = FunctionSpec.builder(declaration.getTypescriptToJsonFunctionName())
+            .apply {
+                addModifiers(Modifier.EXPORT)
+                addTSDoc(
+                    "Mapping generated from {@link %N}\n",
+                    declaration.qualifiedName!!.asString()
+                )
+                val valueParameterName = "value"
+                addParameter(
+                    ParameterSpec.builder(
+                        valueParameterName,
+                        getTypescriptTypeName(declaration.asStarProjectedType()),
+                    ).build()
+                )
+                addCode(
+                    codeBlock(brackets = false) {
+                        val discriminatorKey = declaration.getDiscriminatorKeyForSealedClass()
+                        val typeVariableType = "type"
+                        add(
+                            const(
+                                typeVariableType,
+                                CodeBlock.of(
+                                    "%N[%S]",
+                                    valueParameterName,
+                                    discriminatorKey
+                                )
+                            )
+                        )
+                        add(
+                            returnStatement(
+                                CodeBlock.of(
+                                    "{%>%L%<}",
+                                    buildList {
+                                        add(
+                                            CodeBlock.of(
+                                                "...%L", lambda(
+                                                    args = emptyList(),
+                                                    body = block(
+                                                        CodeBlock.of(
+                                                            "switch (%N) {%>%L%<}",
+                                                            typeVariableType,
+                                                            buildList {
+                                                                addAll(
+                                                                    subclasses.map {
+                                                                        val typeEnum =
+                                                                            it.getSealedSubclassTypeEnumSymbol(
+                                                                                declaration
+                                                                            )
+                                                                        CodeBlock.of(
+                                                                            "case %Q: return %Q(%N);",
+                                                                            typeEnum,
+                                                                            it.getTypescriptToJsonFunctionNameWithNamespace(),
+                                                                            valueParameterName,
+                                                                        )
+                                                                    }
+                                                                )
+                                                                add(
+                                                                    CodeBlock.of(
+                                                                        "default: throw new %T(%S + %N);",
+                                                                        TypescriptErrorTypeName,
+                                                                        "Unknown discriminator value: ",
+                                                                        typeVariableType,
+                                                                    )
+                                                                )
+                                                            }.joinToCode(
+                                                                separator = "\n",
+                                                                prefix = "\n",
+                                                                suffix = "\n"
+                                                            ),
+                                                        )
+                                                    )
+                                                ).inParentheses()
+                                                    .invoke()
+                                            )
+                                        )
+                                        add(
+                                            property(
+                                                discriminatorKey,
+                                                typeVariableType.asCodeBlock(),
+                                            )
+                                        )
+                                    }.joinToCode(
+                                        separator = ",\n",
+                                        prefix = "\n",
+                                        suffix = "\n"
+                                    ),
+                                )
+                            )
+                        )
+                    }
+                )
+                returns(TypeName.ANY)
+            }.build()
+        addFunction(fromJson)
+        addFunction(toJson)
+    }
+
+    private fun ModuleSpec.Builder.createTypescriptTypeMappingForEnumClass(
+        declaration: KSClassDeclaration
+    ) {
+        val fromJson = FunctionSpec.builder(declaration.getTypescriptFromJsonFunctionName())
+            .apply {
+                addModifiers(Modifier.EXPORT)
+                addTSDoc(
+                    "Mapping generated from {@link %N}\n",
+                    declaration.qualifiedName!!.asString()
+                )
+                val jsonParameterName = "json"
+                addParameter(
+                    ParameterSpec.builder(
+                        jsonParameterName,
+                        TypeName.ANY,
+                    ).build()
+                )
+                addCode(
+                    returnStatement(
+                        jsonParameterName.asCodeBlock()
+                    )
+                )
+                returns(getTypescriptTypeName(declaration.asStarProjectedType()))
+            }.build()
+
+        val toJson = FunctionSpec.builder(declaration.getTypescriptToJsonFunctionName())
+            .apply {
+                addModifiers(Modifier.EXPORT)
+                addTSDoc(
+                    "Mapping generated from {@link %N}\n",
+                    declaration.qualifiedName!!.asString()
+                )
+                val valueParameterName = "value"
+                addParameter(
+                    ParameterSpec.builder(
+                        valueParameterName,
+                        getTypescriptTypeName(declaration.asStarProjectedType()),
+                    ).build()
+                )
+                addCode(
+                    returnStatement(
+                        valueParameterName.asCodeBlock()
+                    )
+                )
+                returns(TypeName.ANY)
+            }.build()
+        addFunction(fromJson)
+        addFunction(toJson)
+    }
+
+    private fun ModuleSpec.Builder.createTypescriptTypeMappingForObject(
+        declaration: KSClassDeclaration
+    ) {
+        val fromJson =
+            FunctionSpec.builder(declaration.getTypescriptFromJsonFunctionName())
+                .apply {
+                    addModifiers(Modifier.EXPORT)
+                    addTSDoc(
+                        "Mapping generated from {@link %N}\n",
+                        declaration.qualifiedName!!.asString()
+                    )
+                    val jsonParameterName = "_"
+                    addParameter(
+                        ParameterSpec.builder(
+                            jsonParameterName,
+                            TypeName.ANY,
+                        ).build()
+                    )
+                    addCode(
+                        returnStatement(
+                            CodeBlock.of("{}")
+                        )
+                    )
+                    returns(getTypescriptTypeName(declaration.asStarProjectedType()))
+                }.build()
+
+        val toJson =
+            FunctionSpec.builder(declaration.getTypescriptToJsonFunctionName())
+                .apply {
+                    addModifiers(Modifier.EXPORT)
+                    addTSDoc(
+                        "Mapping generated from {@link %N}\n",
+                        declaration.qualifiedName!!.asString()
+                    )
+                    val valueParameterName = "_"
+                    addParameter(
+                        ParameterSpec.builder(
+                            valueParameterName,
+                            getTypescriptTypeName(declaration.asStarProjectedType()),
+                        ).build()
+                    )
+                    addCode(
+                        returnStatement(
+                            CodeBlock.of("{}")
+                        )
+                    )
+                    returns(TypeName.ANY)
+                }.build()
+        addFunction(fromJson)
+        addFunction(toJson)
+    }
+
+    private fun ModuleSpec.Builder.createTypescriptTypeMappingForTypeAlias(
+        declaration: KSTypeAlias
+    ) {
+        val type = declaration.type.resolve()
+
+        val fromJson = FunctionSpec.builder(declaration.getTypescriptFromJsonFunctionName())
+            .apply {
+                val nameAllocator = NameAllocator()
+                addModifiers(Modifier.EXPORT)
+                addTSDoc(
+                    "Mapping generated from {@link %N}\n",
+                    declaration.qualifiedName!!.asString()
+                )
+                val jsonParameterTag = UUID.randomUUID()
+                nameAllocator.newName("json", jsonParameterTag)
+
+                addParameter(
+                    ParameterSpec.builder(
+                        nameAllocator[jsonParameterTag],
+                        TypeName.ANY,
+                    ).build()
+                )
+                addCode(
+                    returnStatement(
+                        convertJsonToType(
+                            nameAllocator[jsonParameterTag].asCodeBlock(),
+                            type,
+                            nameAllocator.copy(),
+                        )
+                    )
+                )
+                returns(getTypescriptTypeName(type))
+            }.build()
+
+        val toJson = FunctionSpec.builder(declaration.getTypescriptToJsonFunctionName())
+            .apply {
+                val nameAllocator = NameAllocator()
+                addModifiers(Modifier.EXPORT)
+                addTSDoc(
+                    "Mapping generated from {@link %N}\n",
+                    declaration.qualifiedName!!.asString()
+                )
+                val valueParameterTag = UUID.randomUUID()
+                nameAllocator.newName("value", valueParameterTag)
+                addParameter(
+                    ParameterSpec.builder(
+                        nameAllocator[valueParameterTag],
+                        getTypescriptTypeName(type),
+                    ).build()
+                )
+                addCode(
+                    returnStatement(
+                        convertTypeToJson(
+                            nameAllocator[valueParameterTag].asCodeBlock(),
+                            type,
+                            nameAllocator.copy(),
+                        )
+                    )
+                )
+                returns(TypeName.ANY)
+            }.build()
+        addFunction(fromJson)
+        addFunction(toJson)
     }
 
     @OptIn(ExperimentalSerializationApi::class)
@@ -2172,6 +2234,15 @@ class TypescriptGenerator(
         } else null
     }
 
+    private fun TypeName.withoutSealedClassDiscriminator(sealedSuperclass: KSDeclaration): TypeName {
+        return TypescriptOmitTypeName.parameterized(
+            this,
+            TypeName.standard(
+                CodeBlock.of("%S", sealedSuperclass.getDiscriminatorKeyForSealedClass()).toString()
+            )
+        )
+    }
+
     private fun CodeBlock.ifNotNull(
         isNullable: Boolean,
         nameAllocator: NameAllocator,
@@ -2244,7 +2315,7 @@ class TypescriptGenerator(
      * A property for an object literal.
      */
     private fun property(name: String, expression: CodeBlock) =
-        CodeBlock.of("%N: %L", name, expression)
+        CodeBlock.of("[%S]: %L", name, expression)
 
     /**
      * Simple parameter for a function. No deconstruction, no default value.
@@ -2319,6 +2390,7 @@ class TypescriptGenerator(
     private val objectFromEntriesName = TypescriptObjectName.nested("fromEntries")
     private val TypescriptRecordTypeName = TypeName.implicit("Record")
     private val TypescriptDateTypeName = TypeName.implicit("Date")
+    private val TypescriptOmitTypeName = TypeName.implicit("Omit")
 
     private fun recordType(key: TypeName, value: TypeName): TypeName {
         return TypeName.parameterizedType(TypescriptRecordTypeName, key, value)

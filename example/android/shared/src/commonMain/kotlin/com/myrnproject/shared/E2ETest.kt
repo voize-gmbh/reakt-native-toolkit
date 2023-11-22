@@ -82,6 +82,11 @@ class E2ETest {
         return Test("Erik", listOf(), mapOf(), 30)
     }
 
+    @ReactNativeMethod
+    fun testSealedClassProperties(test: TestSealedClassProperties): TestSealedClassProperties {
+        return test
+    }
+
 
     @ReactNativeMethod
     fun testKotlinDateTime(instant: Instant, date: @JSType("date") Instant, localDateTime: LocalDateTime, test: DateTimeTest, dateOrNull: @JSType("date") Instant?): Duration {
@@ -180,6 +185,13 @@ data class Test(
         val age: Int
     )
 }
+
+@Serializable
+data class TestSealedClassProperties(
+    val sealed: TestSealedType,
+    val sealedSubclassStandalone: TestSealedType.Option1,
+    val sealedSubclassStandaloneObject: TestSealedType.Option3,
+)
 
 @Serializable
 sealed class TestSealedType {
