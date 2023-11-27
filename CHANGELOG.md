@@ -4,6 +4,7 @@
 
 - Update kotlin to 1.9.20
 - Update react-native to 0.72.7 in example
+- Update jvm version to 17 in ci
 
 ## v0.11.0
 
