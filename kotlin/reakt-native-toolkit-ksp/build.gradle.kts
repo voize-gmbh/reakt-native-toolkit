@@ -4,10 +4,13 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(17)
 }
 
 java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
     withSourcesJar()
 }
 
@@ -20,12 +23,6 @@ dependencies {
     implementation(libs.kotlinpoet.ksp)
     implementation(libs.typescriptpoet)
     implementation(libs.kotlinx.serialization.json)
-}
-
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
 }
 
 kapt {
