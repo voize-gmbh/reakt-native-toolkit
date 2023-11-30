@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.13.0
 
 - Update kotlinx coroutines to 1.7.3
 
