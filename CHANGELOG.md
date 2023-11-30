@@ -2,7 +2,7 @@
 
 ## unreleased
 
-- Update kotlin to 1.9.20
+- Update kotlin to 1.9.21
 - Update react-native to 0.72.7 in example
 - Update jvm version to 17 in ci
 
