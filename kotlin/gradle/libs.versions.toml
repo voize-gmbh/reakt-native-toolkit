@@ -1,6 +1,6 @@
 [versions]
 kotlin = "1.9.21"
-kotlin-coroutines = "1.6.4"
+kotlin-coroutines = "1.7.3"
 ksp = "1.9.21-1.0.15"
 kotlinpoet = "1.13.2"
 
@@ -10,7 +10,6 @@ kotlin-stdlib-jdk8 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", versi
 kotlin-stdlib-android = { module = "org.jetbrains.kotlin:kotlin-stdlib-android", version.ref = "kotlin" }
 
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlin-coroutines" }
-kotlinx-coroutines-jdk8 = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8", version.ref = "kotlin-coroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlin-coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlin-coroutines" }
 

@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Update kotlinx coroutines to 1.7.3
+
 ## v0.12.0
 
 - Update kotlin to 1.9.21
