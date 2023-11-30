@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.12.0
 
 - Update kotlin to 1.9.21
 - Update react-native to 0.72.7 in example
