@@ -8,7 +8,7 @@ plugins {
     id("com.google.devtools.ksp") version "1.8.21-1.0.11"
 }
 
-val reaktNativeToolkitVersion = "0.13.1"
+val reaktNativeToolkitVersion = "0.11.0"
 
 @OptIn(ExperimentalKotlinGradlePluginApi::class)
 kotlin {

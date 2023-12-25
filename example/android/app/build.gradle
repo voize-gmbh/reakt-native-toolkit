@@ -114,7 +114,6 @@ android {
 
 dependencies {
     implementation project(':shared')
-    implementation("de.voize:reakt-native-toolkit:0.11.0")
 
     // kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.21"
