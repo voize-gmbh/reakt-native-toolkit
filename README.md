@@ -3,11 +3,11 @@
 [![NPM](https://img.shields.io/npm/v/reakt-native-toolkit?color=blue)](https://www.npmjs.com/package/reakt-native-toolkit)
 [![Maven Central](https://img.shields.io/maven-central/v/de.voize/reakt-native-toolkit?color=blue)](https://search.maven.org/artifact/de.voize/reakt-native-toolkit)
 
-This toolkit allows you to combine React Native with Kotlin Multiplatform Mobile (KMM) by generating native modules for iOS and Android from Kotlin common code and supplying you with utilities to expose Kotlin Flows directly to React Native.
+This toolkit allows you to combine React Native with Kotlin Multiplatform (KMP) by generating native modules for iOS and Android from Kotlin common code and supplying you with utilities to expose Kotlin Flows directly to React Native.
 
 ## Installation
 
-**Prerequisite:** Your project must be a Kotlin Multiplatform Mobile project, see [our guide](docs/project-setup.md) on how to setup Kotlin Multiplatform Mobile in your existing React Native project.
+**Prerequisite:** Your project must be a Kotlin Multiplatform project, see [our guide](docs/project-setup.md) on how to setup Kotlin Multiplatform in your existing React Native project.
 Starting with kotlin 1.9.0 your project must have android and ios targets configured.
 The toolkit was tested with React Native 0.69 and 0.72 but may work with other versions as well.
 
@@ -143,10 +143,10 @@ class MyRNPackage(coroutineScope: CoroutineScope) : ReactPackage {
 
 #### Register generated iOS module
 
-The `CalculatorRNModuleIOS` class will be compiled into your KMM projects shared framework and can be consumed in your iOS project in the `extraModules` of your `RCTBridgeDelegate`:
+The `CalculatorRNModuleIOS` class will be compiled into your KMP projects shared framework and can be consumed in your iOS project in the `extraModules` of your `RCTBridgeDelegate`:
 
 ```swift
-import shared // your KMM project's shared framework
+import shared // your KMP project's shared framework
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate, RCTBridgeDelegate {
@@ -180,7 +180,7 @@ class MyIOSRNModules {
 And use this wrapper in Swift:
 
 ```swift
-import shared // your KMM project's shared framework
+import shared // your KMP project's shared framework
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate, RCTBridgeDelegate {

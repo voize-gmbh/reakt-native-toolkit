@@ -2,15 +2,15 @@
 
 This guide helps you to make your existing React Native project ready to use the `reakt-native-toolkit` library.
 
-## Step 1: Add Kotlin Multiplatform Mobile to your project
+## Step 1: Add Kotlin Multiplatform to your project
 
-To use the `reakt-native-toolkit` library your project needs to support [Kotlin Multiplatform Mobile](https://kotlinlang.org/lp/mobile/).
+To use the `reakt-native-toolkit` library your project needs to support [Kotlin Multiplatform](https://kotlinlang.org/docs/multiplatform.html).
 
-Adding KMM to your project is very straightforward. You create a new module in your `/android` project which is a so-called _KMM shared module_. Please refer to [Kotlin's official guide on how to do this](https://kotlinlang.org/docs/multiplatform-mobile-integrate-in-existing-app.html#create-a-shared-module-for-cross-platform-code). The shared module will contain cross-platform code written in Kotlin and we will be able to expose classes within this code to React Native as native modules.
+Adding KMP to your project is very straightforward. You create a new module in your `/android` project which is a so-called _KMP shared module_. Please refer to [Kotlin's official guide on how to do this](https://www.jetbrains.com/help/kotlin-multiplatform-dev/multiplatform-integrate-in-existing-app.html#create-a-shared-module-for-cross-platform-code). The shared module will contain cross-platform code written in Kotlin and we will be able to expose classes within this code to React Native as native modules.
 
 The shared module should be in a separate namespace like `com.example.shared`. Going forward we assume that your shared module's directory is called `shared`.
 
-Make sure that in your `settings.gradle` in the root directory the shared module is included. This should have been automatically added by the KMM wizard.
+Make sure that in your `settings.gradle` in the root directory the shared module is included. This should have been automatically added by the KMP wizard.
 
 ```groovy
 // settings.gradle
