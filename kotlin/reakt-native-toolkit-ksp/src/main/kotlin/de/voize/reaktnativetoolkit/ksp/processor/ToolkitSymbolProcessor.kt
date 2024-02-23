@@ -228,8 +228,23 @@ class ToolkitSymbolProcessor(
             }
         }
 
+        val exportTypescriptTypes = resolver.getSymbolsWithAnnotation(
+            "$toolkitPackageName.annotation.ExportTypescriptType"
+        ).map {
+            when (it) {
+                is KSClassDeclaration -> {
+                    it.asStarProjectedType()
+                }
+                is KSTypeAlias -> {
+                    // TODO get type of alias declaration, not the type referenced by the alias
+                    error("Currently unsupported, because of missing api in KSP")
+                }
+                else -> throw IllegalArgumentException("ExportTypescriptType annotation can only be used on class declarations or type aliases")
+            }
+        }.toList()
+
         if (!invoked && JvmPlatform in platformNames && NativePlatform in platformNames) {
-            TypescriptGenerator(resolver, codeGenerator, options, logger).generate(rnModules)
+            TypescriptGenerator(resolver, codeGenerator, options, logger).generate(rnModules, exportTypescriptTypes)
         }
 
         invoked = true

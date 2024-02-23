@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Add ExportTypescriptType annotation to export typescript types for kotlin types manually
+
 ## v0.13.1
 
 - Fix release pipeline

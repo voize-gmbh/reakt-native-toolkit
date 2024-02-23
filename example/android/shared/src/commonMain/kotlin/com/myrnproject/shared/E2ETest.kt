@@ -273,3 +273,13 @@ data class DateTimeTest(
     val map: Map<String, @JSType("date") Instant>,
     val dateOrNull: @JSType("date") Instant?,
 )
+
+/*
+// supported with version 0.14.0
+@Serializable
+@ExportTypescriptType // export typescript type manually
+data class ManuallyExportedType(
+    val test: String,
+    val enum: Enum,
+)
+*/
