@@ -8,7 +8,7 @@ jobs:
       run:
         working-directory: js
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: yarn install
       - run: yarn lint
   checkformat:
@@ -18,7 +18,7 @@ jobs:
       run:
         working-directory: js
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: yarn install
       - run: yarn checkformat
   typecheck:
@@ -28,7 +28,7 @@ jobs:
       run:
         working-directory: js
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: yarn install
       - run: yarn typecheck
   test:
@@ -38,6 +38,6 @@ jobs:
       run:
         working-directory: js
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: yarn install
       - run: yarn test

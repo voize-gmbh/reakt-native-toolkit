@@ -3,6 +3,8 @@
 ## unreleased
 
 - Update github npm-publish action to v3
+- Update actions/setup-java@v3 to v4
+- Update actions/checkout@v3 to v4
 
 ## v0.14.0
 
