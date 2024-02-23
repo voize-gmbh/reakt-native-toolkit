@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.15.0
 
 - Update github npm-publish action to v3
 - Update actions/setup-java@v3 to v4
