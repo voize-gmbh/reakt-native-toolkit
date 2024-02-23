@@ -5,6 +5,10 @@
 - Update github npm-publish action to v3
 - Update actions/setup-java@v3 to v4
 - Update actions/checkout@v3 to v4
+- Add jvm and wasmJs kotlin targets
+- Update kotlin to 1.9.22
+- Update kotlinx coroutines to 1.8.0
+- Update kotlinx serialization to 1.6.3
 
 ## v0.14.0
 

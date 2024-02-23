@@ -38,7 +38,7 @@ class ToolkitSymbolProcessor(
         val eventEmitterType =
             resolver.getClassDeclarationByName("$toolkitPackageName.util.EventEmitter")
                 ?.asType(emptyList())
-                ?: error("Could not find EventEmitter")
+                ?: error("Could not find EventEmitter, please check that the reakt-native-toolkit dependency is added to the project")
         val reactNativeModuleType =
             resolver.getClassDeclarationByName("$toolkitPackageName.annotation.ReactNativeModule")
                 ?.asType(emptyList())
