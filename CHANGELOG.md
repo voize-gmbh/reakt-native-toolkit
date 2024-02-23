@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Update github npm-publish action to v3
+
 ## v0.14.0
 
 - Add ExportTypescriptType annotation to export typescript types for kotlin types manually
