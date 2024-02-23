@@ -1,4 +1,3 @@
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
@@ -32,6 +31,7 @@ repositories {
 kotlin {
     jvmToolchain(17)
 
+    jvm()
     androidTarget {
         compilations.all {
             kotlinOptions.jvmTarget = "1.8"
@@ -57,6 +57,9 @@ kotlin {
     iosSimulatorArm64 {
         configureReactNativeInterop()
     }
+    wasmJs {
+        nodejs()
+    }
     sourceSets {
         commonMain.configure {
             dependencies {
@@ -79,7 +82,7 @@ kotlin {
     targets.all {
         compilations.all {
             kotlinOptions {
-                freeCompilerArgs = listOf("-Xexpect-actual-classes")
+                freeCompilerArgs += listOf("-Xexpect-actual-classes")
             }
         }
     }
