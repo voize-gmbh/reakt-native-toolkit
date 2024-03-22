@@ -51,6 +51,34 @@ class TypescriptGenerator(
     private val logger: KSPLogger,
 ) {
 
+    private val defaultInstantJSType by lazy {
+        options["reakt.native.toolkit.defaultInstantJsType"] ?: "string"
+    }
+
+    private data class ExternalModule(
+        val moduleName: String,
+        val fromReaktNativeToolkit: Boolean,
+    )
+
+    private val externalTypeMapping by lazy {
+        // Workaround for not allowed "," character in the value of the argument
+        val externNamespaces = options["reakt.native.toolkit.externalNamespaces"]?.split(";").orEmpty()
+        externNamespaces.associateWith {
+            ExternalModule(
+                moduleName = options["reakt.native.toolkit.externalNamespaceModuleName.$it"]
+                    ?: error("Missing module name for $it"),
+                fromReaktNativeToolkit = options["reakt.native.toolkit.externalNamespaceGeneratedByToolkit.$it"]?.toBoolean()
+                    ?: false,
+            )
+        }
+    }
+
+    private fun Map<String, ExternalModule>.getExternalModule(nameAndNamespace: String): ExternalModule? {
+        return filterKeys {
+            nameAndNamespace.startsWith(it)
+        }.values.firstOrNull()
+    }
+
     private fun typesFrom(rnModules: List<ToolkitSymbolProcessor.RNModule>): Pair<List<KSType>, List<KSFile>> {
         // Collect all types of function parameters and return types
         val typeDeclarations =
@@ -125,28 +153,6 @@ class TypescriptGenerator(
         rnModules.forEach {
             createTypescriptRNModule(it, rnModulesFileBuilder)
         }
-        // TODO workaround for https://github.com/outfoxx/typescriptpoet/pull/27
-        rnModulesFileBuilder.addTypeAlias(
-            TypeAliasSpec.builder(
-                "_workaround",
-                NativeEventEmitterTypeName,
-            ).build()
-        )
-        rnModulesFileBuilder.addCode(CodeBlock.of("const %N = %Q", "_workaround2", useFlowName))
-        rnModulesFileBuilder.addCode(
-            CodeBlock.of(
-                "const %N = %Q",
-                "_workaround3",
-                NativeModulesSymbol,
-            )
-        )
-        rnModulesFileBuilder.addCode(
-            CodeBlock.of(
-                "const %N = %Q",
-                "_workaround4",
-                ReactUseMemoSymbol,
-            )
-        )
 
         val rnModulesFile = rnModulesFileBuilder.build()
         rnModulesFile.writeTo(codeGenerator, kspDependencies(true, originatingKSFiles))
@@ -275,7 +281,7 @@ class TypescriptGenerator(
         fileBuilder.addType(nativeRNModuleInterface)
         fileBuilder.addType(rnModuleInterface)
         val nativeRNModule = "Native" + rnModule.moduleName
-        val nativeRNModuleSymbol = SymbolSpec.importsName(nativeRNModule, modulesModule)
+        val nativeRNModuleSymbol = getSymbolInModule(nativeRNModule)
         val nameAllocator = NameAllocator()
         nameAllocator.newName(nativeRNModule)
         fileBuilder.addCode(
@@ -286,7 +292,7 @@ class TypescriptGenerator(
             )
         )
         val exportedRNModuleName = rnModule.moduleName
-        val exportedRNModuleSymbol = SymbolSpec.importsName(exportedRNModuleName, modulesModule)
+        val exportedRNModuleSymbol = getSymbolInModule(exportedRNModuleName)
         nameAllocator.newName(exportedRNModuleName)
         fileBuilder.addCode(
             const(
@@ -622,8 +628,7 @@ class TypescriptGenerator(
     }
 
     private fun KSDeclaration.getTypescriptToJsonFunctionNameWithNamespace(): SymbolSpec {
-        return SymbolSpec.importsName(getTypescriptNamespace(), modelsModule)
-            .nested(getTypescriptToJsonFunctionName())
+        return getSymbol(getTypescriptNamespace()).nested(getTypescriptToJsonFunctionName())
     }
 
     private fun KSDeclaration.getTypescriptFromJsonFunctionName(): String {
@@ -631,8 +636,7 @@ class TypescriptGenerator(
     }
 
     private fun KSDeclaration.getTypescriptFromJsonFunctionNameWithNamespace(): SymbolSpec {
-        return SymbolSpec.importsName(getTypescriptNamespace(), modelsModule)
-            .nested(getTypescriptFromJsonFunctionName())
+        return getSymbol(getTypescriptNamespace()).nested(getTypescriptFromJsonFunctionName())
     }
 
     private fun getTypescriptTypeNameForDateTime(
@@ -643,8 +647,8 @@ class TypescriptGenerator(
         val jsTypeIdentifier = jsTypeAnnotation?.getJSTypeIdentifier()
         return when (ksType.declaration.qualifiedName?.asString()) {
             "kotlin.time.Duration" -> TypeName.STRING
-            "kotlinx.datetime.Instant" -> when (val identifier =
-                jsTypeIdentifier ?: getDefaultInstantJSType()) {
+            "kotlinx.datetime.Instant" -> when (val identifier = jsTypeIdentifier
+                ?: defaultInstantJSType) {
                 "string" -> TypeName.STRING
                 "date" -> TypeName.DATE
                 else -> error("Unsupported JSType identifier for Instant: $identifier")
@@ -661,136 +665,127 @@ class TypescriptGenerator(
         ksType: KSType,
         annotations: Sequence<KSAnnotation>? = null
     ): TypeName {
-        if (ksType.isError) {
-            return TypeName.ANY
-        }
-
-        val module = "!$modelsModule"
-        fun resolveTypeArgument(index: Int): TypeName {
-            val argument = ksType.arguments[index]
-            val type = argument.type
-            if (type != null) {
-                return getTypescriptTypeName(type.resolve(), argument.annotations)
-            } else {
-                error("Could not resolve type argument")
+        try {
+            if (ksType.isError) {
+                return TypeName.ANY
             }
-        }
 
-        val typeName = when (ksType.declaration.qualifiedName?.asString()) {
-            "kotlin.Any" -> TypeName.ANY
-            "kotlin.Boolean" -> TypeName.BOOLEAN
-            "kotlin.Byte" -> TypeName.NUMBER
-            "kotlin.Char" -> TypeName.NUMBER
-            "kotlin.Double" -> TypeName.NUMBER
-            "kotlin.Float" -> TypeName.NUMBER
-            "kotlin.Int" -> TypeName.NUMBER
-            "kotlin.Long" -> TypeName.NUMBER
-            "kotlin.Number" -> TypeName.NUMBER
-            "kotlin.Short" -> TypeName.NUMBER
-            "kotlin.String" -> TypeName.STRING
-            "kotlin.Unit" -> TypeName.VOID
-            else -> null
-        } ?: when (ksType.declaration.qualifiedName?.asString()) {
-            "kotlin.Array", "kotlin.collections.List", "kotlin.collections.Set" -> TypeName.arrayType(
-                resolveTypeArgument(0)
-            )
+            fun resolveTypeArgument(index: Int): TypeName {
+                val argument = ksType.arguments[index]
+                val type = argument.type
+                if (type != null) {
+                    return getTypescriptTypeName(type.resolve(), argument.annotations)
+                } else {
+                    error("Could not resolve type argument")
+                }
+            }
 
-            "kotlin.collections.Map" -> recordType(
-                resolveTypeArgument(0),
-                resolveTypeArgument(1),
-            )
+            val typeName = when (ksType.declaration.qualifiedName?.asString()) {
+                "kotlin.Any" -> TypeName.ANY
+                "kotlin.Boolean" -> TypeName.BOOLEAN
+                "kotlin.Byte" -> TypeName.NUMBER
+                "kotlin.Char" -> TypeName.NUMBER
+                "kotlin.Double" -> TypeName.NUMBER
+                "kotlin.Float" -> TypeName.NUMBER
+                "kotlin.Int" -> TypeName.NUMBER
+                "kotlin.Long" -> TypeName.NUMBER
+                "kotlin.Number" -> TypeName.NUMBER
+                "kotlin.Short" -> TypeName.NUMBER
+                "kotlin.String" -> TypeName.STRING
+                "kotlin.Unit" -> TypeName.VOID
+                else -> null
+            } ?: when (ksType.declaration.qualifiedName?.asString()) {
+                "kotlin.Array", "kotlin.collections.List", "kotlin.collections.Set" -> TypeName.arrayType(
+                    resolveTypeArgument(0)
+                )
 
-            else -> null
-        } ?: when (ksType.declaration.qualifiedName?.asString()) {
-            "kotlin.time.Duration",
-            "kotlinx.datetime.Instant",
-            "kotlinx.datetime.LocalDate",
-            "kotlinx.datetime.LocalDateTime",
-            "kotlinx.datetime.LocalTime" -> getTypescriptTypeNameForDateTime(ksType, annotations)
+                "kotlin.collections.Map" -> recordType(
+                    resolveTypeArgument(0),
+                    resolveTypeArgument(1),
+                )
 
-            else -> {
-                val declaration = ksType.declaration
-                if (declaration.origin != Origin.KOTLIN) {
-                    // TODO support external classes
-                    logger.warn("External declarations are not supported and are stubbed with any: ${declaration.qualifiedName?.asString()}")
-                    TypeName.ANY
-                } else when (declaration) {
-                    is KSClassDeclaration -> {
-                        val sealedSuperclass = declaration.getSealedSuperclass()
-                        when (declaration.classKind) {
-                            ClassKind.INTERFACE -> error("Interfaces are not supported")
-                            ClassKind.CLASS -> {
-                                if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
-                                    // data class
-                                    val rawTypeName = TypeName.namedImport(
-                                        declaration.getTypescriptNameWithNamespace(),
-                                        module
-                                    )
+                else -> null
+            } ?: when (ksType.declaration.qualifiedName?.asString()) {
+                "kotlin.time.Duration",
+                "kotlinx.datetime.Instant",
+                "kotlinx.datetime.LocalDate",
+                "kotlinx.datetime.LocalDateTime",
+                "kotlinx.datetime.LocalTime" -> getTypescriptTypeNameForDateTime(ksType, annotations)
+
+                else -> {
+                    val declaration = ksType.declaration
+                    val externalModule = externalTypeMapping.getExternalModule(declaration.getTypescriptNameWithNamespace())
+                    if (declaration.origin != Origin.KOTLIN && externalModule == null) {
+                        logger.warn("External declarations are not supported and are stubbed with any: ${declaration.qualifiedName?.asString()}")
+                        TypeName.ANY
+                    } else when (declaration) {
+                        is KSClassDeclaration -> {
+                            val sealedSuperclass = declaration.getSealedSuperclass()
+                            when (declaration.classKind) {
+                                ClassKind.INTERFACE -> error("Interfaces are not supported")
+                                ClassKind.CLASS -> {
+                                    if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
+                                        // data class
+                                        val rawTypeName = getTypeName(declaration.getTypescriptNameWithNamespace())
+                                        if (sealedSuperclass != null) {
+                                            rawTypeName.withoutSealedClassDiscriminator(sealedSuperclass)
+                                        } else {
+                                            rawTypeName
+                                        }
+                                    } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                                        getTypeName(declaration.getTypescriptNameWithNamespace())
+                                    } else {
+                                        error("Only data classes and sealed classes are supported, found: $declaration")
+                                    }
+                                }
+
+                                ClassKind.ENUM_CLASS -> {
+                                    getTypeName(declaration.getTypescriptNameWithNamespace())
+                                }
+
+                                ClassKind.ENUM_ENTRY -> error("Enum entries are not supported")
+                                ClassKind.OBJECT -> {
+                                    val rawTypeName = getTypeName(declaration.getTypescriptNameWithNamespace())
                                     if (sealedSuperclass != null) {
                                         rawTypeName.withoutSealedClassDiscriminator(sealedSuperclass)
                                     } else {
                                         rawTypeName
                                     }
-                                } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
-                                    TypeName.namedImport(
-                                        declaration.getTypescriptNameWithNamespace(),
-                                        module
-                                    )
-                                } else {
-                                    error("Only data classes and sealed classes are supported, found: $declaration")
                                 }
-                            }
 
-                            ClassKind.ENUM_CLASS -> {
-                                TypeName.namedImport(
-                                    declaration.getTypescriptNameWithNamespace(),
-                                    module
-                                )
+                                ClassKind.ANNOTATION_CLASS -> error("Annotation classes are not supported")
                             }
-
-                            ClassKind.ENUM_ENTRY -> error("Enum entries are not supported")
-                            ClassKind.OBJECT -> {
-                                val rawTypeName = TypeName.namedImport(
-                                    declaration.getTypescriptNameWithNamespace(),
-                                    module
-                                )
-                                if (sealedSuperclass != null) {
-                                    rawTypeName.withoutSealedClassDiscriminator(sealedSuperclass)
-                                } else {
-                                    rawTypeName
-                                }
-                            }
-
-                            ClassKind.ANNOTATION_CLASS -> error("Annotation classes are not supported")
                         }
-                    }
 
-                    is KSFunctionDeclaration -> {
-                        error("Function declarations are not supported")
-                    }
+                        is KSFunctionDeclaration -> {
+                            error("Function declarations are not supported")
+                        }
 
-                    is KSTypeAlias -> {
-                        // TODO support type aliases
-                        TypeName.namedImport(declaration.getTypescriptNameWithNamespace(), module)
-                    }
+                        is KSTypeAlias -> {
+                            // TODO support type aliases
+                            getTypeName(declaration.getTypescriptNameWithNamespace())
+                        }
 
-                    is KSPropertyDeclaration -> {
-                        error("Property declarations are not supported")
-                    }
+                        is KSPropertyDeclaration -> {
+                            error("Property declarations are not supported")
+                        }
 
-                    is KSTypeParameter -> {
-                        // TODO handle bounds
-                        TypeName.typeVariable(declaration.name.asString())
-                    }
+                        is KSTypeParameter -> {
+                            // TODO handle bounds
+                            TypeName.typeVariable(declaration.name.asString())
+                        }
 
-                    else -> {
-                        error("Unsupported declaration: $declaration")
+                        else -> {
+                            error("Unsupported declaration: $declaration")
+                        }
                     }
                 }
             }
-        }
 
-        return typeName.withNullable(ksType.isMarkedNullable)
+            return typeName.withNullable(ksType.isMarkedNullable)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("Cannot get typescript type name for ${ksType.declaration.qualifiedName?.asString()}", e)
+        }
     }
 
     private fun getTypescriptSerializedTypeName(ksType: KSType): TypeName {
@@ -1003,7 +998,7 @@ class TypescriptGenerator(
             } ?: when (ksType.declaration.qualifiedName?.asString()) {
                 "kotlin.time.Duration" -> nonNullVariableName.asCodeBlock()
                 "kotlinx.datetime.Instant" -> when (val identifier =
-                    jsTypeIdentifier ?: getDefaultInstantJSType()) {
+                    jsTypeIdentifier ?: defaultInstantJSType) {
                     "string" -> nonNullVariableName.asCodeBlock()
                     "date" -> CodeBlock.of(
                         "new %T(%N)",
@@ -1020,8 +1015,7 @@ class TypescriptGenerator(
 
                 else -> {
                     val declaration = ksType.declaration
-                    if (declaration.origin != Origin.KOTLIN) {
-                        // TODO support external classes
+                    if (declaration.origin != Origin.KOTLIN && externalTypeMapping.getExternalModule(declaration.getTypescriptNameWithNamespace())?.fromReaktNativeToolkit != true) {
                         logger.warn("External declarations are not supported and are not mapped: ${declaration.qualifiedName?.asString()}")
                         nonNullVariableName.asCodeBlock()
                     } else when (declaration) {
@@ -1195,7 +1189,7 @@ class TypescriptGenerator(
             } ?: when (ksType.declaration.qualifiedName?.asString()) {
                 "kotlin.time.Duration" -> nonNullVariableName.asCodeBlock()
                 "kotlinx.datetime.Instant" -> when (val identifier =
-                    jsTypeIdentifier ?: getDefaultInstantJSType()) {
+                    jsTypeIdentifier ?: defaultInstantJSType) {
                     "string" -> nonNullVariableName.asCodeBlock()
                     "date" -> CodeBlock.of(
                         "%N.%N()",
@@ -1212,8 +1206,7 @@ class TypescriptGenerator(
 
                 else -> {
                     val declaration = ksType.declaration
-                    if (declaration.origin != Origin.KOTLIN) {
-                        // TODO support external classes
+                    if (declaration.origin != Origin.KOTLIN && externalTypeMapping.getExternalModule(declaration.getTypescriptNameWithNamespace())?.fromReaktNativeToolkit != true) {
                         logger.warn("External declarations are not supported and are not mapped: ${declaration.qualifiedName?.asString()}")
                         nonNullVariableName.asCodeBlock()
                     } else when (declaration) {
@@ -1300,7 +1293,7 @@ class TypescriptGenerator(
     private fun Sequence<KSAnnotation>.getJSTypeAnnotationOrNull(): KSAnnotation? =
         singleOrNull {
             it.shortName.getShortName() == "JSType" &&
-                    it.annotationType.resolve().declaration.qualifiedName?.asString() == "de.voize.reaktnativetoolkit.annotation.JSType"
+                it.annotationType.resolve().declaration.qualifiedName?.asString() == "de.voize.reaktnativetoolkit.annotation.JSType"
         }
 
     private fun KSAnnotation.getJSTypeIdentifier(): String {
@@ -1367,7 +1360,7 @@ class TypescriptGenerator(
                                 val subclassesToDiscriminator =
                                     subclasses.associateWith { it.getSealedSubclassDiscriminatorValue() }
                                 val typeEnumName = declaration.getTypescriptName() + "Type"
-                                val typeEnumTypeName = TypeName.implicit(typeEnumName)
+                                val typeEnumTypeName = getTypeName(typeEnumName)
                                 EnumSpec.builder(typeEnumName).apply {
                                     addModifiers(Modifier.EXPORT)
                                     subclassesToDiscriminator.forEach { (subclassDeclaration, discriminator) ->
@@ -1403,7 +1396,7 @@ class TypescriptGenerator(
 
                                 val sealedTypeUnion = TypeAliasSpec.builder(
                                     declaration.getTypescriptName(),
-                                    TypeName.unionType(*subclasses.map { TypeName.implicit(it.getTypescriptNameWithNamespace()) }
+                                    TypeName.unionType(*subclasses.map { getTypeName(it.getTypescriptNameWithNamespace()) }
                                         .toList().toTypedArray())
                                 ).addModifiers(Modifier.EXPORT)
                                     .addTSDoc(
@@ -1705,43 +1698,43 @@ class TypescriptGenerator(
                                         add(
                                             CodeBlock.of(
                                                 "...%L", lambda(
-                                                    args = emptyList(),
-                                                    body = block(
-                                                        CodeBlock.of(
-                                                            "switch (%N) {%>%L%<}",
-                                                            typeVariableType,
-                                                            buildList {
-                                                                addAll(
-                                                                    subclasses.map {
-                                                                        val typeEnum =
-                                                                            it.getSealedSubclassTypeEnumSymbol(
-                                                                                declaration
-                                                                            )
-                                                                        CodeBlock.of(
-                                                                            "case %Q: return %Q(%N);",
-                                                                            typeEnum,
-                                                                            it.getTypescriptFromJsonFunctionNameWithNamespace(),
-                                                                            jsonParameterName,
+                                                args = emptyList(),
+                                                body = block(
+                                                    CodeBlock.of(
+                                                        "switch (%N) {%>%L%<}",
+                                                        typeVariableType,
+                                                        buildList {
+                                                            addAll(
+                                                                subclasses.map {
+                                                                    val typeEnum =
+                                                                        it.getSealedSubclassTypeEnumSymbol(
+                                                                            declaration
                                                                         )
-                                                                    }
-                                                                )
-                                                                add(
                                                                     CodeBlock.of(
-                                                                        "default: throw new %T(%S + %N);",
-                                                                        TypescriptErrorTypeName,
-                                                                        "Unknown discriminator value: ",
-                                                                        typeVariableType,
+                                                                        "case %Q: return %Q(%N);",
+                                                                        typeEnum,
+                                                                        it.getTypescriptFromJsonFunctionNameWithNamespace(),
+                                                                        jsonParameterName,
                                                                     )
+                                                                }
+                                                            )
+                                                            add(
+                                                                CodeBlock.of(
+                                                                    "default: throw new %T(%S + %N);",
+                                                                    TypescriptErrorTypeName,
+                                                                    "Unknown discriminator value: ",
+                                                                    typeVariableType,
                                                                 )
-                                                            }.joinToCode(
-                                                                separator = "\n",
-                                                                prefix = "\n",
-                                                                suffix = "\n"
-                                                            ),
-                                                        )
+                                                            )
+                                                        }.joinToCode(
+                                                            separator = "\n",
+                                                            prefix = "\n",
+                                                            suffix = "\n"
+                                                        ),
                                                     )
-                                                ).inParentheses()
-                                                    .invoke()
+                                                )
+                                            ).inParentheses()
+                                                .invoke()
                                             ),
                                         )
                                         add(
@@ -1799,43 +1792,43 @@ class TypescriptGenerator(
                                         add(
                                             CodeBlock.of(
                                                 "...%L", lambda(
-                                                    args = emptyList(),
-                                                    body = block(
-                                                        CodeBlock.of(
-                                                            "switch (%N) {%>%L%<}",
-                                                            typeVariableType,
-                                                            buildList {
-                                                                addAll(
-                                                                    subclasses.map {
-                                                                        val typeEnum =
-                                                                            it.getSealedSubclassTypeEnumSymbol(
-                                                                                declaration
-                                                                            )
-                                                                        CodeBlock.of(
-                                                                            "case %Q: return %Q(%N);",
-                                                                            typeEnum,
-                                                                            it.getTypescriptToJsonFunctionNameWithNamespace(),
-                                                                            valueParameterName,
+                                                args = emptyList(),
+                                                body = block(
+                                                    CodeBlock.of(
+                                                        "switch (%N) {%>%L%<}",
+                                                        typeVariableType,
+                                                        buildList {
+                                                            addAll(
+                                                                subclasses.map {
+                                                                    val typeEnum =
+                                                                        it.getSealedSubclassTypeEnumSymbol(
+                                                                            declaration
                                                                         )
-                                                                    }
-                                                                )
-                                                                add(
                                                                     CodeBlock.of(
-                                                                        "default: throw new %T(%S + %N);",
-                                                                        TypescriptErrorTypeName,
-                                                                        "Unknown discriminator value: ",
-                                                                        typeVariableType,
+                                                                        "case %Q: return %Q(%N);",
+                                                                        typeEnum,
+                                                                        it.getTypescriptToJsonFunctionNameWithNamespace(),
+                                                                        valueParameterName,
                                                                     )
+                                                                }
+                                                            )
+                                                            add(
+                                                                CodeBlock.of(
+                                                                    "default: throw new %T(%S + %N);",
+                                                                    TypescriptErrorTypeName,
+                                                                    "Unknown discriminator value: ",
+                                                                    typeVariableType,
                                                                 )
-                                                            }.joinToCode(
-                                                                separator = "\n",
-                                                                prefix = "\n",
-                                                                suffix = "\n"
-                                                            ),
-                                                        )
+                                                            )
+                                                        }.joinToCode(
+                                                            separator = "\n",
+                                                            prefix = "\n",
+                                                            suffix = "\n"
+                                                        ),
                                                     )
-                                                ).inParentheses()
-                                                    .invoke()
+                                                )
+                                            ).inParentheses()
+                                                .invoke()
                                             )
                                         )
                                         add(
@@ -2240,18 +2233,38 @@ class TypescriptGenerator(
         } else null
     }
 
+    /**
+     * Used to get the symbol for a type in the "modules" module.
+     */
+    private fun getSymbolInModule(name: String) = SymbolSpec.importsName(name, "!$modulesModule")
+
+    /**
+     * Used to get the symbol for a type in the "models" module or an external module.
+     */
+    private fun getSymbol(nameWithNamespace: String): SymbolSpec {
+        val externalModule = externalTypeMapping.getExternalModule(nameWithNamespace)
+        return if (externalModule != null) {
+            SymbolSpec.importsName(nameWithNamespace, externalModule.moduleName)
+        } else {
+            SymbolSpec.importsName(nameWithNamespace, "!$modelsModule")
+        }
+    }
+
+    private fun getTypeName(nameWithNamespace: String): TypeName.Standard {
+        return TypeName.standard(getSymbol(nameWithNamespace))
+    }
+
     private fun KSClassDeclaration.getSealedSubclassTypeEnumSymbol(sealedClassDeclaration: KSDeclaration): SymbolSpec {
         val typeEnumName = sealedClassDeclaration.getTypescriptNameWithNamespace() + "Type"
-        val typeEnumTypeSymbol = SymbolSpec.importsName(typeEnumName, modelsModule)
+        val typeEnumTypeSymbol = getSymbol(typeEnumName)
         return typeEnumTypeSymbol.nested(getTypescriptName())
     }
 
     private fun KSClassDeclaration.getSealedTypescriptBaseType(): TypeName? {
         val sealedClassDeclaration = getSealedSuperclass()
         return if (sealedClassDeclaration != null) {
-            val baseTypeName =
-                sealedClassDeclaration.getTypescriptNameWithNamespace() + "Base"
-            val baseTypeTypeName = TypeName.namedImport(baseTypeName, modelsModule)
+            val baseTypeName = sealedClassDeclaration.getTypescriptNameWithNamespace() + "Base"
+            val baseTypeTypeName = getTypeName(baseTypeName)
             baseTypeTypeName.parameterized(
                 TypeName.standard(getSealedSubclassTypeEnumSymbol(sealedClassDeclaration))
             )
@@ -2377,9 +2390,6 @@ class TypescriptGenerator(
      * Convert this name into an expression.
      */
     private fun String.asCodeBlock() = CodeBlock.of("%N", this@asCodeBlock)
-
-    private fun getDefaultInstantJSType() =
-        options["reakt.native.toolkit.defaultInstantJsType"] ?: "string"
 
     private fun String.toHookName() = "use" + this.replaceFirstChar {
         if (it.isLowerCase()) it.titlecase(Locale.ROOT)

@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Allow to reference external modules in generated TypeScript code
+
 ## v0.15.0
 
 - Update github npm-publish action to v3

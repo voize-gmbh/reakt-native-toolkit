@@ -19,7 +19,7 @@ kotlinpoet = { module = "com.squareup:kotlinpoet", version.ref = "kotlinpoet" }
 kotlinpoet-metadata = { module = "com.squareup:kotlinpoet-metadata", version.ref = "kotlinpoet" }
 kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version.ref = "kotlinpoet" }
 
-typescriptpoet = { module = "io.outfoxx:typescriptpoet", version = "1.1.2" }
+typescriptpoet = { module = "de.voize:typescriptpoet", version = "1.2.6" }
 
 google-auto-service = { module = "com.google.auto.service:auto-service", version = "1.0.1" }
 
