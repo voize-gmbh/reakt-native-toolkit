@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.16.0
 
 - Allow to reference external modules in generated TypeScript code
 
