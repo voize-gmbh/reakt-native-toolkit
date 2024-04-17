@@ -9,11 +9,9 @@ plugins {
 android {
     namespace = "de.voize.reaktnativetoolkit"
     compileSdk = 33
-    sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
 
     defaultConfig {
         minSdk = 26
-        targetSdk = 33
     }
 
     compileOptions {
@@ -60,15 +58,18 @@ kotlin {
     wasmJs {
         nodejs()
     }
+
+    applyDefaultHierarchyTemplate()
+
     sourceSets {
-        commonMain.configure {
+        commonMain {
             dependencies {
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.serialization.json)
             }
         }
 
-        androidMain.configure {
+        androidMain {
             dependencies {
                 implementation("com.facebook.react:react-native:[0.69.0,)") // from node_modules
             }

@@ -31,9 +31,9 @@ export namespace com {
         return {
           ...(() => {
             switch (type) {
-              case com.myrnproject.shared.TestSealedTypeType.Option1: return com.myrnproject.shared.TestSealedType.fromJsonOption1(json);
-              case com.myrnproject.shared.TestSealedTypeType.Option2: return com.myrnproject.shared.TestSealedType.fromJsonOption2(json);
-              case com.myrnproject.shared.TestSealedTypeType.Option3: return com.myrnproject.shared.TestSealedType.fromJsonOption3(json);
+              case TestSealedTypeType.Option1: return TestSealedType.fromJsonOption1(json);
+              case TestSealedTypeType.Option2: return TestSealedType.fromJsonOption2(json);
+              case TestSealedTypeType.Option3: return TestSealedType.fromJsonOption3(json);
               default: throw new Error('Unknown discriminator value: ' + type);
             }})(),
           ['type']: type
@@ -48,9 +48,9 @@ export namespace com {
         return {
           ...(() => {
             switch (type) {
-              case com.myrnproject.shared.TestSealedTypeType.Option1: return com.myrnproject.shared.TestSealedType.toJsonOption1(value);
-              case com.myrnproject.shared.TestSealedTypeType.Option2: return com.myrnproject.shared.TestSealedType.toJsonOption2(value);
-              case com.myrnproject.shared.TestSealedTypeType.Option3: return com.myrnproject.shared.TestSealedType.toJsonOption3(value);
+              case TestSealedTypeType.Option1: return TestSealedType.toJsonOption1(value);
+              case TestSealedTypeType.Option2: return TestSealedType.toJsonOption2(value);
+              case TestSealedTypeType.Option3: return TestSealedType.toJsonOption3(value);
               default: throw new Error('Unknown discriminator value: ' + type);
             }})(),
           ['type']: type
@@ -110,19 +110,20 @@ export namespace com {
             const temp = json['list'];
             return temp.map((it: any) => ((() => {
               const temp_ = it;
-              return com.myrnproject.shared.Test.fromJsonNested(temp_);
-            })()) as com.myrnproject.shared.Test.Nested);
-          })()) as Array<com.myrnproject.shared.Test.Nested>,
+              return Test.fromJsonNested(temp_);
+            })()) as Test.Nested);
+          })()) as Array<Test.Nested>,
           ['map']: ((() => {
             const temp = json['map'];
-            return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [((() => {
+            return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) =>
+                [((() => {
               const temp_ = key;
               return temp_;
             })()) as string, ((() => {
               const temp_ = value;
-              return com.myrnproject.shared.Test.fromJsonNested(temp_);
-            })()) as com.myrnproject.shared.Test.Nested]));
-          })()) as Record<string, com.myrnproject.shared.Test.Nested>,
+              return Test.fromJsonNested(temp_);
+            })()) as Test.Nested]));
+          })()) as Record<string, Test.Nested>,
           ['long']: ((() => {
             const temp = json['long'];
             return temp;
@@ -147,17 +148,18 @@ export namespace com {
             const temp = value['list'];
             return temp.map((it: any) => (() => {
               const temp_ = it;
-              return com.myrnproject.shared.Test.toJsonNested(temp_);
+              return Test.toJsonNested(temp_);
             })());
           })(),
           ['map']: (() => {
             const temp = value['map'];
-            return Object.fromEntries(Object.entries(temp).map(([key, value_]: [any, any]) => [(() => {
+            return Object.fromEntries(Object.entries(temp).map(([key, value_]: [any, any]) =>
+                [(() => {
               const temp_ = key;
               return temp_;
             })(), (() => {
               const temp_ = value_;
-              return com.myrnproject.shared.Test.toJsonNested(temp_);
+              return Test.toJsonNested(temp_);
             })()]));
           })(),
           ['long']: (() => {
@@ -191,16 +193,16 @@ export namespace com {
         return {
           ['sealed']: ((() => {
             const temp = json['sealed'];
-            return com.myrnproject.shared.fromJsonTestSealedType(temp);
-          })()) as com.myrnproject.shared.TestSealedType,
+            return fromJsonTestSealedType(temp);
+          })()) as TestSealedType,
           ['sealedSubclassStandalone']: ((() => {
             const temp = json['sealedSubclassStandalone'];
-            return com.myrnproject.shared.TestSealedType.fromJsonOption1(temp);
-          })()) as Omit<com.myrnproject.shared.TestSealedType.Option1, 'type'>,
+            return TestSealedType.fromJsonOption1(temp);
+          })()) as Omit<TestSealedType.Option1, 'type'>,
           ['sealedSubclassStandaloneObject']: ((() => {
             const temp = json['sealedSubclassStandaloneObject'];
-            return com.myrnproject.shared.TestSealedType.fromJsonOption3(temp);
-          })()) as Omit<com.myrnproject.shared.TestSealedType.Option3, 'type'>
+            return TestSealedType.fromJsonOption3(temp);
+          })()) as Omit<TestSealedType.Option3, 'type'>
         };
       }
 
@@ -211,15 +213,15 @@ export namespace com {
         return {
           ['sealed']: (() => {
             const temp = value['sealed'];
-            return com.myrnproject.shared.toJsonTestSealedType(temp);
+            return toJsonTestSealedType(temp);
           })(),
           ['sealedSubclassStandalone']: (() => {
             const temp = value['sealedSubclassStandalone'];
-            return com.myrnproject.shared.TestSealedType.toJsonOption1(temp);
+            return TestSealedType.toJsonOption1(temp);
           })(),
           ['sealedSubclassStandaloneObject']: (() => {
             const temp = value['sealedSubclassStandaloneObject'];
-            return com.myrnproject.shared.TestSealedType.toJsonOption3(temp);
+            return TestSealedType.toJsonOption3(temp);
           })()
         };
       }
@@ -272,7 +274,8 @@ export namespace com {
           })()) as string,
           ['map']: ((() => {
             const temp = json['map'];
-            return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [((() => {
+            return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) =>
+                [((() => {
               const temp_ = key;
               return temp_;
             })()) as string, ((() => {
@@ -314,7 +317,8 @@ export namespace com {
           })(),
           ['map']: (() => {
             const temp = value['map'];
-            return Object.fromEntries(Object.entries(temp).map(([key, value_]: [any, any]) => [(() => {
+            return Object.fromEntries(Object.entries(temp).map(([key, value_]: [any, any]) =>
+                [(() => {
               const temp_ = key;
               return temp_;
             })(), (() => {
@@ -340,8 +344,8 @@ export namespace com {
       export function fromJsonTestTypeAlias(json: any): Test {
         return ((() => {
           const temp = json;
-          return com.myrnproject.shared.fromJsonTest(temp);
-        })()) as com.myrnproject.shared.Test;
+          return fromJsonTest(temp);
+        })()) as Test;
       }
 
       /**
@@ -350,7 +354,7 @@ export namespace com {
       export function toJsonTestTypeAlias(value: Test): any {
         return (() => {
           const temp = value;
-          return com.myrnproject.shared.toJsonTest(temp);
+          return toJsonTest(temp);
         })();
       }
 
@@ -379,9 +383,9 @@ export namespace com {
         return {
           ...(() => {
             switch (type) {
-              case com.myrnproject.shared.TestSealedTypeWithCustomDiscriminatorType.Option1: return com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.fromJsonOption1(json);
-              case com.myrnproject.shared.TestSealedTypeWithCustomDiscriminatorType.Option2: return com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.fromJsonOption2(json);
-              case com.myrnproject.shared.TestSealedTypeWithCustomDiscriminatorType.Option3: return com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.fromJsonOption3(json);
+              case TestSealedTypeWithCustomDiscriminatorType.Option1: return TestSealedTypeWithCustomDiscriminator.fromJsonOption1(json);
+              case TestSealedTypeWithCustomDiscriminatorType.Option2: return TestSealedTypeWithCustomDiscriminator.fromJsonOption2(json);
+              case TestSealedTypeWithCustomDiscriminatorType.Option3: return TestSealedTypeWithCustomDiscriminator.fromJsonOption3(json);
               default: throw new Error('Unknown discriminator value: ' + type);
             }})(),
           ['customType']: type
@@ -396,9 +400,9 @@ export namespace com {
         return {
           ...(() => {
             switch (type) {
-              case com.myrnproject.shared.TestSealedTypeWithCustomDiscriminatorType.Option1: return com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.toJsonOption1(value);
-              case com.myrnproject.shared.TestSealedTypeWithCustomDiscriminatorType.Option2: return com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.toJsonOption2(value);
-              case com.myrnproject.shared.TestSealedTypeWithCustomDiscriminatorType.Option3: return com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.toJsonOption3(value);
+              case TestSealedTypeWithCustomDiscriminatorType.Option1: return TestSealedTypeWithCustomDiscriminator.toJsonOption1(value);
+              case TestSealedTypeWithCustomDiscriminatorType.Option2: return TestSealedTypeWithCustomDiscriminator.toJsonOption2(value);
+              case TestSealedTypeWithCustomDiscriminatorType.Option3: return TestSealedTypeWithCustomDiscriminator.toJsonOption3(value);
               default: throw new Error('Unknown discriminator value: ' + type);
             }})(),
           ['customType']: type
@@ -482,8 +486,8 @@ export namespace com {
             })()) as string,
             ['nested']: ((() => {
               const temp = json['nested'];
-              return com.myrnproject.shared.TestSealedType.Option1.fromJsonNested(temp);
-            })()) as com.myrnproject.shared.TestSealedType.Option1.Nested
+              return Option1.fromJsonNested(temp);
+            })()) as Option1.Nested
           };
         }
 
@@ -498,7 +502,7 @@ export namespace com {
             })(),
             ['nested']: (() => {
               const temp = value['nested'];
-              return com.myrnproject.shared.TestSealedType.Option1.toJsonNested(temp);
+              return Option1.toJsonNested(temp);
             })()
           };
         }
@@ -525,8 +529,8 @@ export namespace com {
             })()) as number,
             ['nonNested']: ((() => {
               const temp = json['nonNested'];
-              return com.myrnproject.shared.fromJsonNonNested(temp);
-            })()) as com.myrnproject.shared.NonNested
+              return fromJsonNonNested(temp);
+            })()) as NonNested
           };
         }
 
@@ -541,7 +545,7 @@ export namespace com {
             })(),
             ['nonNested']: (() => {
               const temp = value['nonNested'];
-              return com.myrnproject.shared.toJsonNonNested(temp);
+              return toJsonNonNested(temp);
             })()
           };
         }
@@ -629,8 +633,8 @@ export namespace com {
             })()) as string,
             ['nested']: ((() => {
               const temp = json['nested'];
-              return com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option1.fromJsonNested(temp);
-            })()) as com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option1.Nested
+              return Option1.fromJsonNested(temp);
+            })()) as Option1.Nested
           };
         }
 
@@ -645,7 +649,7 @@ export namespace com {
             })(),
             ['nested']: (() => {
               const temp = value['nested'];
-              return com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option1.toJsonNested(temp);
+              return Option1.toJsonNested(temp);
             })()
           };
         }
@@ -672,8 +676,8 @@ export namespace com {
             })()) as number,
             ['nonNested']: ((() => {
               const temp = json['nonNested'];
-              return com.myrnproject.shared.fromJsonNonNested(temp);
-            })()) as com.myrnproject.shared.NonNested
+              return fromJsonNonNested(temp);
+            })()) as NonNested
           };
         }
 
@@ -688,7 +692,7 @@ export namespace com {
             })(),
             ['nonNested']: (() => {
               const temp = value['nonNested'];
-              return com.myrnproject.shared.toJsonNonNested(temp);
+              return toJsonNonNested(temp);
             })()
           };
         }
