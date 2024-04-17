@@ -294,8 +294,6 @@ export interface TimeProviderInterface {
 
 }
 
-type _workaround = NativeEventEmitter;
-
 const NativeE2ETest = (NativeModules.E2ETest) as NativeE2ETestInterface;
 
 export const E2ETest: E2ETestInterface = {
@@ -435,7 +433,8 @@ export const E2ETest: E2ETestInterface = {
     })()));
   })()), JSON.stringify((() => {
     const temp = map;
-    return temp === null ? null : (Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+    return temp === null ? null : (Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) =>
+        [(() => {
       const temp_ = key;
       return temp_;
     })(), (() => {
@@ -453,7 +452,8 @@ export const E2ETest: E2ETestInterface = {
     })()));
   })()), JSON.stringify((() => {
     const temp = nestedMap;
-    return temp === null ? null : (Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+    return temp === null ? null : (Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) =>
+        [(() => {
       const temp_ = key;
       return temp_;
     })(), (() => {
@@ -474,7 +474,8 @@ export const E2ETest: E2ETestInterface = {
     })()));
   })()), JSON.stringify((() => {
     const temp = complexMap;
-    return temp === null ? null : (Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+    return temp === null ? null : (Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) =>
+        [(() => {
       const temp_ = key;
       return temp_;
     })(), (() => {
@@ -512,7 +513,8 @@ export const E2ETest: E2ETestInterface = {
       return temp_;
     })(), (() => {
       const temp_ = value;
-      return temp_ === null ? null : (Object.fromEntries(Object.entries(temp_).map(([key_, value_]: [any, any]) => [(() => {
+      return temp_ === null ? null : (Object.fromEntries(Object.entries(temp_).map(([key_, value_]: [any, any]) =>
+          [(() => {
         const temp__ = key_;
         return temp__;
       })(), (() => {
@@ -581,11 +583,13 @@ export const E2ETest: E2ETestInterface = {
     const temp = result;
     return temp;
   })()) as string),
-  ['getDateTimeTest']: () => NativeE2ETest.getDateTimeTest().then(JSON.parse).then((result) => ((() => {
+  ['getDateTimeTest']: () => NativeE2ETest.getDateTimeTest().then(JSON.parse).then((result) =>
+      ((() => {
     const temp = result;
     return com.myrnproject.shared.fromJsonDateTimeTest(temp);
   })()) as com.myrnproject.shared.DateTimeTest),
-  ['testTypeAlias']: (test: com.myrnproject.shared.TestTypeAlias) => NativeE2ETest.testTypeAlias(JSON.stringify((() => {
+  ['testTypeAlias']: (test: com.myrnproject.shared.TestTypeAlias) =>
+      NativeE2ETest.testTypeAlias(JSON.stringify((() => {
     const temp = test;
     return temp;
   })())).then(JSON.parse).then((result) => ((() => {
@@ -648,12 +652,14 @@ export const E2ETest: E2ETestInterface = {
     return temp;
   })()),
   ['testFlowParameterizedComplex']: (subscriptionId: string, currentValue: string | null, arg1: com.myrnproject.shared.Test) =>
-      NativeE2ETest.testFlowParameterizedComplex(subscriptionId, currentValue, JSON.stringify((() => {
+      NativeE2ETest.testFlowParameterizedComplex(subscriptionId, currentValue, JSON.stringify((() =>
+      {
     const temp = arg1;
     return com.myrnproject.shared.toJsonTest(temp);
   })())),
   ['testFlowParameterizedComplex2']: (subscriptionId: string, currentValue: string | null, arg1: Array<com.myrnproject.shared.Test>, arg2: Record<string, com.myrnproject.shared.Test>) =>
-      NativeE2ETest.testFlowParameterizedComplex2(subscriptionId, currentValue, JSON.stringify((() => {
+      NativeE2ETest.testFlowParameterizedComplex2(subscriptionId, currentValue, JSON.stringify((() =>
+      {
     const temp = arg1;
     return temp.map((it: any) => (() => {
       const temp_ = it;
@@ -883,7 +889,3 @@ export const TimeProvider: TimeProviderInterface = {
     })(), [value]);
   }
 };
-
-const _workaround2 = useFlow
-const _workaround3 = NativeModules
-const _workaround4 = useMemo

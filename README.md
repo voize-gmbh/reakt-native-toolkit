@@ -18,7 +18,7 @@ Add the KSP gradle plugin to your multiplatform project's `build.gradle.kts` fil
 
 plugins {
     // from gradlePluginPortal()
-    id("com.google.devtools.ksp") version "1.8.0-1.0.8"
+    id("com.google.devtools.ksp") version "1.9.23-1.0.20"
 }
 ```
 

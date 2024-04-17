@@ -5,7 +5,7 @@
 #import <React/RCTRootView.h>
 #import <shared/shared.h>
 
-#import <React/RCTAppSetupUtils.h>
+#import <RCTAppSetupUtils.h>
 
 #if RCT_NEW_ARCH_ENABLED
 #import <React/CoreModulesPlugins.h>
@@ -34,11 +34,11 @@ static NSString *const kRNConcurrentRoot = @"concurrentRoot";
 {
   return [[[SharedIOSRNModules alloc] init] createNativeModules];
 }
- 
+
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-  RCTAppSetupPrepareApp(application);
+  RCTAppSetupPrepareApp(application, self.turboModuleEnabled);
 
   RCTBridge *bridge = [[RCTBridge alloc] initWithDelegate:self launchOptions:launchOptions];
 
@@ -51,7 +51,8 @@ static NSString *const kRNConcurrentRoot = @"concurrentRoot";
 #endif
 
   NSDictionary *initProps = [self prepareInitialProps];
-  UIView *rootView = RCTAppSetupDefaultRootView(bridge, @"MyRNProject", initProps);
+  BOOL enableFabric = self.fabricEnabled;
+  UIView *rootView = RCTAppSetupDefaultRootView(bridge, @"MyRNProject", initProps, enableFabric);
 
   if (@available(iOS 13.0, *)) {
     rootView.backgroundColor = [UIColor systemBackgroundColor];
@@ -65,6 +66,11 @@ static NSString *const kRNConcurrentRoot = @"concurrentRoot";
   self.window.rootViewController = rootViewController;
   [self.window makeKeyAndVisible];
   return YES;
+}
+
+- (NSURL *)sourceURLForBridge:(RCTBridge *)bridge
+{
+  return [self bundleURL];
 }
 
 /// This method controls whether the `concurrentRoot`feature of React18 is turned on or off.
@@ -89,7 +95,33 @@ static NSString *const kRNConcurrentRoot = @"concurrentRoot";
   return initProps;
 }
 
-- (NSURL *)sourceURLForBridge:(RCTBridge *)bridge
+#pragma mark - New Arch Enabled settings
+
+- (BOOL)newArchEnabled
+{
+#if RCT_NEW_ARCH_ENABLED
+  return YES;
+#else
+  return NO;
+#endif
+}
+
+- (BOOL)turboModuleEnabled
+{
+  return [self newArchEnabled];
+}
+
+- (BOOL)fabricEnabled
+{
+  return [self newArchEnabled];
+}
+
+- (BOOL)bridgelessEnabled
+{
+  return [self newArchEnabled];
+}
+
+- (NSURL *)bundleURL
 {
 #if DEBUG
   return [[RCTBundleURLProvider sharedSettings] jsBundleURLForBundleRoot:@"index"];

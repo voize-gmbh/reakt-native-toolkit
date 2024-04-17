@@ -2,6 +2,8 @@ import com.facebook.react.tasks.BundleHermesCTask
 
 apply plugin: "com.android.application"
 
+apply plugin: "org.jetbrains.kotlin.android"
+
 apply plugin: "kotlin-android"
 
 apply plugin: "idea"
@@ -79,6 +81,7 @@ def jscFlavor = 'org.webkit:android-jsc:+'
 android {
     ndkVersion rootProject.ext.ndkVersion
 
+    buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdkVersion rootProject.ext.compileSdkVersion
 
     namespace "com.myrnproject"
@@ -116,20 +119,13 @@ dependencies {
     implementation project(':shared')
 
     // kotlin
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.21"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.7.3"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.23"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.8.0"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.6.2"
 
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
 
-    debugImplementation("com.facebook.flipper:flipper:${FLIPPER_VERSION}")
-
-    debugImplementation("com.facebook.flipper:flipper-network-plugin:${FLIPPER_VERSION}") {
-        exclude group:'com.squareup.okhttp3', module:'okhttp'
-    }
-
-    debugImplementation("com.facebook.flipper:flipper-fresco-plugin:${FLIPPER_VERSION}")
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {

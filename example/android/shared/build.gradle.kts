@@ -1,20 +1,17 @@
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
-
 plugins {
     kotlin("multiplatform")
     kotlin("native.cocoapods")
     kotlin("plugin.serialization")
     id("com.android.library")
-    id("com.google.devtools.ksp") version "1.8.21-1.0.11"
+    id("com.google.devtools.ksp") version "1.9.23-1.0.20"
 }
 
 val reaktNativeToolkitVersion = "0.16.0"
 
-@OptIn(ExperimentalKotlinGradlePluginApi::class)
 kotlin {
-    targetHierarchy.default()
-
-    android()
+    androidTarget {
+        publishLibraryVariants("debug", "release")
+    }
 
     listOf(
         iosX64(),
@@ -25,6 +22,8 @@ kotlin {
             baseName = "shared"
         }
     }
+
+    applyDefaultHierarchyTemplate()
 
     cocoapods {
         name = "MyAppShared"
@@ -38,25 +37,28 @@ kotlin {
     }
 
     sourceSets {
+        all {
+            languageSettings.optIn("kotlinx.cinterop.ExperimentalForeignApi")
+        }
 
-        val commonMain by getting {
+        commonMain {
             kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
-                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
 
                 implementation("de.voize:reakt-native-toolkit:$reaktNativeToolkitVersion") {
                     exclude("com.facebook.react", "react-native")
                 }
             }
         }
-        val commonTest by getting {
+        commonTest {
             dependencies {
                 implementation(kotlin("test"))
             }
         }
-        val androidMain by getting {
+        androidMain {
             //kotlin.srcDir("build/generated/ksp/android/androidDebug/kotlin")
             // kotlin.srcDir("build/generated/ksp/android/androidRelease/kotlin")
 
@@ -103,29 +105,8 @@ android {
     compileSdk = 32
     defaultConfig {
         minSdk = 26
-        targetSdk = 32
     }
 }
 repositories {
     mavenCentral()
-}
-
-// workaround for https://youtrack.jetbrains.com/issue/KT-55751
-val dummy = Attribute.of("dummy", String::class.java)
-listOf(
-    "debugFrameworkIosArm64",
-    "debugFrameworkIosX64",
-    "debugFrameworkIosSimulatorArm64",
-    "debugFrameworkIosFat",
-    "releaseFrameworkIosArm64",
-    "releaseFrameworkIosX64",
-    "releaseFrameworkIosSimulatorArm64",
-    "releaseFrameworkIosFat",
-    "podDebugFrameworkIosFat"
-).forEach {
-    configurations.named(it).configure {
-        attributes {
-            attribute(dummy, it)
-        }
-    }
 }

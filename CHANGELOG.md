@@ -1,6 +1,10 @@
 # CHANGELOG
 
 ## unreleased
+
+- Update kotlin to 1.9.23 (fix https://youtrack.jetbrains.com/issue/KT-65542/Cinterop-tasks-fails-if-Xcode-15.3-is-used)
+- Update react-native to 0.74.0 in example, and get example working
+
 ## v0.16.0
 
 - Allow to reference external modules in generated TypeScript code
