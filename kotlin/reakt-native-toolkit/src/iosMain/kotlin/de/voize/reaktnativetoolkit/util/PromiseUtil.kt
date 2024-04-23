@@ -10,7 +10,12 @@ data class PromiseIOS(val resolve: IOSResolvePromise<Any?>, val reject: IOSRejec
 
 inline fun <reified T> PromiseIOS.runCatchingWithArguments(action: () -> T, argumentsTransform: (T) -> Any?) {
     kotlin
-        .runCatching { argumentsTransform(action()) }
+        .runCatching {
+            when (val result = action()) {
+                is Unit -> null
+                else -> argumentsTransform(result)
+            }
+        }
         .onSuccess(resolve)
         .onFailure {
             reject(it, it.getJSExtraData())
