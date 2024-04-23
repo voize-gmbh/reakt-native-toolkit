@@ -20,12 +20,6 @@ android {
     }
 }
 
-repositories {
-    maven {
-        url = uri("$rootDir/../js/node_modules/react-native/android")
-    }
-}
-
 kotlin {
     jvmToolchain(17)
 
@@ -71,7 +65,7 @@ kotlin {
 
         androidMain {
             dependencies {
-                implementation("com.facebook.react:react-native:[0.69.0,)") // from node_modules
+                implementation("com.facebook.react:react-android:[0.74.0,)")
             }
         }
 
