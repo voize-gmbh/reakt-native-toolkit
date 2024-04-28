@@ -37,6 +37,11 @@ val commonMain by getting {
 }
 ```
 
+NOTE: This artifact has an implementation dependency on the Maven Central published `react-android` module.
+It can be excluded if you are using an older `react-native` dependency e.g. `exclude("com.facebook.react", "react-android")`.
+
+```kotlin
+
 Then add `reakt-native-toolkit-ksp` to the KSP configurations:
 
 ```kotlin
@@ -84,7 +89,7 @@ tasks.named("bundleReleaseJsAndAssets") {
 }
 ```
 
-To use the JS utilities install them with:
+In the project that consumes the module, the generated TypeScript files require the JavaScript utilities, such as `useFlow`:
 
 ```bash
 yarn add reakt-native-toolkit
@@ -177,7 +182,13 @@ class MyIOSRNModules {
 }
 ```
 
-And use this wrapper in Swift:
+And use this wrapper in Objective-C in the `extraModules` function, similar to above except calling the `createNativeModules` function:
+
+```swift
+return [[[MyIOSRNModules alloc] init] createNativeModules];
+```
+
+Or in Swift:
 
 ```swift
 import shared // your KMP project's shared framework
@@ -190,7 +201,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, RCTBridgeDelegate {
         return MyIOSRNModules().createNativeModules()
     }
 }
-
 ```
 
 #### Use your native module in React Native
@@ -327,6 +337,13 @@ class MyRNPackage(coroutineScope: CoroutineScope, analytics: Analytics) : ReactP
 }
 ```
 
+Register the package in `MainApplication` -- in the `getPackages` function of `ReactNativeHost`, instantiate the package, passing any required dependencies, and add it.
+Example:
+
+```kotlin
+add(RNPackage(coroutineScope, analyics))
+```
+
 #### iOS
 
 ```kotlin
@@ -389,6 +406,20 @@ function useCounter() {
     increment: Counter.increment,
   };
 }
+```
+
+NOTE: React Native 0.74+ generates code that requires `react-native-get-random-values` to be installed.
+Call `import 'react-native-get-random-values';` as early as possible in the application initialization.
+For Expo users, install the `expo-standard-web-crypto` package, which includes the necessary polyfill.
+Initialize it as follows, again as early as possible:
+
+```typescript
+import { polyfillWebCrypto } from 'expo-standard-web-crypto';
+
+// useFlow from the devhaus mobile-sdk uses uuid which uses crypto.getRandomValues which is not available in expo,
+// so polyfill it with the expo-standard-web-crypto module
+// https://github.com/expo/expo/tree/main/packages/expo-standard-web-crypto
+polyfillWebCrypto();
 ```
 
 With `Counter.useCount()` we can "subscribe" to the flow value. The hook will trigger a rerender whenever the flow value changes.
