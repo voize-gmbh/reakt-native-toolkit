@@ -524,16 +524,12 @@ class Notifications(
 
 The second argument of `sendEvent` can be null, a primitive type, a list or a map.
 
-To consume the events in JS, use `new NativeEventEmitter` and `addListener`.
+To consume the events in JS, use `addEventListener` on the module.
 
 ```typescript
-import { NativeEventEmitter, NativeModules } from "react-native";
+import { Notifications } from "src/generated/modules";
 
-const Notifications = NativeModules.Notifications;
-
-const eventEmitter = new NativeEventEmitter(Notifications);
-
-const subscription = eventEmitter.addListener("notify", (event) => {
+const subscription = Notifications.addEventListener("notify", (event) => {
   console.log(event.message);
 });
 
@@ -541,9 +537,19 @@ const subscription = eventEmitter.addListener("notify", (event) => {
 subscription.remove();
 ```
 
-Because the toolkit generates native modules that are compatible with the standard React Native `NativeEventEmitter`, this is code is not specific to the toolkit, it is the same as in the React Native documentation (see [here](https://reactnative.dev/docs/native-modules-ios#sending-events-to-javascript) and [here](https://reactnative.dev/docs/native-modules-android#sending-events-to-javascript)).
+The toolkit generates native modules that are compatible with the standard React Native `NativeEventEmitter`, so alternatively the standard React Native approach may be used (see [here](https://reactnative.dev/docs/native-modules-ios#sending-events-to-javascript) and [here](https://reactnative.dev/docs/native-modules-android#sending-events-to-javascript)). Example:
 
-You can also check in the react native module if a listener is registered in JS with `EventEmitter.hasListeners`.
+```
+import { NativeEventEmitter, NativeModules } from "react-native";
+
+const Notifications = NativeModules.Notifications;
+const eventEmitter = new NativeEventEmitter(Notifications);
+const subscription = eventEmitter.addListener("notify", (event) => {
+  console.log(event.message);
+});
+```
+
+The react native module can check if a listener is registered in JS with `EventEmitter.hasListeners`.
 `hasListeners` is a kotlin `Flow` which allows you to react to changes in the listener count (start publishing when the first listener is registered and stop publishing when the last listener is removed).
 
 ```kotlin
