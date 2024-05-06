@@ -1,6 +1,10 @@
 # CHANGELOG
 
 ## unreleased
+
+- Update kotlin to 1.9.23
+- Update ksp to 1.9.23-1.0.19
+
 ## v0.16.0
 
 - Allow to reference external modules in generated TypeScript code
