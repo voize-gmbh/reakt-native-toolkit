@@ -142,88 +142,95 @@ class ToolkitSymbolProcessor(
                 }.toList()
 
         rnModules.forEach { rnModule ->
-            val wrappedClassDeclaration = rnModule.wrappedClassDeclaration
-            val wrappedClassType = wrappedClassDeclaration.asType(emptyList()).toTypeName()
+            try {
+                val wrappedClassDeclaration = rnModule.wrappedClassDeclaration
+                val wrappedClassType = wrappedClassDeclaration.asType(emptyList()).toTypeName()
 
-            val packageName = wrappedClassDeclaration.packageName.asString()
-            val wrappedClassName = wrappedClassDeclaration.simpleName.asString()
+                val packageName = wrappedClassDeclaration.packageName.asString()
+                val wrappedClassName = wrappedClassDeclaration.simpleName.asString()
 
-            val primaryConstructorParameters =
-                wrappedClassDeclaration.primaryConstructor?.parameters
-                    ?: emptyList()
-            val constructorInvocationArguments =
-                primaryConstructorParameters.map { constructorParameter ->
-                    when (constructorParameter.type.resolve()) {
-                        eventEmitterType -> CodeBlock.of(eventEmitterPropertyName)
-                        else -> CodeBlock.of("%N", constructorParameter.name?.asString())
+                val primaryConstructorParameters =
+                    wrappedClassDeclaration.primaryConstructor?.parameters
+                        ?: emptyList()
+                val constructorInvocationArguments =
+                    primaryConstructorParameters.map { constructorParameter ->
+                        when (constructorParameter.type.resolve()) {
+                            eventEmitterType -> CodeBlock.of(eventEmitterPropertyName)
+                            else -> CodeBlock.of("%N", constructorParameter.name?.asString())
+                        }
+                    }.joinToCode()
+                val constructorInvocation =
+                    CodeBlock.of("%T(%L)", wrappedClassType, constructorInvocationArguments)
+
+                val constructorParameters = primaryConstructorParameters.filter {
+                    when (it.type.resolve()) {
+                        eventEmitterType -> false
+                        else -> true
                     }
-                }.joinToCode()
-            val constructorInvocation =
-                CodeBlock.of("%T(%L)", wrappedClassType, constructorInvocationArguments)
+                }.map { it.toParameterSpec() }
 
-            val constructorParameters = primaryConstructorParameters.filter {
-                when (it.type.resolve()) {
-                    eventEmitterType -> false
-                    else -> true
+                val requiredEventEmitter =
+                    wrappedClassDeclaration.primaryConstructor?.parameters.orEmpty()
+                        .any { it.type.resolve() == eventEmitterType }
+
+                val withConstants =
+                    wrappedClassDeclaration.getAllFunctions()
+                        .any { it.simpleName.asString() == "getConstants" }
+
+
+                // Android
+                if (JvmPlatform in platformNames && NativePlatform !in platformNames) {
+                    createAndroidModule(
+                        rnModule,
+                        packageName,
+                        wrappedClassName,
+                        constructorParameters,
+                        constructorInvocation,
+                        withConstants,
+                    )
+                    createModuleProviderAndroid(
+                        packageName,
+                        wrappedClassName,
+                        constructorParameters,
+                        wrappedClassDeclaration.containingFile,
+                        rnModule.isInternal,
+                    )
                 }
-            }.map { it.toParameterSpec() }
 
-            val requiredEventEmitter =
-                wrappedClassDeclaration.primaryConstructor?.parameters.orEmpty()
-                    .any { it.type.resolve() == eventEmitterType }
+                // iOS
+                if (NativePlatform in platformNames && JvmPlatform !in platformNames) {
+                    createIOSModule(
+                        rnModule,
+                        packageName,
+                        wrappedClassName,
+                        constructorParameters,
+                        constructorInvocation,
+                        withConstants,
+                        requiredEventEmitter,
+                    )
+                    createModuleProviderIOS(
+                        packageName,
+                        wrappedClassName,
+                        constructorParameters,
+                        wrappedClassDeclaration.containingFile,
+                        rnModule.isInternal,
+                    )
+                }
 
-            val withConstants =
-                wrappedClassDeclaration.getAllFunctions()
-                    .any { it.simpleName.asString() == "getConstants" }
-
-
-            // Android
-            if (JvmPlatform in platformNames && NativePlatform !in platformNames) {
-                createAndroidModule(
-                    rnModule,
-                    packageName,
-                    wrappedClassName,
-                    constructorParameters,
-                    constructorInvocation,
-                    withConstants,
-                )
-                createModuleProviderAndroid(
-                    packageName,
-                    wrappedClassName,
-                    constructorParameters,
-                    wrappedClassDeclaration.containingFile,
-                    rnModule.isInternal,
-                )
-            }
-
-            // iOS
-            if (NativePlatform in platformNames && JvmPlatform !in platformNames) {
-                createIOSModule(
-                    rnModule,
-                    packageName,
-                    wrappedClassName,
-                    constructorParameters,
-                    constructorInvocation,
-                    withConstants,
-                    requiredEventEmitter,
-                )
-                createModuleProviderIOS(
-                    packageName,
-                    wrappedClassName,
-                    constructorParameters,
-                    wrappedClassDeclaration.containingFile,
-                    rnModule.isInternal,
-                )
-            }
-
-            // Multiplatform
-            if (JvmPlatform in platformNames && NativePlatform in platformNames) {
-                createModuleProvider(
-                    packageName,
-                    wrappedClassName,
-                    constructorParameters,
-                    wrappedClassDeclaration.containingFile,
-                    rnModule.isInternal,
+                // Multiplatform
+                if (JvmPlatform in platformNames && NativePlatform in platformNames) {
+                    createModuleProvider(
+                        packageName,
+                        wrappedClassName,
+                        constructorParameters,
+                        wrappedClassDeclaration.containingFile,
+                        rnModule.isInternal,
+                    )
+                }
+            } catch (e: Throwable) {
+                throw IllegalArgumentException(
+                    "Error processing native module ${rnModule.moduleName} at ${rnModule.wrappedClassDeclaration.location}",
+                    e
                 )
             }
         }
@@ -1244,9 +1251,12 @@ class ToolkitSymbolProcessorProvider : SymbolProcessorProvider {
 fun KSValueParameter.toParameterSpec(): ParameterSpec {
     return ParameterSpec.builder(
         this.name?.asString() ?: error("Parameter must have a name"),
-        this.type.toTypeName()
-    )
-        .build()
+        try {
+            this.type.toTypeName()
+        } catch (e: Throwable) {
+            throw IllegalArgumentException("Could get type of $this at ${this.location}", e)
+        }
+    ).build()
 }
 
 fun String.promiseLaunchAndroid(
