@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Build toolkit from source in example project by default
+
 ## v0.16.1
 
 - Update kotlin to 1.9.23 (fix https://youtrack.jetbrains.com/issue/KT-65542/Cinterop-tasks-fails-if-Xcode-15.3-is-used)

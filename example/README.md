@@ -4,8 +4,8 @@ This example project should demonstrate how to setup and use the reakt-native-to
 
 As a basis, the project has the standard React Native project structure that you would get when running the [official project initialization](https://reactnative.dev/docs/environment-setup). Then, the [`react-native-toolkit` setup guide](https://github.com/voize-gmbh/reakt-native-toolkit/blob/main/docs/project-setup.md) was followed to add the toolkit to the project.
 
-Per default, the project uses the published artifacts for `react-native-toolkit`.
-If you want to run the project against a local version of the toolkit, you can set `useLocalToolkit=true` in `android/gradle.properties`.
+By default, the project uses the local artifacts for `react-native-toolkit`.
+If you want to run the project against a published version of the toolkit, you can set `useLocalToolkit=false` in `android/gradle.properties`.
 
 ### Running the project
 
