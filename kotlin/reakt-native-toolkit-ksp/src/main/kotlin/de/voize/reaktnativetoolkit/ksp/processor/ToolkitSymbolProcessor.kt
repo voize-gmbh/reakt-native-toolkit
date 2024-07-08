@@ -4,6 +4,7 @@ import com.google.auto.service.AutoService
 import com.google.devtools.ksp.getClassDeclarationByName
 import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.symbol.*
+import com.google.devtools.ksp.validate
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ksp.addOriginatingKSFile
@@ -106,40 +107,43 @@ class ToolkitSymbolProcessor(
                     }
                 }
 
-        val rnModules =
+        val rnModuleSymbols =
             resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeModule")
-                .map { annotatedNode ->
-                    when (annotatedNode) {
-                        is KSClassDeclaration -> annotatedNode.also {
-                            if (annotatedNode.typeParameters.isNotEmpty()) {
-                                error("Type parameters are not supported for ReactNativeModule")
-                            }
+
+        val rnModules = rnModuleSymbols
+            .filter { it.validate() }
+            .map { annotatedNode ->
+                when (annotatedNode) {
+                    is KSClassDeclaration -> annotatedNode.also {
+                        if (annotatedNode.typeParameters.isNotEmpty()) {
+                            error("Type parameters are not supported for ReactNativeModule")
                         }
-
-                        else -> throw IllegalArgumentException("ReactNativeModule annotation can only be used on class declarations")
                     }
-                }.map { wrappedClassDeclaration ->
-                    val reactNativeModelAnnotationArguments =
-                        wrappedClassDeclaration.annotations.single { it.annotationType.resolve() == reactNativeModuleType }.arguments
-                    val moduleName = reactNativeModelAnnotationArguments.single {
-                        it.name?.asString() == "name"
-                    }.value as String
-                    val supportedEvents = (reactNativeModelAnnotationArguments.single {
-                        it.name?.asString() == "supportedEvents"
-                    }.value as List<*>?).orEmpty().filterIsInstance<String>()
-                    val reactNativeMethods = functionsByClass[wrappedClassDeclaration].orEmpty()
-                    val reactNativeFlows = flowsByClass[wrappedClassDeclaration].orEmpty()
-                    val isInternal = wrappedClassDeclaration.modifiers.contains(Modifier.INTERNAL)
 
-                    RNModule(
-                        wrappedClassDeclaration = wrappedClassDeclaration,
-                        moduleName = moduleName,
-                        supportedEvents = supportedEvents,
-                        reactNativeMethods = reactNativeMethods,
-                        reactNativeFlows = reactNativeFlows,
-                        isInternal = isInternal,
-                    )
-                }.toList()
+                    else -> throw IllegalArgumentException("ReactNativeModule annotation can only be used on class declarations")
+                }
+            }.map { wrappedClassDeclaration ->
+                val reactNativeModelAnnotationArguments =
+                    wrappedClassDeclaration.annotations.single { it.annotationType.resolve() == reactNativeModuleType }.arguments
+                val moduleName = reactNativeModelAnnotationArguments.single {
+                    it.name?.asString() == "name"
+                }.value as String
+                val supportedEvents = (reactNativeModelAnnotationArguments.single {
+                    it.name?.asString() == "supportedEvents"
+                }.value as List<*>?).orEmpty().filterIsInstance<String>()
+                val reactNativeMethods = functionsByClass[wrappedClassDeclaration].orEmpty()
+                val reactNativeFlows = flowsByClass[wrappedClassDeclaration].orEmpty()
+                val isInternal = wrappedClassDeclaration.modifiers.contains(Modifier.INTERNAL)
+
+                RNModule(
+                    wrappedClassDeclaration = wrappedClassDeclaration,
+                    moduleName = moduleName,
+                    supportedEvents = supportedEvents,
+                    reactNativeMethods = reactNativeMethods,
+                    reactNativeFlows = reactNativeFlows,
+                    isInternal = isInternal,
+                )
+            }.toList()
 
         rnModules.forEach { rnModule ->
             try {
@@ -242,20 +246,27 @@ class ToolkitSymbolProcessor(
                 is KSClassDeclaration -> {
                     it.asStarProjectedType()
                 }
+
                 is KSTypeAlias -> {
                     // TODO get type of alias declaration, not the type referenced by the alias
                     error("Currently unsupported, because of missing api in KSP")
                 }
+
                 else -> throw IllegalArgumentException("ExportTypescriptType annotation can only be used on class declarations or type aliases")
             }
         }.toList()
 
-        if (!invoked && JvmPlatform in platformNames && NativePlatform in platformNames) {
-            TypescriptGenerator(resolver, codeGenerator, options, logger).generate(rnModules, exportTypescriptTypes)
+        val deferredSymbols = rnModuleSymbols.filter { !it.validate() }.toList()
+
+        if (deferredSymbols.isEmpty() && !invoked && JvmPlatform in platformNames && NativePlatform in platformNames) {
+            TypescriptGenerator(resolver, codeGenerator, options, logger).generate(
+                rnModules,
+                exportTypescriptTypes
+            )
+            invoked = true
         }
 
-        invoked = true
-        return emptyList()
+        return deferredSymbols
     }
 
     private fun String.iOSModuleClassName() = this + "IOS"

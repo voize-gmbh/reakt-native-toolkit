@@ -4,6 +4,7 @@
 
 - Build toolkit from source in example project by default
 - Increase gradle jvm heap space in example project
+- Only try to generate code for native modules without compiler errors
 
 ## v0.16.1
 
