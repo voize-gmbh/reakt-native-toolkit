@@ -3,6 +3,7 @@
 ## unreleased
 
 - Build toolkit from source in example project by default
+- Increase gradle jvm heap space in example project
 
 ## v0.16.1
 
