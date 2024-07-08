@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.17.0
 ## v0.16.2
 
 - Build toolkit from source in example project by default
