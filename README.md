@@ -268,7 +268,7 @@ The provider has the same constructor as the class annotated with `@ReactNativeM
 ```kotlin
 // commonMain
 
-fun getRNModuleProviders(analytics: Analytics) {
+fun getRNModuleProviders(analytics: Analytics): List<ReactNativeModuleProvider> {
     return listOf(
         CalculatorRNModuleProvider(analytics),
         CalendarRNModuleProvider(analytics),
