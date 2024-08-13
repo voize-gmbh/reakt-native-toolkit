@@ -40,8 +40,6 @@ val commonMain by getting {
 NOTE: This artifact has an implementation dependency on the Maven Central published `react-android` module.
 It can be excluded if you are using an older `react-native` dependency e.g. `exclude("com.facebook.react", "react-android")`.
 
-```kotlin
-
 Then add `reakt-native-toolkit-ksp` to the KSP configurations:
 
 ```kotlin
