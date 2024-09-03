@@ -3,6 +3,7 @@ plugins {
     kotlin("native.cocoapods")
     kotlin("plugin.serialization")
     id("com.android.library")
+    id("org.jetbrains.compose") version "1.6.10"
     id("com.google.devtools.ksp") version "1.9.23-1.0.20"
 }
 
@@ -13,15 +14,9 @@ kotlin {
         publishLibraryVariants("debug", "release")
     }
 
-    listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach {
-        it.binaries.framework {
-            baseName = "shared"
-        }
-    }
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
 
     applyDefaultHierarchyTemplate()
 
@@ -33,6 +28,10 @@ kotlin {
             homepage = "google.com"
             summary = "Shared Kotlin code for myapp"
             baseName = "shared"
+
+            // without isStatic set to true you will run into linking issues
+            // when using native compose views via RCTViewManager
+            isStatic = true
         }
     }
 
@@ -48,6 +47,9 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
 
+                implementation(compose.ui)
+                implementation(compose.material)
+
                 implementation("de.voize:reakt-native-toolkit:$reaktNativeToolkitVersion") {
                     exclude("com.facebook.react", "react-native")
                 }
@@ -60,7 +62,7 @@ kotlin {
         }
         androidMain {
             //kotlin.srcDir("build/generated/ksp/android/androidDebug/kotlin")
-            // kotlin.srcDir("build/generated/ksp/android/androidRelease/kotlin")
+            //kotlin.srcDir("build/generated/ksp/android/androidRelease/kotlin")
 
             dependencies {
                 implementation("com.facebook.react:react-native:+")

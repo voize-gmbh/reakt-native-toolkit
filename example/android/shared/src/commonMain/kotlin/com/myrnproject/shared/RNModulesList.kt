@@ -3,7 +3,7 @@ package com.myrnproject.shared
 import de.voize.reaktnativetoolkit.util.ReactNativeModuleProvider
 import kotlinx.coroutines.CoroutineScope
 
-fun getNativeModuleProviders(
+fun getReactNativeModuleProviders(
     lifecycleScope: CoroutineScope,
     persistentConfig: PersistentConfig,
 ): List<ReactNativeModuleProvider> {

@@ -10,6 +10,7 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ksp.addOriginatingKSFile
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
+import de.voize.reaktnativetoolkit.ksp.processor.ReactNativeViewManagerGenerator.Companion.toRNViewManager
 
 private const val JvmPlatform = "JVM"
 private const val NativePlatform = "Native"
@@ -44,6 +45,16 @@ class ToolkitSymbolProcessor(
             resolver.getClassDeclarationByName("$toolkitPackageName.annotation.ReactNativeModule")
                 ?.asType(emptyList())
                 ?: error("Could not find ReactNativeModule")
+        val reactNativeViewManagerAnnotationType = resolver.getClassDeclarationByName("$toolkitPackageName.annotation.ReactNativeViewManager")
+            ?.asType(emptyList())
+            ?: error("Could not find ReactNativeViewManager")
+
+        // this must be lazy so that projects not using Compose do not fail on this because Composable is not found
+        val composableAnnotationType by lazy {
+            resolver.getClassDeclarationByName("androidx.compose.runtime.Composable")
+                ?.asType(emptyList())
+                ?: error("Could not find Composable")
+        }
 
         val functionsByClass =
             resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeMethod")
@@ -239,6 +250,42 @@ class ToolkitSymbolProcessor(
             }
         }
 
+        val rnViewManagers = resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeViewManager")
+            .map { annotatedNode ->
+                when (annotatedNode) {
+                    is KSFunctionDeclaration -> annotatedNode.also {
+                        check(annotatedNode.annotations.any { it.annotationType.resolve() == composableAnnotationType }) {
+                            "Function must be annotated with @Composable"
+                        }
+                    }
+
+                    else -> throw IllegalArgumentException("ReactNativeViewManager annotation can only be used on function declarations")
+                }
+            }.map { wrappedFunctionDeclaration ->
+                wrappedFunctionDeclaration.toRNViewManager(reactNativeViewManagerAnnotationType)
+            }
+
+        val viewManagerGenerator = ReactNativeViewManagerGenerator(codeGenerator)
+
+        rnViewManagers.forEach { rnViewManager ->
+            // Android
+            if (JvmPlatform in platformNames && NativePlatform !in platformNames) {
+                viewManagerGenerator.generateAndroidViewManager(rnViewManager)
+                viewManagerGenerator.generateAndroidViewManagerProvider(rnViewManager)
+            }
+
+            // iOS
+            if (NativePlatform in platformNames && JvmPlatform !in platformNames) {
+                viewManagerGenerator.generateIOSViewManager(rnViewManager)
+                viewManagerGenerator.generateIOSViewManagerProvider(rnViewManager)
+            }
+
+            // Multiplatform
+            if (JvmPlatform in platformNames && NativePlatform in platformNames) {
+                viewManagerGenerator.generateCommonViewManagerProvider(rnViewManager)
+            }
+        }
+
         val exportTypescriptTypes = resolver.getSymbolsWithAnnotation(
             "$toolkitPackageName.annotation.ExportTypescriptType"
         ).map {
@@ -272,7 +319,6 @@ class ToolkitSymbolProcessor(
     private fun String.iOSModuleClassName() = this + "IOS"
     private fun String.androidModuleClassName() = this + "Android"
     private fun String.moduleProviderClassName() = this + "Provider"
-
 
     private fun createModuleProvider(
         packageName: String,
@@ -1320,9 +1366,9 @@ fun decodeFromString(code: CodeBlock) = CodeBlock.of(
 
 fun listOfCode(code: List<CodeBlock>) = CodeBlock.of("%M(%L)", ListOfMember, code.joinToCode())
 
-private val reactNativeInteropNamespace = "react_native"
-private val toolkitPackageName = "de.voize.reaktnativetoolkit"
-private val toolkitUtilPackageName = "$toolkitPackageName.util"
+internal val reactNativeInteropNamespace = "react_native"
+internal val toolkitPackageName = "de.voize.reaktnativetoolkit"
+internal val toolkitUtilPackageName = "$toolkitPackageName.util"
 
 
 private val ReactNativeMethodAndroidClassName =

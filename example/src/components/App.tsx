@@ -1,15 +1,19 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet } from 'react-native';
 import Notifications from './Notifications';
 import Name from './Name';
 import Times from './Times';
+import NativeComposeView from './NativeView';
 
 const App = () => {
   return (
     <SafeAreaView style={styles.container}>
-      <Name />
-      <Times />
-      <Notifications />
+      <ScrollView>
+        <Name />
+        <Times />
+        <Notifications />
+        <NativeComposeView />
+      </ScrollView>
     </SafeAreaView>
   );
 };
