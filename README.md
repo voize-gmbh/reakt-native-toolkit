@@ -74,6 +74,7 @@ tasks.register<Copy>("copyGeneratedTypescriptFiles") {
 ```
 
 Add copyGeneratedTypescriptFiles task as a dependency to your react native bundle task:
+
 ```kotlin
 // android/app/build.gradle
 // React Native 0.71.x and above with Hermes
@@ -215,7 +216,7 @@ const result = await Calculator.add(1, 2);
 
 Exceptions thrown in your native module will be propagated to JS and converted to JS errors.
 You can customize the JS errors and log exception in Kotlin by implementing an ExceptionInterceptor in Kotlin:
-    
+
 ```kotlin
 import de.voize.reaktnativetoolkit.util.exceptionInterceptor
 
@@ -257,7 +258,7 @@ class CalculatorRNModule(analytics: Analytics) {
 
 The dependency must then be injected when creating the native module instance.
 
-#### Common 
+#### Common
 
 To avoid duplicating your dependency injection in Android and iOS you can use the toolkits _Module Providers_. For each `@ReactNativeModule` annotated class, the toolkit will generate a `ReactNativeModuleProvider` which can be used from common code.
 
@@ -412,7 +413,7 @@ For Expo users, install the `expo-standard-web-crypto` package, which includes t
 Initialize it as follows, again as early as possible:
 
 ```typescript
-import { polyfillWebCrypto } from 'expo-standard-web-crypto';
+import { polyfillWebCrypto } from "expo-standard-web-crypto";
 
 // useFlow from the devhaus mobile-sdk uses uuid which uses crypto.getRandomValues which is not available in expo,
 // so polyfill it with the expo-standard-web-crypto module
@@ -449,7 +450,6 @@ The mapping of date time types can be configured via the `@JSType` annotation or
 By default all date time types are mapped to their string representation in js.
 The default for `Instant` can be overridden with the ksp argument `reakt.native.toolkit.defaultInstantJsType`.
 Either `string` or `date` can be used as the value for this argument or the `@JSType` annotation.
-
 
 ```kotlin
 // build.gradle.kts
@@ -609,6 +609,187 @@ class Notifications(
             }
             // don't forget to handle exceptions, else it will cancel lifecycleScope and everything it contains
         }.launchIn(lifecycleScope)
+    }
+}
+```
+
+### Render Compose Multiplatform components in React Native (experimental)
+
+The toolkit allows you to render Compose Multiplatform components in React Native by annotating any Compose component function with the `@ReactNativeViewManager` annotation. The toolkit will then generate the necessary _view managers_ for [iOS](https://reactnative.dev/docs/native-components-ios) and [Android](https://reactnative.dev/docs/native-components-android) you which allows you to render the component in React Native.
+
+#### Prerequisites
+
+Make sure the Kotlin multiplatform module in your project includes the `org.jetbrains.compose` Gradle plugin with a version compatible with your Kotlin version.
+
+```kotlin
+// android/shared/build.gradle.kts
+plugins {
+    ...
+    id("org.jetbrains.compose") version "..."
+}
+```
+
+Make sure you added the Compose dependencies required for you to your `commonMain` source set.
+
+```kotlin
+// android/shared/build.gradle.kts
+
+val commonMain by getting {
+    dependencies {
+        ...
+
+        implementation(compose.ui)
+        implementation(compose.material)
+        // ... other compose dependencies
+    }
+}
+```
+
+#### Usage
+
+To render a Compose component in React Native, annotate a Compose component function in the commonMain source set with `@ReactNativeViewManager` and specify the name of the view manager in the annotation.
+
+```kotlin
+// commonMain
+
+import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
+import de.voize.reaktnativetoolkit.annotation.ReactNativeViewManager
+
+@Composable
+@ReactNativeViewManager("MyComposeView")
+internal fun MyComposeView() {
+    Text("Hello from Compose!")
+}
+```
+
+Now you can add the generated `MyComposeViewRNViewManagerAndroid` and `MyComposeViewRNViewManagerIOS` to your native modules package in `androidMain` and your `AppDelegate`. This is similar to adding a native module.
+
+```kotlin
+// androidMain
+
+class MyRNPackage() : ReactPackage {
+
+    override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
+        // ... native modules
+    }
+
+    override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
+        return listOf(
+            MyComposeViewRNViewManagerAndroid(reactContext),
+            // ... other view managers
+        )
+    }
+}
+```
+
+```objc
+import shared // your KMP project's shared framework
+
+@UIApplicationMain
+class AppDelegate: UIResponder, UIApplicationDelegate, RCTBridgeDelegate {
+  // ...
+
+    func extraModules(for bridge: RCTBridge!) -> [RCTBridgeModule]! {
+        return [
+            // ... native modules
+            [MyComposeViewRNViewManagerIOS init]
+        ]
+    }
+}
+```
+
+Now you can use the `MyComposeView` component in your React Native code.
+
+```typescript
+// nativeViews.tsx
+
+import { requireNativeComponent } from "react-native";
+
+export const MyComposeView = requireNativeComponent<any>("MyComposeView");
+```
+
+```typescript
+// App.tsx
+
+import React from "react";
+
+import { MyComposeView } from "./nativeViews";
+
+export const App = () => {
+  return <MyComposeView />;
+};
+```
+
+It is adviced to put `requireNativeComponent` so it does not interfere with hot reloading, as it will throw if the function is called more than once.
+
+**Attention:** Props from React Native to the Compose component are not supported yet.
+
+#### Dependency injection
+
+Just like with native modules, you can also use the generated platform `Provider`s to streamline dependency injection in common code.
+
+```kotlin
+// commonMain
+
+@Composable
+@ReactNativeViewManager("MyComposeView")
+internal fun MyComposeView(analytics: Analytics) {
+    Text("Hello from Compose!")
+}
+```
+
+```kotlin
+// commonMain
+
+import de.voize.reaktnativetoolkit.util.ReactNativeViewManagerProvider
+
+fun getReactNativeViewManagerProviders(analytics: Analytics): List<ReactNativeViewManagerProvider> {
+    return listOf(
+        MyComposeViewRNViewManagerProvider(analytics),
+    )
+}
+```
+
+```kotlin
+// androidMain
+
+import com.myrnproject.shared.getReactNativeViewManagerProviders
+import de.voize.reaktnativetoolkit.util.getViewManagers
+
+class MyRNPackage(private val analytics: Analytics) : ReactPackage {
+
+    override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
+        // ... native modules
+    }
+
+    override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
+        return getReactNativeViewManagerProviders(
+            analytics
+        ).getViewManagers(reactContext)
+    }
+}
+```
+
+```kotlin
+// iosMain
+
+import de.voize.reaktnativetoolkit.util.getModules
+import de.voize.reaktnativetoolkit.util.getViewManagers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import react_native.RCTBridgeModuleProtocol
+
+class MyIOSRNModules(private val analytics: Analytics) {
+    val coroutineScope = CoroutineScope(Dispatchers.Default)
+
+    fun createNativeModules(): List<RCTBridgeModuleProtocol> {
+        return getReactNativeModuleProviders(
+            coroutineScope,
+            analytics,
+        ).getModules(coroutineScope) + getReactNativeViewManagerProviders(
+            analytics,
+        ).getViewManagers()
     }
 }
 ```

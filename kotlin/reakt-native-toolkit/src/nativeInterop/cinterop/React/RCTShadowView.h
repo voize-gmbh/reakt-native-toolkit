@@ -1,0 +1,3 @@
+@interface RCTShadowView : NSObject
+
+@end

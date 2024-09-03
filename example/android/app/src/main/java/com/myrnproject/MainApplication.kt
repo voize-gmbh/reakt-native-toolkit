@@ -10,6 +10,8 @@ import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.load
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.soloader.SoLoader
+import com.myrnproject.shared.PersistentConfig
+import com.myrnproject.shared.PersistentConfigInitContext
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,13 +22,18 @@ class MainApplication : Application(), ReactApplication {
         throwable.printStackTrace()
     })
 
+    lateinit var persistentConfig: PersistentConfig
+
     override val reactNativeHost: ReactNativeHost =
         object : DefaultReactNativeHost(this) {
             override fun getPackages(): List<ReactPackage> =
                 PackageList(this).packages.apply {
-                    // Packages that cannot be autolinked yet can be added manually here, for example:
-                    // add(MyReactNativePackage())
-                    add(RNPackage(coroutineScope))
+                    add(
+                        RNPackage(
+                            coroutineScope,
+                            persistentConfig,
+                        )
+                    )
                 }
 
             override fun getJSMainModuleName(): String = "index"
@@ -42,7 +49,11 @@ class MainApplication : Application(), ReactApplication {
 
     override fun onCreate() {
         super.onCreate()
+
+        persistentConfig = PersistentConfig(PersistentConfigInitContext(applicationContext))
+
         SoLoader.init(this, false)
+
         if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
             // If you opted-in for the New Architecture, we load the native entry point for this app.
             load()
