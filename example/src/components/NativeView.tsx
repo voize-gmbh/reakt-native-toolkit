@@ -3,12 +3,38 @@ import { StyleSheet, Text, View } from 'react-native';
 import { MyComposeView } from './nativeViews';
 
 const NativeComposeView: React.FC = () => {
+  const [text, setText] = React.useState('hello');
+  const [counter, setCounter] = React.useState(0);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Native Compose View</Text>
       <View style={styles.nativeViewContainer}>
-        <MyComposeView style={styles.nativeView} />
+        <MyComposeView
+          style={styles.nativeView}
+          message="Hello from React Native!"
+          boolProp={true}
+          intProp={42}
+          longProp={42}
+          floatProp={42.42}
+          doubleProp={42.42}
+          objectProp={{
+            stringProp: 'hello',
+            boolProp: true,
+            intProp: 42,
+            floatProp: 42.42,
+            doubleProp: 42.42,
+          }}
+          textFieldValue={text}
+          onTextFieldValueChange={setText}
+          onButtonPress={() => setCounter((prev) => prev + 1)}
+          onTestParams={(...args) => {
+            console.log(args);
+          }}
+        />
       </View>
+      <Text>Counter: {counter}</Text>
+      <Text>Compose text input value: {text}</Text>
     </View>
   );
 };
@@ -33,7 +59,7 @@ const styles = StyleSheet.create({
   },
   nativeView: {
     width: '100%',
-    height: 100,
+    height: 300,
   },
 });
 

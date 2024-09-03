@@ -3,7 +3,7 @@
 ## unreleased
 
 - Update example app iOS part to correct setup for RN 0.74.0
-- Implement ReactNativeViewManager annotation to render Compose Multiplatform components in React Native
+- Implement ReactNativeViewManager and ReactNativeProp annotation to render Compose Multiplatform components in React Native
 
 ## v0.17.0
 

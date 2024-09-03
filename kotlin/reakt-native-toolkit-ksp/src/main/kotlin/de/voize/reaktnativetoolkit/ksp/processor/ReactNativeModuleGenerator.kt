@@ -1320,14 +1320,14 @@ private fun String.promiseLaunchIOS(
     )
 }
 
-private fun encodeToString(code: CodeBlock) = CodeBlock.of(
+internal fun encodeToString(code: CodeBlock) = CodeBlock.of(
     "%T.%M(%L)",
     JsonClassName,
     EncodeToStringMember,
     code
 )
 
-private fun decodeFromString(code: CodeBlock) = CodeBlock.of(
+internal fun decodeFromString(code: CodeBlock) = CodeBlock.of(
     "%T.%M(%L)",
     JsonClassName,
     DecodeFromStringMember,

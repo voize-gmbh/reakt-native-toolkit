@@ -655,89 +655,35 @@ To render a Compose component in React Native, annotate a Compose component func
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import de.voize.reaktnativetoolkit.annotation.ReactNativeViewManager
+import de.voize.reaktnativetoolkit.annotation.ReactNativeProp
+import kotlinx.coroutines.flow.Flow
 
 @Composable
 @ReactNativeViewManager("MyComposeView")
-internal fun MyComposeView() {
-    Text("Hello from Compose!")
-}
-```
+internal fun MyComposeView(
+    @ReactNativeProp
+    val message: Flow<String>,
+    @ReactNativeProp
+    val onButtonPress: () -> Unit,
+    analytics: Analytics,
+) {
+    val message by message.collectAsState("")
 
-Now you can add the generated `MyComposeViewRNViewManagerAndroid` and `MyComposeViewRNViewManagerIOS` to your native modules package in `androidMain` and your `AppDelegate`. This is similar to adding a native module.
-
-```kotlin
-// androidMain
-
-class MyRNPackage() : ReactPackage {
-
-    override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-        // ... native modules
-    }
-
-    override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
-        return listOf(
-            MyComposeViewRNViewManagerAndroid(reactContext),
-            // ... other view managers
-        )
+    Column {
+        Text("Message from React in Compose: $message")
+        Button(onClick = {
+            onButtonPress()
+            analytics.log("Button pressed")
+        }) {
+            Text("Press me")
+        }
     }
 }
 ```
 
-```objc
-import shared // your KMP project's shared framework
-
-@UIApplicationMain
-class AppDelegate: UIResponder, UIApplicationDelegate, RCTBridgeDelegate {
-  // ...
-
-    func extraModules(for bridge: RCTBridge!) -> [RCTBridgeModule]! {
-        return [
-            // ... native modules
-            [MyComposeViewRNViewManagerIOS init]
-        ]
-    }
-}
-```
-
-Now you can use the `MyComposeView` component in your React Native code.
-
-```typescript
-// nativeViews.tsx
-
-import { requireNativeComponent } from "react-native";
-
-export const MyComposeView = requireNativeComponent<any>("MyComposeView");
-```
-
-```typescript
-// App.tsx
-
-import React from "react";
-
-import { MyComposeView } from "./nativeViews";
-
-export const App = () => {
-  return <MyComposeView />;
-};
-```
-
-It is adviced to put `requireNativeComponent` so it does not interfere with hot reloading, as it will throw if the function is called more than once.
-
-**Attention:** Props from React Native to the Compose component are not supported yet.
-
-#### Dependency injection
+You can annotate parameters that should be passed from React Native as props using the `@ReactNativeProp` annotation. Props can be either `Flow`s of primitive or serializable types or callbacks. Callbacks can have primitive or serializable argument types and must return `Unit`.
 
 Just like with native modules, you can also use the generated platform `Provider`s to streamline dependency injection in common code.
-
-```kotlin
-// commonMain
-
-@Composable
-@ReactNativeViewManager("MyComposeView")
-internal fun MyComposeView(analytics: Analytics) {
-    Text("Hello from Compose!")
-}
-```
 
 ```kotlin
 // commonMain
@@ -774,22 +720,75 @@ class MyRNPackage(private val analytics: Analytics) : ReactPackage {
 ```kotlin
 // iosMain
 
+import de.voize.reaktnativetoolkit.util.ReactNativeIOSViewManager
 import de.voize.reaktnativetoolkit.util.getModules
 import de.voize.reaktnativetoolkit.util.getViewManagers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import react_native.RCTBridgeModuleProtocol
 
-class MyIOSRNModules(private val analytics: Analytics) {
-    val coroutineScope = CoroutineScope(Dispatchers.Default)
+class IOSRNModules(private val analytics: Analytics) {
+    private val coroutineScope = CoroutineScope(Dispatchers.Default)
 
     fun createNativeModules(): List<RCTBridgeModuleProtocol> {
-        return getReactNativeModuleProviders(
-            coroutineScope,
-            analytics,
-        ).getModules(coroutineScope) + getReactNativeViewManagerProviders(
-            analytics,
+        // ...
+    }
+
+    fun createViewManagers(): Map<String, ReactNativeIOSViewManager> {
+        return getReactNativeViewManagerProviders(
+            persistentConfig,
         ).getViewManagers()
     }
 }
 ```
+
+```objc
+#import <shared/shared.h>
+#import "ReactNativeViewManagers.h"
+
+@implementation AppDelegate
+    // ...
+
+    - (NSArray<id<RCTBridgeModule>> *)extraModulesForBridge:(RCTBridge *)bridge
+    {
+        SharedIOSRNModules* iOSRNModules = [[SharedIOSRNModules alloc] init];
+        NSArray<id<RCTBridgeModule>> *rnNativeModules = [iOSRNModules createNativeModules];
+        NSArray<id<RCTBridgeModule>> *rnViewManagers = [ReactNativeViewManagers getRNViewManagers:[iOSRNModules createViewManagers]];
+        return [rnNativeModules arrayByAddingObjectsFromArray:rnViewManagers];
+    }
+}
+```
+
+You also need to reference the generated Objective-C files in your iOS project.
+For this, open your XCode workspace, right click on your target and select "Add files to ...". Then select the directory in `android/shared/build/generated/ksp/metadata/commonMain/resources/objc` and add it with the "Create groups" option enabled and the "Copy items if needed" option disabled.
+
+You might have to an initial build to generate the Objective-C files before you can add them to your XCode project:
+
+```
+cd android
+./gradlew :shared:kspCommonMainKotlinMetadata
+```
+
+Now you can use the `MyComposeView` component in your React Native code.
+
+```typescript
+// nativeViews.tsx
+
+import { requireNativeComponent } from "react-native";
+
+export const MyComposeView = requireNativeComponent<any>("MyComposeView");
+```
+
+```typescript
+// App.tsx
+
+import React from "react";
+
+import { MyComposeView } from "./nativeViews";
+
+export const App = () => {
+  return <MyComposeView />;
+};
+```
+
+It is adviced to put `requireNativeComponent` so it does not interfere with hot reloading, as it will throw if the function is called more than once.
