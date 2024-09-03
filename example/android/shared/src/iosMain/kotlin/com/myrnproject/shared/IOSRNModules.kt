@@ -1,5 +1,6 @@
 package com.myrnproject.shared
 
+import de.voize.reaktnativetoolkit.util.ReactNativeIOSViewManager
 import de.voize.reaktnativetoolkit.util.getModules
 import de.voize.reaktnativetoolkit.util.getViewManagers
 import kotlinx.coroutines.CoroutineScope
@@ -14,7 +15,11 @@ class IOSRNModules {
         return getReactNativeModuleProviders(
             coroutineScope,
             persistentConfig,
-        ).getModules(coroutineScope) + getReactNativeViewManagerProviders(
+        ).getModules(coroutineScope)
+    }
+
+    fun createViewManagers(): Map<String, ReactNativeIOSViewManager> {
+        return getReactNativeViewManagerProviders(
             persistentConfig,
         ).getViewManagers()
     }

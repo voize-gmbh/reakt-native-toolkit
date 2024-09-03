@@ -2,6 +2,7 @@
 
 #import <React/RCTBundleURLProvider.h>
 #import <shared/shared.h>
+#import "ReactNativeViewManagers.h"
 
 @implementation AppDelegate
 
@@ -13,7 +14,10 @@
 
 - (NSArray<id<RCTBridgeModule>> *)extraModulesForBridge:(RCTBridge *)bridge
 {
-  return [[[SharedIOSRNModules alloc] init] createNativeModules];
+  SharedIOSRNModules* iOSRNModules = [[SharedIOSRNModules alloc] init];
+  NSArray<id<RCTBridgeModule>> *rnNativeModules = [iOSRNModules createNativeModules];
+  NSArray<id<RCTBridgeModule>> *rnViewManagers = [ReactNativeViewManagers getRNViewManagers:[iOSRNModules createViewManagers]];
+  return [rnNativeModules arrayByAddingObjectsFromArray:rnViewManagers];
 }
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions

@@ -1,11 +1,9 @@
 package de.voize.reaktnativetoolkit.util
 
-import react_native.*
-
 actual interface ReactNativeViewManagerProvider {
-    fun getViewManager(): RCTViewManager
+    fun getViewManager(): Pair<String, ReactNativeIOSViewManager>
 }
 
-fun List<ReactNativeViewManagerProvider>.getViewManagers(): List<RCTViewManager> {
-    return map { it.getViewManager() }
+fun List<ReactNativeViewManagerProvider>.getViewManagers(): Map<String, ReactNativeIOSViewManager> {
+    return associate { it.getViewManager() }
 }
