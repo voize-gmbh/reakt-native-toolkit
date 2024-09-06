@@ -4,9 +4,9 @@ PODS:
   - FBLazyVector (0.74.0)
   - fmt (9.1.0)
   - glog (0.3.5)
-  - hermes-engine (0.74.0-rc.9):
-    - hermes-engine/Pre-built (= 0.74.0-rc.9)
-  - hermes-engine/Pre-built (0.74.0-rc.9)
+  - hermes-engine (0.74.0):
+    - hermes-engine/Pre-built (= 0.74.0)
+  - hermes-engine/Pre-built (0.74.0)
   - MyAppShared (0.1.0)
   - RCT-Folly (2024.01.01.00):
     - boost
@@ -1354,7 +1354,7 @@ SPEC CHECKSUMS:
   FBLazyVector: 026c8f4ae67b06e088ae01baa2271ef8a26c0e8c
   fmt: 4c2741a687cc09f0634a2e2c72a838b99f1ff120
   glog: c5d68082e772fa1c511173d6b30a9de2c05a69a2
-  hermes-engine: 25f62f55d7f9efed5910366b12e083b77effd566
+  hermes-engine: 6eae7edb2f563ee41d7c1f91f4f2e57c26d8a5c3
   MyAppShared: b0c4cfcf486049c3802913c6a4e5b26ecbd82a06
   RCT-Folly: 045d6ecaa59d826c5736dfba0b2f4083ff8d79df
   RCTDeprecation: 3ca8b6c36bfb302e1895b72cfe7db0de0c92cd47
@@ -1407,6 +1407,6 @@ SPEC CHECKSUMS:
   SocketRocket: abac6f5de4d4d62d24e11868d7a2f427e0ef940d
   Yoga: ff1d575b119f510a5de23c22a794872562078ccf
 
-PODFILE CHECKSUM: 4906a0bd1af373f05a09a241303ce98eaf27fe7e
+PODFILE CHECKSUM: 8d61ee68d99f8c99309e09eb992b0432354030cf
 
-COCOAPODS: 1.14.3
+COCOAPODS: 1.15.2

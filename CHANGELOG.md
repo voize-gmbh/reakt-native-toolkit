@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Update example app iOS part to correct setup for RN 0.74.0
+
 ## v0.17.0
 ## v0.16.2
 
