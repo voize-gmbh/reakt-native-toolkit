@@ -16,8 +16,34 @@ jobs:
         with:
           package: js/package.json
           token: ${{ secrets.NPM_TOKEN }}
+  publish-maven-legacy:
+    name: Build and publish to Maven repository for legacy RN versions
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: kotlin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+      - run: yarn install
+        working-directory: js
+      # add legacy suffix to the version (with macos sed)
+      - run: sed -i '' 's/version=[^ ]*/&-legacy/' gradle.properties
+        working-directory: kotlin
+      - run: ./gradlew build -PreaktNativeToolkit.useLegacyRNDependency=true
+        working-directory: kotlin
+      - run: ./gradlew publishAllPublicationToSonatypeRepository -PreaktNativeToolkit.useLegacyRNDependency=true --max-workers 1 closeAndReleaseSonatypeStagingRepository
+        working-directory: kotlin
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          SIGNING_SIGNING_KEY: ${{ secrets.SIGNING_SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
   publish-maven:
-    name: Build and publish to Maven Repository
+    name: Build and publish to Maven repository
     runs-on: macos-latest
     defaults:
       run:
