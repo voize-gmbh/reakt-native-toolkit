@@ -6,6 +6,8 @@ plugins {
     id("com.android.library")
 }
 
+val useLegacyRNDependency = findProperty("reaktNativeToolkit.useLegacyRNDependency") as String? == "true"
+
 android {
     namespace = "de.voize.reaktnativetoolkit"
     compileSdk = 33
@@ -17,6 +19,14 @@ android {
     compileOptions {
         sourceCompatibility(JavaVersion.VERSION_1_8)
         targetCompatibility(JavaVersion.VERSION_1_8)
+    }
+}
+
+if (useLegacyRNDependency) {
+    repositories {
+        maven {
+            url = uri("$rootDir/../js/node_modules/react-native/android")
+        }
     }
 }
 
@@ -65,7 +75,12 @@ kotlin {
 
         androidMain {
             dependencies {
-                implementation("com.facebook.react:react-android:[0.74.0,)")
+                val reactNativeDependency = if (useLegacyRNDependency) {
+                    "com.facebook.react:react-native:[0.69.0,)"
+                } else {
+                    "com.facebook.react:react-android:[0.74.0,)"
+                }
+                implementation(reactNativeDependency)
             }
         }
 
