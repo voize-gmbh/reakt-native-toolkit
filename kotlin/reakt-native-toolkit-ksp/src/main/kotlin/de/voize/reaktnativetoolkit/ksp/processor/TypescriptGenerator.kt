@@ -79,7 +79,7 @@ class TypescriptGenerator(
         }.values.firstOrNull()
     }
 
-    private fun typesFrom(rnModules: List<ToolkitSymbolProcessor.RNModule>): Pair<List<KSType>, List<KSFile>> {
+    private fun typesFrom(rnModules: List<ReactNativeModuleGenerator.RNModule>): Pair<List<KSType>, List<KSFile>> {
         // Collect all types of function parameters and return types
         val typeDeclarations =
             rnModules.flatMap { it.reactNativeMethods + it.reactNativeFlows }.flatMap {
@@ -89,8 +89,8 @@ class TypescriptGenerator(
         return typeDeclarations to originatingKSFiles
     }
 
-    fun generate(
-        rnModules: List<ToolkitSymbolProcessor.RNModule>,
+    internal fun generate(
+        rnModules: List<ReactNativeModuleGenerator.RNModule>,
         exportTypescriptTypes: List<KSType>,
     ) {
         val (types, rnModulesOriginatingFiles) = typesFrom(rnModules)
@@ -145,7 +145,7 @@ class TypescriptGenerator(
     }
 
     private fun createRNModulesFile(
-        rnModules: List<ToolkitSymbolProcessor.RNModule>,
+        rnModules: List<ReactNativeModuleGenerator.RNModule>,
         originatingKSFiles: List<KSFile>,
     ) {
         val rnModulesFileBuilder = FileSpec.builder(modulesModule)
@@ -159,7 +159,7 @@ class TypescriptGenerator(
     }
 
     private fun createTypescriptRNModule(
-        rnModule: ToolkitSymbolProcessor.RNModule,
+        rnModule: ReactNativeModuleGenerator.RNModule,
         fileBuilder: FileSpec.Builder
     ) {
         val withEventEmitter = rnModule.supportedEvents.isNotEmpty()
