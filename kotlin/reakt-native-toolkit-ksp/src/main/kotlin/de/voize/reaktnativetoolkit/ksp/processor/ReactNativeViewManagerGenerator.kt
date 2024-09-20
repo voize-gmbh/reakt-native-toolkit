@@ -1,6 +1,10 @@
 package de.voize.reaktnativetoolkit.ksp.processor
 
+import com.google.devtools.ksp.getClassDeclarationByName
 import com.google.devtools.ksp.processing.CodeGenerator
+import com.google.devtools.ksp.processing.KSPLogger
+import com.google.devtools.ksp.processing.PlatformInfo
+import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSValueParameter
@@ -17,8 +21,11 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.joinToCode
 import com.squareup.kotlinpoet.ksp.writeTo
 
-class ReactNativeViewManagerGenerator(private val codeGenerator: CodeGenerator) {
-    data class RNViewManager(
+class ReactNativeViewManagerGenerator(
+    private val codeGenerator: CodeGenerator,
+    private val platforms: List<PlatformInfo>,
+) {
+    private data class RNViewManager(
         val wrappedFunctionDeclaration: KSFunctionDeclaration,
         val moduleName: String,
         val isInternal: Boolean,
@@ -33,6 +40,55 @@ class ReactNativeViewManagerGenerator(private val codeGenerator: CodeGenerator) 
     private fun String.androidViewManagerClassName() = this + "RNViewManagerAndroid"
     private fun String.iOSViewManagerClassName() = this + "RNViewManagerIOS"
     private fun String.viewManagerProviderClassName() = this + "RNViewManagerProvider"
+
+    internal fun process(resolver: Resolver) {
+        val platformNames = platforms.map { it.platformName }
+        val reactNativeViewManagerAnnotationType = resolver.getClassDeclarationByName("$toolkitPackageName.annotation.ReactNativeViewManager")
+            ?.asType(emptyList())
+            ?: error("Could not find ReactNativeViewManager")
+
+        // this must be lazy so that projects not using Compose do not fail on this because Composable is not found
+        val composableAnnotationType by lazy {
+            resolver.getClassDeclarationByName("androidx.compose.runtime.Composable")
+                ?.asType(emptyList())
+                ?: error("Could not find Composable")
+        }
+
+        val rnViewManagers = resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeViewManager")
+            .map { annotatedNode ->
+                when (annotatedNode) {
+                    is KSFunctionDeclaration -> annotatedNode.also {
+                        check(annotatedNode.annotations.any { it.annotationType.resolve() == composableAnnotationType }) {
+                            "Function must be annotated with @Composable"
+                        }
+                    }
+
+                    else -> throw IllegalArgumentException("ReactNativeViewManager annotation can only be used on function declarations")
+                }
+            }.map { wrappedFunctionDeclaration ->
+                wrappedFunctionDeclaration.toRNViewManager(reactNativeViewManagerAnnotationType)
+            }
+
+
+        rnViewManagers.forEach { rnViewManager ->
+            // Android
+            if (JvmPlatform in platformNames && NativePlatform !in platformNames) {
+                generateAndroidViewManager(rnViewManager)
+                generateAndroidViewManagerProvider(rnViewManager)
+            }
+
+            // iOS
+            if (NativePlatform in platformNames && JvmPlatform !in platformNames) {
+                generateIOSViewManager(rnViewManager)
+                generateIOSViewManagerProvider(rnViewManager)
+            }
+
+            // Multiplatform
+            if (JvmPlatform in platformNames && NativePlatform in platformNames) {
+                generateCommonViewManagerProvider(rnViewManager)
+            }
+        }
+    }
 
     /**
      * Given the metadata of a compose function annotated with `@ReactNativeViewManager`
@@ -64,7 +120,7 @@ class ReactNativeViewManagerGenerator(private val codeGenerator: CodeGenerator) 
      * }
      * ```
      */
-    fun generateAndroidViewManager(rnViewManager: RNViewManager) {
+    private fun generateAndroidViewManager(rnViewManager: RNViewManager) {
         val wrappedFunctionName = rnViewManager.wrappedFunctionDeclaration.simpleName.asString()
         val viewManagerClassName = wrappedFunctionName.androidViewManagerClassName()
         val packageName = rnViewManager.wrappedFunctionDeclaration.packageName.asString()
@@ -173,7 +229,7 @@ class ReactNativeViewManagerGenerator(private val codeGenerator: CodeGenerator) 
      * }
      * ```
      */
-    fun generateIOSViewManager(rnViewManager: RNViewManager) {
+    private fun generateIOSViewManager(rnViewManager: RNViewManager) {
         val viewManagerClassName = rnViewManager.functionName.iOSViewManagerClassName()
         val constructorParameters = rnViewManager.parameters.map { it.toParameterSpec() }
 
@@ -245,7 +301,7 @@ class ReactNativeViewManagerGenerator(private val codeGenerator: CodeGenerator) 
      * ) : ReactNativeViewManagerProvider
      * ```
      */
-    fun generateCommonViewManagerProvider(rnViewManager: RNViewManager) {
+    private fun generateCommonViewManagerProvider(rnViewManager: RNViewManager) {
         val className = rnViewManager.functionName.viewManagerProviderClassName()
         val constructorParameters = rnViewManager.parameters.map { it.toParameterSpec() }
 
@@ -284,7 +340,7 @@ class ReactNativeViewManagerGenerator(private val codeGenerator: CodeGenerator) 
      * }
      * ```
      */
-    fun generateAndroidViewManagerProvider(rnViewManager: RNViewManager) {
+    private fun generateAndroidViewManagerProvider(rnViewManager: RNViewManager) {
         val className = rnViewManager.functionName.viewManagerProviderClassName()
         val androidViewManagerClassName = rnViewManager.functionName.androidViewManagerClassName()
         val constructorParameters = rnViewManager.parameters.map { it.toParameterSpec() }
@@ -345,7 +401,7 @@ class ReactNativeViewManagerGenerator(private val codeGenerator: CodeGenerator) 
      * }
      * ```
      */
-    fun generateIOSViewManagerProvider(rnViewManager: RNViewManager) {
+    private fun generateIOSViewManagerProvider(rnViewManager: RNViewManager) {
         val className = rnViewManager.functionName.viewManagerProviderClassName()
         val iOSViewManagerClassName = rnViewManager.functionName.iOSViewManagerClassName()
         val constructorParameters = rnViewManager.parameters.map { it.toParameterSpec() }
@@ -390,7 +446,7 @@ class ReactNativeViewManagerGenerator(private val codeGenerator: CodeGenerator) 
     }
 
     companion object {
-        fun KSFunctionDeclaration.toRNViewManager(reactNativeViewManagerAnnotationType: KSType): RNViewManager {
+        private fun KSFunctionDeclaration.toRNViewManager(reactNativeViewManagerAnnotationType: KSType): RNViewManager {
             val reactNativeViewManagerAnnotationArguments = annotations.single {
                 it.annotationType.resolve() == reactNativeViewManagerAnnotationType
             }.arguments
