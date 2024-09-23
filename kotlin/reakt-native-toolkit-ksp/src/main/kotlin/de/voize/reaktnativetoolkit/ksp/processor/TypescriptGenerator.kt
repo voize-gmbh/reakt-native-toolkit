@@ -291,12 +291,12 @@ class TypescriptGenerator(
                     .castTo(TypeName.implicit(nativeInterfaceName))
             )
         )
-        val exportedRNModuleName = rnModule.moduleName
-        val exportedRNModuleSymbol = getSymbolInModule(exportedRNModuleName)
-        nameAllocator.newName(exportedRNModuleName)
+        val wrapperRNModuleName = rnModule.moduleName + "Wrapper"
+        val wrapperRNModuleSymbol = getSymbolInModule(wrapperRNModuleName)
+        nameAllocator.newName(wrapperRNModuleName)
         fileBuilder.addCode(
             const(
-                name = exportedRNModuleName,
+                name = wrapperRNModuleName,
                 typeName = TypeName.implicit(interfaceName),
                 expression = CodeBlock.of(
                     "{\n%>...%Q,\n%L%<\n}",
@@ -469,7 +469,7 @@ class TypescriptGenerator(
                                                 useFlowName.asCodeBlock().invoke(
                                                     buildList {
                                                         add(
-                                                            exportedRNModuleSymbol.nested(
+                                                            wrapperRNModuleSymbol.nested(
                                                                 functionDeclaration.simpleName.asString(),
                                                             ).asCodeBlock()
                                                         )
@@ -481,7 +481,7 @@ class TypescriptGenerator(
                                                         add(
                                                             CodeBlock.of(
                                                                 "%S",
-                                                                "${exportedRNModuleName}.${functionDeclaration.simpleName.asString()}",
+                                                                "${wrapperRNModuleName}.${functionDeclaration.simpleName.asString()}",
                                                             )
                                                         )
                                                         addAll(args)
@@ -572,6 +572,25 @@ class TypescriptGenerator(
                             )
                         }
                     }.joinToCode(",\n")
+                )
+            )
+        )
+
+        val exportedRNModuleName = rnModule.moduleName
+        nameAllocator.newName(exportedRNModuleName)
+        fileBuilder.addCode(
+            const(
+                name = exportedRNModuleName,
+                expression = CodeBlock.of(
+                    "%N !== undefined ? %N : new %T(%N, %L)",
+                    nativeRNModuleSymbol,
+                    wrapperRNModuleSymbol,
+                    TypescriptProxyTypeName,
+                    wrapperRNModuleSymbol,
+                    CodeBlock.of(
+                        "{\n%>get() {%>throw new Error(%S)%<}%<\n}",
+                        "The native module '$exportedRNModuleName' is not available."
+                    )
                 )
             ).export()
         )
@@ -2425,6 +2444,7 @@ class TypescriptGenerator(
     private val TypescriptRecordTypeName = TypeName.implicit("Record")
     private val TypescriptDateTypeName = TypeName.implicit("Date")
     private val TypescriptOmitTypeName = TypeName.implicit("Omit")
+    private val TypescriptProxyTypeName = TypeName.implicit("Proxy")
 
     private fun recordType(key: TypeName, value: TypeName): TypeName {
         return TypeName.parameterizedType(TypescriptRecordTypeName, key, value)
