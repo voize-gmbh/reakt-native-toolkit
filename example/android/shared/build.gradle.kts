@@ -98,7 +98,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinCompile<*>>().configureEach
 
 tasks.register<Copy>("copyGeneratedTypescriptFiles") {
     dependsOn("kspCommonMainKotlinMetadata")
-    from("build/generated/ksp/metadata/commonMain/resources")
+    from("build/generated/ksp/metadata/commonMain/resources/reaktNativeToolkit/typescript")
     into("../../src/generated")
 }
 

@@ -26,7 +26,7 @@ export namespace com {
       /**
        * Mapping generated from {@link com.myrnproject.shared.TestSealedType}
        */
-      export function fromJsonTestSealedType(json: any): TestSealedType {
+      export function fromJsonTestSealedType(json: Record<string, any>): TestSealedType {
         const type = json['type'];
         return {
           ...(() => {
@@ -43,7 +43,7 @@ export namespace com {
       /**
        * Mapping generated from {@link com.myrnproject.shared.TestSealedType}
        */
-      export function toJsonTestSealedType(value: TestSealedType): any {
+      export function toJsonTestSealedType(value: TestSealedType): Record<string, any> {
         const type = value['type'];
         return {
           ...(() => {
@@ -69,14 +69,14 @@ export namespace com {
       /**
        * Mapping generated from {@link com.myrnproject.shared.Enum}
        */
-      export function fromJsonEnum(json: any): Enum {
-        return json;
+      export function fromJsonEnum(json: string): Enum {
+        return (json) as Enum;
       }
 
       /**
        * Mapping generated from {@link com.myrnproject.shared.Enum}
        */
-      export function toJsonEnum(value: Enum): any {
+      export function toJsonEnum(value: Enum): string {
         return value;
       }
 
@@ -100,7 +100,7 @@ export namespace com {
       /**
        * Mapping generated from {@link com.myrnproject.shared.Test}
        */
-      export function fromJsonTest(json: any): Test {
+      export function fromJsonTest(json: Record<string, any>): Test {
         return {
           ['name']: ((() => {
             const temp = json['name'];
@@ -138,7 +138,7 @@ export namespace com {
       /**
        * Mapping generated from {@link com.myrnproject.shared.Test}
        */
-      export function toJsonTest(value: Test): any {
+      export function toJsonTest(value: Test): Record<string, any> {
         return {
           ['name']: (() => {
             const temp = value['name'];
@@ -189,7 +189,7 @@ export namespace com {
       /**
        * Mapping generated from {@link com.myrnproject.shared.TestSealedClassProperties}
        */
-      export function fromJsonTestSealedClassProperties(json: any): TestSealedClassProperties {
+      export function fromJsonTestSealedClassProperties(json: Record<string, any>): TestSealedClassProperties {
         return {
           ['sealed']: ((() => {
             const temp = json['sealed'];
@@ -209,7 +209,7 @@ export namespace com {
       /**
        * Mapping generated from {@link com.myrnproject.shared.TestSealedClassProperties}
        */
-      export function toJsonTestSealedClassProperties(value: TestSealedClassProperties): any {
+      export function toJsonTestSealedClassProperties(value: TestSealedClassProperties): Record<string, any> {
         return {
           ['sealed']: (() => {
             const temp = value['sealed'];
@@ -250,7 +250,7 @@ export namespace com {
       /**
        * Mapping generated from {@link com.myrnproject.shared.DateTimeTest}
        */
-      export function fromJsonDateTimeTest(json: any): DateTimeTest {
+      export function fromJsonDateTimeTest(json: Record<string, any>): DateTimeTest {
         return {
           ['instant']: ((() => {
             const temp = json['instant'];
@@ -293,7 +293,7 @@ export namespace com {
       /**
        * Mapping generated from {@link com.myrnproject.shared.DateTimeTest}
        */
-      export function toJsonDateTimeTest(value: DateTimeTest): any {
+      export function toJsonDateTimeTest(value: DateTimeTest): Record<string, any> {
         return {
           ['instant']: (() => {
             const temp = value['instant'];
@@ -351,7 +351,7 @@ export namespace com {
       /**
        * Mapping generated from {@link com.myrnproject.shared.TestTypeAlias}
        */
-      export function toJsonTestTypeAlias(value: Test): any {
+      export function toJsonTestTypeAlias(value: Test): Record<string, any> {
         return (() => {
           const temp = value;
           return toJsonTest(temp);
@@ -378,7 +378,7 @@ export namespace com {
       /**
        * Mapping generated from {@link com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator}
        */
-      export function fromJsonTestSealedTypeWithCustomDiscriminator(json: any): TestSealedTypeWithCustomDiscriminator {
+      export function fromJsonTestSealedTypeWithCustomDiscriminator(json: Record<string, any>): TestSealedTypeWithCustomDiscriminator {
         const type = json['customType'];
         return {
           ...(() => {
@@ -395,7 +395,7 @@ export namespace com {
       /**
        * Mapping generated from {@link com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator}
        */
-      export function toJsonTestSealedTypeWithCustomDiscriminator(value: TestSealedTypeWithCustomDiscriminator): any {
+      export function toJsonTestSealedTypeWithCustomDiscriminator(value: TestSealedTypeWithCustomDiscriminator): Record<string, any> {
         const type = value['customType'];
         return {
           ...(() => {
@@ -410,6 +410,79 @@ export namespace com {
       }
 
       /**
+       * Data class generated from {@link com.myrnproject.shared.MyDataClass}
+       */
+      export interface MyDataClass {
+
+        stringProp: string;
+
+        boolProp: boolean;
+
+        intProp: number;
+
+        doubleProp: number;
+
+        floatProp: number;
+
+      }
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.MyDataClass}
+       */
+      export function fromJsonMyDataClass(json: Record<string, any>): MyDataClass {
+        return {
+          ['stringProp']: ((() => {
+            const temp = json['stringProp'];
+            return temp;
+          })()) as string,
+          ['boolProp']: ((() => {
+            const temp = json['boolProp'];
+            return temp;
+          })()) as boolean,
+          ['intProp']: ((() => {
+            const temp = json['intProp'];
+            return temp;
+          })()) as number,
+          ['doubleProp']: ((() => {
+            const temp = json['doubleProp'];
+            return temp;
+          })()) as number,
+          ['floatProp']: ((() => {
+            const temp = json['floatProp'];
+            return temp;
+          })()) as number
+        };
+      }
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.MyDataClass}
+       */
+      export function toJsonMyDataClass(value: MyDataClass): Record<string, any> {
+        return {
+          ['stringProp']: (() => {
+            const temp = value['stringProp'];
+            return temp;
+          })(),
+          ['boolProp']: (() => {
+            const temp = value['boolProp'];
+            return temp;
+          })(),
+          ['intProp']: (() => {
+            const temp = value['intProp'];
+            return temp;
+          })(),
+          ['doubleProp']: (() => {
+            const temp = value['doubleProp'];
+            return temp;
+          })(),
+          ['floatProp']: (() => {
+            const temp = value['floatProp'];
+            return temp;
+          })()
+        };
+      }
+
+      /**
        * Object generated from {@link com.myrnproject.shared.FlowTest}
        */
       export interface FlowTest {
@@ -418,14 +491,14 @@ export namespace com {
       /**
        * Mapping generated from {@link com.myrnproject.shared.FlowTest}
        */
-      export function fromJsonFlowTest(_: any): FlowTest {
+      export function fromJsonFlowTest(_: Record<string, any>): FlowTest {
         return {};
       }
 
       /**
        * Mapping generated from {@link com.myrnproject.shared.FlowTest}
        */
-      export function toJsonFlowTest(_: FlowTest): any {
+      export function toJsonFlowTest(_: FlowTest): Record<string, any> {
         return {};
       }
 
@@ -441,7 +514,7 @@ export namespace com {
       /**
        * Mapping generated from {@link com.myrnproject.shared.NonNested}
        */
-      export function fromJsonNonNested(json: any): NonNested {
+      export function fromJsonNonNested(json: Record<string, any>): NonNested {
         return {
           ['bar']: ((() => {
             const temp = json['bar'];
@@ -453,7 +526,7 @@ export namespace com {
       /**
        * Mapping generated from {@link com.myrnproject.shared.NonNested}
        */
-      export function toJsonNonNested(value: NonNested): any {
+      export function toJsonNonNested(value: NonNested): Record<string, any> {
         return {
           ['bar']: (() => {
             const temp = value['bar'];
@@ -478,7 +551,7 @@ export namespace com {
         /**
          * Mapping generated from {@link com.myrnproject.shared.TestSealedType.Option1}
          */
-        export function fromJsonOption1(json: any): Omit<Option1, 'type'> {
+        export function fromJsonOption1(json: Record<string, any>): Omit<Option1, 'type'> {
           return {
             ['name']: ((() => {
               const temp = json['name'];
@@ -494,7 +567,7 @@ export namespace com {
         /**
          * Mapping generated from {@link com.myrnproject.shared.TestSealedType.Option1}
          */
-        export function toJsonOption1(value: Omit<Option1, 'type'>): any {
+        export function toJsonOption1(value: Omit<Option1, 'type'>): Record<string, any> {
           return {
             ['name']: (() => {
               const temp = value['name'];
@@ -521,7 +594,7 @@ export namespace com {
         /**
          * Mapping generated from {@link com.myrnproject.shared.TestSealedType.Option2}
          */
-        export function fromJsonOption2(json: any): Omit<Option2, 'type'> {
+        export function fromJsonOption2(json: Record<string, any>): Omit<Option2, 'type'> {
           return {
             ['number']: ((() => {
               const temp = json['number'];
@@ -537,7 +610,7 @@ export namespace com {
         /**
          * Mapping generated from {@link com.myrnproject.shared.TestSealedType.Option2}
          */
-        export function toJsonOption2(value: Omit<Option2, 'type'>): any {
+        export function toJsonOption2(value: Omit<Option2, 'type'>): Record<string, any> {
           return {
             ['number']: (() => {
               const temp = value['number'];
@@ -559,14 +632,14 @@ export namespace com {
         /**
          * Mapping generated from {@link com.myrnproject.shared.TestSealedType.Option3}
          */
-        export function fromJsonOption3(_: any): Omit<Option3, 'type'> {
+        export function fromJsonOption3(_: Record<string, any>): Omit<Option3, 'type'> {
           return {};
         }
 
         /**
          * Mapping generated from {@link com.myrnproject.shared.TestSealedType.Option3}
          */
-        export function toJsonOption3(_: Omit<Option3, 'type'>): any {
+        export function toJsonOption3(_: Omit<Option3, 'type'>): Record<string, any> {
           return {};
         }
 
@@ -584,7 +657,7 @@ export namespace com {
           /**
            * Mapping generated from {@link com.myrnproject.shared.TestSealedType.Option1.Nested}
            */
-          export function fromJsonNested(json: any): Nested {
+          export function fromJsonNested(json: Record<string, any>): Nested {
             return {
               ['nullable']: ((() => {
                 const temp = json['nullable'];
@@ -596,7 +669,7 @@ export namespace com {
           /**
            * Mapping generated from {@link com.myrnproject.shared.TestSealedType.Option1.Nested}
            */
-          export function toJsonNested(value: Nested): any {
+          export function toJsonNested(value: Nested): Record<string, any> {
             return {
               ['nullable']: (() => {
                 const temp = value['nullable'];
@@ -625,7 +698,7 @@ export namespace com {
         /**
          * Mapping generated from {@link com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option1}
          */
-        export function fromJsonOption1(json: any): Omit<Option1, 'customType'> {
+        export function fromJsonOption1(json: Record<string, any>): Omit<Option1, 'customType'> {
           return {
             ['name']: ((() => {
               const temp = json['name'];
@@ -641,7 +714,7 @@ export namespace com {
         /**
          * Mapping generated from {@link com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option1}
          */
-        export function toJsonOption1(value: Omit<Option1, 'customType'>): any {
+        export function toJsonOption1(value: Omit<Option1, 'customType'>): Record<string, any> {
           return {
             ['name']: (() => {
               const temp = value['name'];
@@ -668,7 +741,7 @@ export namespace com {
         /**
          * Mapping generated from {@link com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option2}
          */
-        export function fromJsonOption2(json: any): Omit<Option2, 'customType'> {
+        export function fromJsonOption2(json: Record<string, any>): Omit<Option2, 'customType'> {
           return {
             ['number']: ((() => {
               const temp = json['number'];
@@ -684,7 +757,7 @@ export namespace com {
         /**
          * Mapping generated from {@link com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option2}
          */
-        export function toJsonOption2(value: Omit<Option2, 'customType'>): any {
+        export function toJsonOption2(value: Omit<Option2, 'customType'>): Record<string, any> {
           return {
             ['number']: (() => {
               const temp = value['number'];
@@ -706,14 +779,14 @@ export namespace com {
         /**
          * Mapping generated from {@link com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option3}
          */
-        export function fromJsonOption3(_: any): Omit<Option3, 'customType'> {
+        export function fromJsonOption3(_: Record<string, any>): Omit<Option3, 'customType'> {
           return {};
         }
 
         /**
          * Mapping generated from {@link com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option3}
          */
-        export function toJsonOption3(_: Omit<Option3, 'customType'>): any {
+        export function toJsonOption3(_: Omit<Option3, 'customType'>): Record<string, any> {
           return {};
         }
 
@@ -731,7 +804,7 @@ export namespace com {
           /**
            * Mapping generated from {@link com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option1.Nested}
            */
-          export function fromJsonNested(json: any): Nested {
+          export function fromJsonNested(json: Record<string, any>): Nested {
             return {
               ['nullable']: ((() => {
                 const temp = json['nullable'];
@@ -743,7 +816,7 @@ export namespace com {
           /**
            * Mapping generated from {@link com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator.Option1.Nested}
            */
-          export function toJsonNested(value: Nested): any {
+          export function toJsonNested(value: Nested): Record<string, any> {
             return {
               ['nullable']: (() => {
                 const temp = value['nullable'];
@@ -772,7 +845,7 @@ export namespace com {
         /**
          * Mapping generated from {@link com.myrnproject.shared.Test.Nested}
          */
-        export function fromJsonNested(json: any): Nested {
+        export function fromJsonNested(json: Record<string, any>): Nested {
           return {
             ['name']: ((() => {
               const temp = json['name'];
@@ -788,7 +861,7 @@ export namespace com {
         /**
          * Mapping generated from {@link com.myrnproject.shared.Test.Nested}
          */
-        export function toJsonNested(value: Nested): any {
+        export function toJsonNested(value: Nested): Record<string, any> {
           return {
             ['name']: (() => {
               const temp = value['name'];

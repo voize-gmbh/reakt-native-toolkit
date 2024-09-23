@@ -29,6 +29,8 @@ internal fun MyComposeView(
     @ReactNativeProp
     textFieldValue: Flow<String>,
     @ReactNativeProp
+    nullableStringProp: Flow<String?>,
+    @ReactNativeProp
     boolProp: Flow<Boolean>,
     @ReactNativeProp
     intProp: Flow<Int>,
@@ -39,39 +41,52 @@ internal fun MyComposeView(
     @ReactNativeProp
     objectProp: Flow<MyDataClass>,
     @ReactNativeProp
+    enumProp: Flow<Enum>,
+    @ReactNativeProp
+    listProp: Flow<List<MyDataClass>>,
+    @ReactNativeProp
     onTextFieldValueChange: (String) -> Unit,
     @ReactNativeProp
     onButtonPress: () -> Unit,
     @ReactNativeProp
     onTestParams: (
         stringParam: String,
+        nullableStringParam: String?,
         boolParam: Boolean,
         intParam: Int,
         doubleParam: Double,
         floatParam: Float,
         objectParam: MyDataClass,
+        enumParam: Enum,
+        listParam: List<MyDataClass>,
     ) -> Unit,
     // dependency injection
     persistentConfig: PersistentConfig,
 ) {
     val name by persistentConfig.getConfigAsFlow("name").collectAsState(null)
     val messageValue by message.collectAsState("initial!")
+    val nullableStringValue by nullableStringProp.collectAsState(null)
     val boolValue by boolProp.collectAsState(null)
     val intValue by intProp.collectAsState(null)
     val doubleValue by doubleProp.collectAsState(null)
     val floatValue by floatProp.collectAsState(null)
     val objectValue by objectProp.collectAsState(null)
+    val enumValue by enumProp.collectAsState(null)
+    val listValue by listProp.collectAsState(emptyList())
 
     Column {
         Text("Hello from Compose, ${name ?: "unknown"}!")
 
         listOf(
             "message" to messageValue,
+            "nullableStringProp" to nullableStringValue,
             "boolProp" to boolValue,
             "intProp" to intValue,
             "doubleProp" to doubleValue,
             "floatProp" to floatValue,
             "objectProp" to objectValue,
+            "enumProp" to enumValue,
+            "listProp" to listValue,
         ).forEach { (propName, propValue) ->
             Text("Value of prop \"$propName\": $propValue")
         }
@@ -80,6 +95,7 @@ internal fun MyComposeView(
             onButtonPress()
             onTestParams(
                 "stringParam",
+                null,
                 true,
                 42,
                 3.14,
@@ -90,6 +106,16 @@ internal fun MyComposeView(
                     42,
                     3.14,
                     2.718f,
+                ),
+                Enum.Option1,
+                listOf(
+                    MyDataClass(
+                        "stringProp",
+                        true,
+                        42,
+                        3.14,
+                        2.718f,
+                    ),
                 ),
             )
         }) {
