@@ -68,7 +68,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinCompile<*>>().configureEach
 
 tasks.register<Copy>("copyGeneratedTypescriptFiles") {
     dependsOn("kspCommonMainKotlinMetadata")
-    from("build/generated/ksp/metadata/commonMain/resources")
+    from("build/generated/ksp/metadata/commonMain/resources/reaktNativeToolkit/typescript")
     into("../../src/generated")
 }
 ```
@@ -760,7 +760,7 @@ class IOSRNModules(private val analytics: Analytics) {
 ```
 
 You also need to reference the generated Objective-C files in your iOS project.
-For this, open your XCode workspace, right click on your target and select "Add files to ...". Then select the directory in `android/shared/build/generated/ksp/metadata/commonMain/resources/objc` and add it with the "Create groups" option enabled and the "Copy items if needed" option disabled.
+For this, open your XCode workspace, right click on your target and select "Add files to ...". Then select the directory in `android/shared/build/generated/ksp/metadata/commonMain/resources/reaktNativeToolkit/objc` and add it with the "Create groups" option enabled and the "Copy items if needed" option disabled.
 
 You might have to an initial build to generate the Objective-C files before you can add them to your XCode project:
 
@@ -769,26 +769,16 @@ cd android
 ./gradlew :shared:kspCommonMainKotlinMetadata
 ```
 
-Now you can use the `MyComposeView` component in your React Native code.
-
-```typescript
-// nativeViews.tsx
-
-import { requireNativeComponent } from "react-native";
-
-export const MyComposeView = requireNativeComponent<any>("MyComposeView");
-```
+Now you can use the `MyComposeView` component from `generated/nativeViews.tsx` in your React Native code.
 
 ```typescript
 // App.tsx
 
 import React from "react";
 
-import { MyComposeView } from "./nativeViews";
+import { MyComposeView } from "./generated/nativeViews";
 
 export const App = () => {
   return <MyComposeView />;
 };
 ```
-
-It is adviced to put `requireNativeComponent` so it does not interfere with hot reloading, as it will throw if the function is called more than once.

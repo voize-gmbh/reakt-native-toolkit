@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { MyComposeView } from './nativeViews';
+import { MyComposeView } from '../generated/nativeComponents';
+import { com } from '../generated/models';
 
 const NativeComposeView: React.FC = () => {
   const [text, setText] = React.useState('hello');
@@ -13,9 +14,9 @@ const NativeComposeView: React.FC = () => {
         <MyComposeView
           style={styles.nativeView}
           message="Hello from React Native!"
+          nullableStringProp={null}
           boolProp={true}
           intProp={42}
-          longProp={42}
           floatProp={42.42}
           doubleProp={42.42}
           objectProp={{
@@ -25,6 +26,16 @@ const NativeComposeView: React.FC = () => {
             floatProp: 42.42,
             doubleProp: 42.42,
           }}
+          listProp={[
+            {
+              stringProp: 'hello',
+              boolProp: true,
+              intProp: 42,
+              floatProp: 42.42,
+              doubleProp: 42.42,
+            },
+          ]}
+          enumProp={com.myrnproject.shared.Enum.Option1}
           textFieldValue={text}
           onTextFieldValueChange={setText}
           onButtonPress={() => setCounter((prev) => prev + 1)}
@@ -59,7 +70,7 @@ const styles = StyleSheet.create({
   },
   nativeView: {
     width: '100%',
-    height: 300,
+    height: 400,
   },
 });
 

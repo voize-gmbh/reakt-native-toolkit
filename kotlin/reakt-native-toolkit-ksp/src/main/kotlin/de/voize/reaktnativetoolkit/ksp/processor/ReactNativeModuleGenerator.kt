@@ -5,11 +5,10 @@ import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.PlatformInfo
 import com.google.devtools.ksp.processing.Resolver
-import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
-import com.google.devtools.ksp.symbol.KSTypeAlias
+import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.Modifier
@@ -67,8 +66,7 @@ class ReactNativeModuleGenerator(
     private fun String.androidModuleClassName() = this + "Android"
     private fun String.moduleProviderClassName() = this + "Provider"
 
-    internal fun process(resolver: Resolver): List<KSAnnotated> {
-        val platformNames = platforms.map { it.platformName }
+    internal fun process(resolver: Resolver): ToolkitSymbolProcessor.ProcessResult {
         val eventEmitterType =
             resolver.getClassDeclarationByName("$toolkitPackageName.util.EventEmitter")
                 ?.asType(emptyList())
@@ -143,8 +141,9 @@ class ReactNativeModuleGenerator(
         val rnModuleSymbols =
             resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeModule")
 
-        val rnModules = rnModuleSymbols
-            .filter { it.validate() }
+        val (validRNModuleSymbols, invalidRNModuleSymbols) = rnModuleSymbols.partition { it.validate() }
+
+        val rnModules = validRNModuleSymbols
             .map { annotatedNode ->
                 when (annotatedNode) {
                     is KSClassDeclaration -> annotatedNode.also {
@@ -215,8 +214,7 @@ class ReactNativeModuleGenerator(
                         .any { it.simpleName.asString() == "getConstants" }
 
 
-                // Android
-                if (JvmPlatform in platformNames && NativePlatform !in platformNames) {
+                if (platforms.isAndroid()) {
                     createAndroidModule(
                         rnModule,
                         packageName,
@@ -234,8 +232,7 @@ class ReactNativeModuleGenerator(
                     )
                 }
 
-                // iOS
-                if (NativePlatform in platformNames && JvmPlatform !in platformNames) {
+                if (platforms.isIOS()) {
                     createIOSModule(
                         rnModule,
                         packageName,
@@ -254,8 +251,7 @@ class ReactNativeModuleGenerator(
                     )
                 }
 
-                // Multiplatform
-                if (JvmPlatform in platformNames && NativePlatform in platformNames) {
+                if (platforms.isCommon()) {
                     createModuleProvider(
                         packageName,
                         wrappedClassName,
@@ -272,34 +268,35 @@ class ReactNativeModuleGenerator(
             }
         }
 
-        val exportTypescriptTypes = resolver.getSymbolsWithAnnotation(
-            "$toolkitPackageName.annotation.ExportTypescriptType"
-        ).map {
-            when (it) {
-                is KSClassDeclaration -> {
-                    it.asStarProjectedType()
-                }
-
-                is KSTypeAlias -> {
-                    // TODO get type of alias declaration, not the type referenced by the alias
-                    error("Currently unsupported, because of missing api in KSP")
-                }
-
-                else -> throw IllegalArgumentException("ExportTypescriptType annotation can only be used on class declarations or type aliases")
-            }
-        }.toList()
-
-        val deferredSymbols = rnModuleSymbols.filter { !it.validate() }.toList()
-
-        if (deferredSymbols.isEmpty() && !invoked && JvmPlatform in platformNames && NativePlatform in platformNames) {
-            TypescriptGenerator(resolver, codeGenerator, options, logger).generate(
-                rnModules,
-                exportTypescriptTypes
-            )
+        if (invalidRNModuleSymbols.isEmpty() && !invoked && platforms.isCommon()) {
+            ReactNativeModuleTypescriptGenerator(
+                resolver,
+                codeGenerator,
+                TypescriptConfig.fromOptions(options),
+                logger,
+            ).generate(rnModules)
             invoked = true
         }
 
-        return deferredSymbols
+        val (types, originatingKSFiles) = typesFrom(rnModules)
+
+        return ToolkitSymbolProcessor.ProcessResult(
+            deferredSymbols = invalidRNModuleSymbols,
+            types = types,
+            originatingFiles = originatingKSFiles,
+        )
+    }
+
+    /**
+     * Collect all types of function parameters and return types.
+     */
+    private fun typesFrom(rnModules: List<RNModule>): Pair<List<KSType>, List<KSFile>> {
+        val typeDeclarations =
+            rnModules.flatMap { it.reactNativeMethods + it.reactNativeFlows }.flatMap {
+                it.parameters.map { it.type } + (it.returnType ?: error("Type resolution error"))
+            }.toSet().map { it.resolve() }
+        val originatingKSFiles = rnModules.mapNotNull { it.wrappedClassDeclaration.containingFile }
+        return typeDeclarations to originatingKSFiles
     }
 
     private fun createModuleProvider(

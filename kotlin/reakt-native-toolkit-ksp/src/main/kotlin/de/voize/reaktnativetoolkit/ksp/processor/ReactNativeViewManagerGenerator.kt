@@ -5,17 +5,17 @@ import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.PlatformInfo
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.Dependencies
+import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSDeclaration
+import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
-import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
-import com.google.devtools.ksp.symbol.KSTypeAlias
-import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.Modifier
 import com.google.devtools.ksp.symbol.Origin
+import com.google.devtools.ksp.validate
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
@@ -26,17 +26,10 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.ksp.writeTo
 import com.squareup.kotlinpoet.AnnotationSpec
-import com.squareup.kotlinpoet.BOOLEAN
-import com.squareup.kotlinpoet.DOUBLE
-import com.squareup.kotlinpoet.FLOAT
-import com.squareup.kotlinpoet.INT
-import com.squareup.kotlinpoet.LONG
 import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.ParameterSpec
-import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.STAR
 import com.squareup.kotlinpoet.STRING
-import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.UNIT
 import com.squareup.kotlinpoet.joinToCode
 import com.squareup.kotlinpoet.ksp.toTypeName
@@ -44,11 +37,15 @@ import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
 import java.util.Locale
 
+private const val generatedObjcFilePath = "$generatedCommonFilePath/objc/"
+
 class ReactNativeViewManagerGenerator(
     private val codeGenerator: CodeGenerator,
     private val platforms: List<PlatformInfo>,
+    private val options: Map<String, String>,
+    private val logger: KSPLogger,
 ) {
-    private data class RNViewManager(
+    internal data class RNViewManager(
         val wrappedFunctionDeclaration: KSFunctionDeclaration,
         val moduleName: String,
         val isInternal: Boolean,
@@ -74,6 +71,7 @@ class ReactNativeViewManagerGenerator(
     }
 
     private var objcGenerationInvoked = false
+    private var typescriptGenerationInvoked = false
 
     /**
      * Corresponds to de.voize.reaktnativetoolkit.util.ReactNativeIOSViewManager
@@ -91,8 +89,7 @@ class ReactNativeViewManagerGenerator(
         if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
     }}"
 
-    internal fun process(resolver: Resolver) {
-        val platformNames = platforms.map { it.platformName }
+    internal fun process(resolver: Resolver): ToolkitSymbolProcessor.ProcessResult {
         val reactNativeViewManagerAnnotationType = resolver.getClassDeclarationByName("$toolkitPackageName.annotation.ReactNativeViewManager")
             ?.asType(emptyList())
             ?: error("Could not find ReactNativeViewManager")
@@ -107,7 +104,12 @@ class ReactNativeViewManagerGenerator(
                 ?: error("Could not find Composable")
         }
 
-        val rnViewManagers = resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeViewManager")
+        val rnViewManagerSymbols = resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeViewManager")
+        val (validRNViewManagerSymbols, invalidRNViewManagerSymbols) = rnViewManagerSymbols.partition {
+            it.validate()
+        }
+
+        val rnViewManagers = validRNViewManagerSymbols
             .map { annotatedNode ->
                 when (annotatedNode) {
                     is KSFunctionDeclaration -> annotatedNode.also {
@@ -123,23 +125,20 @@ class ReactNativeViewManagerGenerator(
                     reactNativeViewManagerAnnotationType,
                     reactNativePropAnnotationType,
                 )
-            }
+            }.toList()
 
         rnViewManagers.forEach { rnViewManager ->
-            // Android
-            if (JvmPlatform in platformNames && NativePlatform !in platformNames) {
+            if (platforms.isAndroid()) {
                 generateAndroidViewManager(rnViewManager)
                 generateAndroidViewManagerProvider(rnViewManager)
             }
 
-            // iOS
-            if (NativePlatform in platformNames && JvmPlatform !in platformNames) {
+            if (platforms.isIOS()) {
                 generateIOSViewManager(rnViewManager)
                 generateIOSViewManagerProvider(rnViewManager)
             }
 
-            // Multiplatform
-            if (JvmPlatform in platformNames && NativePlatform in platformNames) {
+            if (platforms.isCommon()) {
                 generateCommonViewManagerProvider(rnViewManager)
             }
         }
@@ -150,13 +149,47 @@ class ReactNativeViewManagerGenerator(
         // to have a reliable location for the generated Objective-C code
         // that does not change based on the iOS target (arm64, x64, simulator arm64)
         // so the files can be referenced from the XCode project.
-        if (!objcGenerationInvoked && JvmPlatform in platformNames && NativePlatform in platformNames) {
+        if (invalidRNViewManagerSymbols.isEmpty() && !objcGenerationInvoked && platforms.isCommon()) {
             val objcViewManagersCode = rnViewManagers.map {
                 generateIOSViewManagerObjcCode(it)
             }.toList()
             generateObjcReactNativeViewManagersFiles(objcViewManagersCode)
             objcGenerationInvoked = true
         }
+
+        if (invalidRNViewManagerSymbols.isEmpty() && !typescriptGenerationInvoked && platforms.isCommon()) {
+            ReactNativeViewManagerTypescriptGenerator(
+                codeGenerator,
+                TypescriptConfig.fromOptions(options),
+                logger,
+            ).generate(rnViewManagers)
+            typescriptGenerationInvoked = true
+        }
+
+        val (types, originatingFiles) = typesFrom(rnViewManagers)
+
+        return ToolkitSymbolProcessor.ProcessResult(
+            deferredSymbols = invalidRNViewManagerSymbols,
+            types = types,
+            originatingFiles = originatingFiles,
+        )
+    }
+
+    /**
+     * Collect all types of function parameters and return types.
+     */
+    private fun typesFrom(
+        rnViewManagers: List<RNViewManager>
+    ): Pair<List<KSType>, List<KSFile>> {
+        val typeDeclarations =
+            rnViewManagers.flatMap { it.reactNativeProps }.flatMap {
+                when (it) {
+                    is RNViewManager.ReactNativeProp.FlowProp -> listOf(it.typeArgument)
+                    is RNViewManager.ReactNativeProp.FunctionProp -> it.parameters
+                }
+            }.distinct()
+        val originatingKSFiles = rnViewManagers.mapNotNull { it.wrappedFunctionDeclaration.containingFile }
+        return typeDeclarations to originatingKSFiles
     }
 
     /**
@@ -667,7 +700,7 @@ ${rnViewManagers.joinToString("\n") { it.implementationCode }}
 
         val headerFile = codeGenerator.createNewFileByPath(
             dependencies = Dependencies.ALL_FILES,
-            path = "objc/$objcReactNativeViewManagersFileName",
+            path = "$generatedObjcFilePath$objcReactNativeViewManagersFileName",
             extensionName = "h",
         )
         OutputStreamWriter(headerFile, StandardCharsets.UTF_8).use { it.write(headerCode) }
@@ -675,7 +708,7 @@ ${rnViewManagers.joinToString("\n") { it.implementationCode }}
 
         val implementationFile = codeGenerator.createNewFileByPath(
             dependencies = Dependencies.ALL_FILES,
-            path = "objc/$objcReactNativeViewManagersFileName",
+            path = "$generatedObjcFilePath$objcReactNativeViewManagersFileName",
             extensionName = "m",
         )
         OutputStreamWriter(implementationFile, StandardCharsets.UTF_8).use { it.write(implementationCode) }
@@ -979,6 +1012,7 @@ RCT_EXPORT_VIEW_PROPERTY(${prop.name}, RCTBubblingEventBlock)
                     it.annotations.any { it.annotationType.resolve() == reactNativePropAnnotationType }
                 }.map { parameter ->
                     val parameterType = parameter.type.resolve()
+                    val parameterDeclaration = parameterType.declaration
                     val name = (parameter.name ?: error("Prop name is required")).asString()
 
                     if (parameterType.declaration.qualifiedName?.asString() == "kotlinx.coroutines.flow.Flow") {
