@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.18.0
 
 - Update example app iOS part to correct setup for RN 0.74.0
 - Implement ReactNativeViewManager and ReactNativeProp annotation to render Compose Multiplatform components in React Native with generated type-safe React Native wrapper components
