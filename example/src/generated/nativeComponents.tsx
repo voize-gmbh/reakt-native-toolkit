@@ -67,58 +67,74 @@ interface MyComposeViewProps extends ViewProps {
 const NativeMyComposeView = requireNativeComponent<NativeMyComposeViewProps>("MyComposeView");
 
 export const MyComposeView = (props: MyComposeViewProps) => {
-  const message = useMemo(() => (() => {
-    const temp = props.message;
+  const {
+  message,
+  textFieldValue,
+  nullableStringProp,
+  boolProp,
+  intProp,
+  doubleProp,
+  floatProp,
+  objectProp,
+  enumProp,
+  listProp,
+  onTextFieldValueChange,
+  onButtonPress,
+  onTestParams,
+  ...rest
+  } = props;
+  const messageMemoized = useMemo(() => (() => {
+    const temp = message;
     return temp;
-  })(), [props.message]);
-  const textFieldValue = useMemo(() => (() => {
-    const temp = props.textFieldValue;
+  })(), [message]);
+  const textFieldValueMemoized = useMemo(() => (() => {
+    const temp = textFieldValue;
     return temp;
-  })(), [props.textFieldValue]);
-  const nullableStringProp = useMemo(() => (() => {
-    const temp = props.nullableStringProp;
+  })(), [textFieldValue]);
+  const nullableStringPropMemoized = useMemo(() => (() => {
+    const temp = nullableStringProp;
     return temp === null ? null : (temp);
-  })(), [props.nullableStringProp]);
-  const boolProp = useMemo(() => (() => {
-    const temp = props.boolProp;
+  })(), [nullableStringProp]);
+  const boolPropMemoized = useMemo(() => (() => {
+    const temp = boolProp;
     return temp;
-  })(), [props.boolProp]);
-  const intProp = useMemo(() => (() => {
-    const temp = props.intProp;
+  })(), [boolProp]);
+  const intPropMemoized = useMemo(() => (() => {
+    const temp = intProp;
     return temp;
-  })(), [props.intProp]);
-  const doubleProp = useMemo(() => (() => {
-    const temp = props.doubleProp;
+  })(), [intProp]);
+  const doublePropMemoized = useMemo(() => (() => {
+    const temp = doubleProp;
     return temp;
-  })(), [props.doubleProp]);
-  const floatProp = useMemo(() => (() => {
-    const temp = props.floatProp;
+  })(), [doubleProp]);
+  const floatPropMemoized = useMemo(() => (() => {
+    const temp = floatProp;
     return temp;
-  })(), [props.floatProp]);
-  const objectProp = useMemo(() => JSON.stringify((() => {
-    const temp = props.objectProp;
+  })(), [floatProp]);
+  const objectPropMemoized = useMemo(() => JSON.stringify((() => {
+    const temp = objectProp;
     return com.myrnproject.shared.toJsonMyDataClass(temp);
-  })()), [props.objectProp]);
-  const enumProp = useMemo(() => JSON.stringify((() => {
-    const temp = props.enumProp;
+  })()), [objectProp]);
+  const enumPropMemoized = useMemo(() => JSON.stringify((() => {
+    const temp = enumProp;
     return com.myrnproject.shared.toJsonEnum(temp);
-  })()), [props.enumProp]);
-  const listProp = useMemo(() => JSON.stringify((() => {
-    const temp = props.listProp;
+  })()), [enumProp]);
+  const listPropMemoized = useMemo(() => JSON.stringify((() => {
+    const temp = listProp;
     return temp.map((it: any) => (() => {
       const temp_ = it;
       return com.myrnproject.shared.toJsonMyDataClass(temp_);
     })());
-  })()), [props.listProp]);
+  })()), [listProp]);
   const nativeOnTextFieldValueChange = useCallback((event: any) => {
-    props.onTextFieldValueChange(((() => {
+    onTextFieldValueChange(((() => {
       const temp = event.nativeEvent.args[0];
       return temp;
-    })()) as string)}, [props.onTextFieldValueChange]);
-  const nativeOnButtonPress = useCallback((event: any) => {
-    props.onButtonPress()}, [props.onButtonPress]);
+    })()) as string)}, [onTextFieldValueChange]);
+  const nativeOnButtonPress = useCallback(() => {
+    onButtonPress()}, [onButtonPress]);
   const nativeOnTestParams = useCallback((event: any) => {
-    props.onTestParams(((() => {
+    onTestParams(((() => {
       const temp = event.nativeEvent.args[0];
       return temp;
     })()) as string, ((() => {
@@ -148,17 +164,17 @@ export const MyComposeView = (props: MyComposeViewProps) => {
         const temp_ = it;
         return com.myrnproject.shared.fromJsonMyDataClass(temp_);
       })()) as com.myrnproject.shared.MyDataClass);
-    })()) as Array<com.myrnproject.shared.MyDataClass>)}, [props.onTestParams]);
-  return <NativeMyComposeView  {...props} message={message}
-  textFieldValue={textFieldValue}
-  nullableStringProp={nullableStringProp}
-  boolProp={boolProp}
-  intProp={intProp}
-  doubleProp={doubleProp}
-  floatProp={floatProp}
-  objectProp={objectProp}
-  enumProp={enumProp}
-  listProp={listProp}
+    })()) as Array<com.myrnproject.shared.MyDataClass>)}, [onTestParams]);
+  return <NativeMyComposeView {...rest} message={messageMemoized}
+  textFieldValue={textFieldValueMemoized}
+  nullableStringProp={nullableStringPropMemoized}
+  boolProp={boolPropMemoized}
+  intProp={intPropMemoized}
+  doubleProp={doublePropMemoized}
+  floatProp={floatPropMemoized}
+  objectProp={objectPropMemoized}
+  enumProp={enumPropMemoized}
+  listProp={listPropMemoized}
   onTextFieldValueChange={nativeOnTextFieldValueChange}
   onButtonPress={nativeOnButtonPress}
   onTestParams={nativeOnTestParams} />;

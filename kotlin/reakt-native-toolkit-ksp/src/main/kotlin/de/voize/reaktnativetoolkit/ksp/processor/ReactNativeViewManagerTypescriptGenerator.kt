@@ -4,6 +4,7 @@ import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.KSPLogger
 import io.outfoxx.typescriptpoet.CodeBlock
 import io.outfoxx.typescriptpoet.CodeBlock.Companion.joinToCode
+import io.outfoxx.typescriptpoet.CodeBlock.Companion.of
 import io.outfoxx.typescriptpoet.FileSpec
 import io.outfoxx.typescriptpoet.InterfaceSpec
 import io.outfoxx.typescriptpoet.NameAllocator
@@ -152,11 +153,12 @@ internal class ReactNativeViewManagerTypescriptGenerator(
                 )
             )
         )
-
         val propsVarName = "props"
+        val restVarName = "rest"
         fun String.toNativeEventVarName() = "native${replaceFirstChar {
             if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
         }}"
+        fun String.toMemoizedPropName() = "${this}Memoized"
 
         fileBuilder.addCode(
             const(
@@ -167,10 +169,24 @@ internal class ReactNativeViewManagerTypescriptGenerator(
                     ),
                     block(
                         CodeBlock.builder().apply {
+                            add(
+                                of(
+                                    "const {\n%L,\n...%N\n} = %N;\n",
+                                    rnViewManager.reactNativeProps.joinToString(",\n") {
+                                        when (it) {
+                                            is ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.FlowProp -> it.name
+                                            is ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.FunctionProp -> it.name
+                                        }
+                                    },
+                                    restVarName,
+                                    propsVarName,
+                                )
+                            )
+
                             rnViewManager.reactNativeProps.filterIsInstance<ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.FlowProp>().forEach {
                                 val type = it.typeArgument
                                 val value = convertTypeToJson(
-                                    "props.${it.name}".asCodeBlock(),
+                                    it.name.asCodeBlock(),
                                     type,
                                     nameAllocator.copy(),
                                     config.externalTypeMapping,
@@ -180,7 +196,7 @@ internal class ReactNativeViewManagerTypescriptGenerator(
 
                                 add(
                                     const(
-                                        it.name,
+                                        it.name.toMemoizedPropName(),
                                         CodeBlock.of(
                                             "%T(%L, %L)",
                                             UseMemoTypeName,
@@ -192,7 +208,7 @@ internal class ReactNativeViewManagerTypescriptGenerator(
                                                     value
                                                 }
                                             ),
-                                            "[props.${it.name}]",
+                                            "[${it.name}]",
                                         ),
                                     )
                                 )
@@ -206,12 +222,14 @@ internal class ReactNativeViewManagerTypescriptGenerator(
                                             "%T(%L, %L)",
                                             UseCallbackTypeName,
                                             lambda(
-                                                listOf(
-                                                    parameter("event", TypeName.ANY)
-                                                ),
+                                                if (it.parameters.isEmpty()) {
+                                                    listOf()
+                                                } else {
+                                                    listOf(parameter("event", TypeName.ANY))
+                                                },
                                                 block(
                                                     CodeBlock.of(
-                                                        "props.%L(%L)",
+                                                        "%L(%L)",
                                                         it.name,
                                                         it.parameters.withIndex().map { parameter ->
                                                             val varName = "event.nativeEvent.args[${parameter.index}]"
@@ -234,7 +252,7 @@ internal class ReactNativeViewManagerTypescriptGenerator(
                                                     )
                                                 )
                                             ),
-                                            "[props.${it.name}]",
+                                            "[${it.name}]",
                                         ),
                                     )
                                 )
@@ -246,11 +264,11 @@ internal class ReactNativeViewManagerTypescriptGenerator(
                                     nativeViewManagerVarName,
                                     // it is important to apply all props so
                                     // view props like style are applied
-                                    CodeBlock.of(" {...%L}", propsVarName),
+                                    CodeBlock.of("{...%L}", restVarName),
                                     rnViewManager.reactNativeProps.map {
                                         when (it) {
                                             is ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.FlowProp -> {
-                                                jsxProp(it.name, CodeBlock.of(it.name))
+                                                jsxProp(it.name, CodeBlock.of(it.name.toMemoizedPropName()))
                                             }
 
                                             is ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.FunctionProp -> {
