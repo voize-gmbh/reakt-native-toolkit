@@ -149,7 +149,12 @@ class ReactNativeViewManagerGenerator(
         // to have a reliable location for the generated Objective-C code
         // that does not change based on the iOS target (arm64, x64, simulator arm64)
         // so the files can be referenced from the XCode project.
-        if (invalidRNViewManagerSymbols.isEmpty() && !objcGenerationInvoked && platforms.isCommon()) {
+        if (
+            invalidRNViewManagerSymbols.isEmpty() &&
+            rnViewManagers.isNotEmpty() &&
+            !objcGenerationInvoked &&
+            platforms.isCommon()
+        ) {
             val objcViewManagersCode = rnViewManagers.map {
                 generateIOSViewManagerObjcCode(it)
             }.toList()
@@ -157,7 +162,12 @@ class ReactNativeViewManagerGenerator(
             objcGenerationInvoked = true
         }
 
-        if (invalidRNViewManagerSymbols.isEmpty() && !typescriptGenerationInvoked && platforms.isCommon()) {
+        if (
+            invalidRNViewManagerSymbols.isEmpty() &&
+            rnViewManagers.isNotEmpty() &&
+            !typescriptGenerationInvoked &&
+            platforms.isCommon()
+        ) {
             ReactNativeViewManagerTypescriptGenerator(
                 codeGenerator,
                 TypescriptConfig.fromOptions(options),

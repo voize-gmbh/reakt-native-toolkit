@@ -268,7 +268,12 @@ class ReactNativeModuleGenerator(
             }
         }
 
-        if (invalidRNModuleSymbols.isEmpty() && !invoked && platforms.isCommon()) {
+        if (
+            invalidRNModuleSymbols.isEmpty() &&
+            rnModules.isNotEmpty() &&
+            !invoked &&
+            platforms.isCommon()
+        ) {
             ReactNativeModuleTypescriptGenerator(
                 resolver,
                 codeGenerator,

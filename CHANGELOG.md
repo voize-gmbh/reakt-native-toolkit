@@ -6,6 +6,7 @@
 - Implement ReactNativeViewManager and ReactNativeProp annotation to render Compose Multiplatform components in React Native with generated type-safe React Native wrapper components
 - Generate TypeScript files in commonMain resources into reaktNativeToolkit/typescript directory
 - Release maven artifacts with -legacy version suffix for legacy RN Android dependency
+- Do not generate RN modules typescript file if there are none
 
 ## v0.17.0
 
