@@ -61,7 +61,7 @@ jobs:
         run: ./gradlew build
         working-directory: kotlin
       - name: Publish to MavenCentral
-        run: ./gradlew publishAllPublicationToSonatypeRepository --max-workers 1 closeAndReleaseSonatypeStagingRepository
+        run: ./gradlew publishAllPublicationToSonatypeRepository -PreaktNativeToolkit.useLegacyRNDependency=false --max-workers 1 closeAndReleaseSonatypeStagingRepository
         working-directory: kotlin
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}

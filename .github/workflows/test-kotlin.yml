@@ -60,5 +60,5 @@ jobs:
           java-version: "17"
       - run: yarn install
         working-directory: js
-      - run: ./gradlew publishToMavenLocal
+      - run: ./gradlew publishToMavenLocal -PreaktNativeToolkit.useLegacyRNDependency=false
         working-directory: kotlin
