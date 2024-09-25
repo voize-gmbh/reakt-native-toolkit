@@ -28,17 +28,17 @@ Also add the generated common source set to the `commonMain` source set:
 ```kotlin
 // android/shared/build.gradle.kts
 
+// for React Native >=0.71.0 use version x.x.x
+// for React Native <0.71.0 use version x.x.x-legacy
+val reaktNativeToolkitVersion = "<version>"
+
 val commonMain by getting {
     kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
     dependencies {
-        // ...
-        implementation("de.voize:reakt-native-toolkit:<version>")
+        implementation("de.voize:reakt-native-toolkit:$reaktNativeToolkitVersion")
     }
 }
 ```
-
-NOTE: This artifact has an implementation dependency on the Maven Central published `react-android` module.
-It can be excluded if you are using an older `react-native` dependency e.g. `exclude("com.facebook.react", "react-android")`.
 
 Then add `reakt-native-toolkit-ksp` to the KSP configurations:
 
@@ -46,11 +46,11 @@ Then add `reakt-native-toolkit-ksp` to the KSP configurations:
 // android/shared/build.gradle.kts
 
 dependencies {
-    add("kspCommonMainMetadata", "de.voize:reakt-native-toolkit-ksp:<version>")
-    add("kspAndroid", "de.voize:reakt-native-toolkit-ksp:<version>")
-    add("kspIosX64", "de.voize:reakt-native-toolkit-ksp:<version>")
-    add("kspIosArm64", "de.voize:reakt-native-toolkit-ksp:<version>")
-    // (if needed) add("kspIosSimulatorArm64", "de.voize:reakt-native-toolkit-ksp:<version>")
+    add("kspCommonMainMetadata", "de.voize:reakt-native-toolkit-ksp:$reaktNativeToolkitVersion")
+    add("kspAndroid", "de.voize:reakt-native-toolkit-ksp:$reaktNativeToolkitVersion")
+    add("kspIosX64", "de.voize:reakt-native-toolkit-ksp:$reaktNativeToolkitVersion")
+    add("kspIosArm64", "de.voize:reakt-native-toolkit-ksp:$reaktNativeToolkitVersion")
+    // (if needed) add("kspIosSimulatorArm64", "de.voize:reakt-native-toolkit-ksp:$reaktNativeToolkitVersion")
 }
 ```
 
