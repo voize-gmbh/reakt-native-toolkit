@@ -32,6 +32,7 @@ import com.squareup.kotlinpoet.STAR
 import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.UNIT
 import com.squareup.kotlinpoet.joinToCode
+import com.squareup.kotlinpoet.ksp.addOriginatingKSFile
 import com.squareup.kotlinpoet.ksp.toTypeName
 import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
@@ -467,6 +468,10 @@ class ReactNativeViewManagerGenerator(
                     )
                     .build()
             )
+
+            rnViewManager.wrappedFunctionDeclaration.containingFile?.let {
+                addOriginatingKSFile(it)
+            }
         }.build()
 
         val fileSpec = FileSpec.builder(packageName, viewManagerClassName)
@@ -702,6 +707,10 @@ class ReactNativeViewManagerGenerator(
                     )
                     .build()
             )
+
+            rnViewManager.wrappedFunctionDeclaration.containingFile?.let {
+                addOriginatingKSFile(it)
+            }
         }.build()
 
         val fileSpec = FileSpec.builder(rnViewManager.packageName, viewWrapperClassName)
@@ -766,6 +775,10 @@ class ReactNativeViewManagerGenerator(
                     )
                     .build()
             )
+
+            rnViewManager.wrappedFunctionDeclaration.containingFile?.let {
+                addOriginatingKSFile(it)
+            }
         }.build()
 
         val fileSpec = FileSpec.builder(packageName, factoryClassName)
@@ -977,6 +990,9 @@ RCT_EXPORT_VIEW_PROPERTY(${prop.name}, RCTBubblingEventBlock)
                     .build()
             )
             addSuperinterface(ReactNativeViewManagerProviderClassName)
+            rnViewManager.wrappedFunctionDeclaration.containingFile?.let {
+                addOriginatingKSFile(it)
+            }
         }.build()
 
         val fileSpec = FileSpec.builder(rnViewManager.packageName, className)
@@ -1039,6 +1055,10 @@ RCT_EXPORT_VIEW_PROPERTY(${prop.name}, RCTBubblingEventBlock)
                     )
                 }.build()
             )
+
+            rnViewManager.wrappedFunctionDeclaration.containingFile?.let {
+                addOriginatingKSFile(it)
+            }
         }.build()
 
         val fileSpec = FileSpec.builder(rnViewManager.packageName, className).addType(classSpec).build()
@@ -1111,6 +1131,10 @@ RCT_EXPORT_VIEW_PROPERTY(${prop.name}, RCTBubblingEventBlock)
                     )
                 }.build()
             )
+
+            rnViewManager.wrappedFunctionDeclaration.containingFile?.let {
+                addOriginatingKSFile(it)
+            }
         }.build()
 
         val fileSpec = FileSpec.builder(rnViewManager.packageName, className).addType(classSpec).build()

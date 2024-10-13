@@ -7,6 +7,7 @@
 - Update KotlinPoet to 1.18.1
 - Return interface (RCTBridgeModuleProtocol, ReactNativeModuleBase) instead of narrow type in RN module provider getModule
 - Fix Compose view managers for multiple instances
+- Add originating KS files for generated view manager and providers
 
 ## v0.18.0
 
