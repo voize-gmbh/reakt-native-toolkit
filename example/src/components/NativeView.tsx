@@ -1,6 +1,9 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { MyComposeView } from '../generated/nativeComponents';
+import {
+  MyComposeView,
+  MySecondComposeView,
+} from '../generated/nativeComponents';
 import { com } from '../generated/models';
 
 const NativeComposeView: React.FC = () => {
@@ -44,8 +47,18 @@ const NativeComposeView: React.FC = () => {
           }}
         />
       </View>
-      <Text>Counter: {counter}</Text>
-      <Text>Compose text input value: {text}</Text>
+      <View style={{ marginBottom: 20 }}>
+        <Text>Counter: {counter}</Text>
+        <Text>Compose text input value: {text}</Text>
+      </View>
+      {[1, 2, 3].map((_, i) => (
+        <MySecondComposeView
+          key={`item-${i}`}
+          index={i}
+          onPress={() => console.log('Pressed', i)}
+          style={styles.nativeListItem}
+        />
+      ))}
     </View>
   );
 };
@@ -67,10 +80,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'hsl(200, 10%, 50%)',
     width: '100%',
+    marginBottom: 12,
   },
   nativeView: {
     width: '100%',
     height: 400,
+  },
+  nativeListItem: {
+    width: '100%',
+    height: 30,
+    marginBottom: 8,
   },
 });
 

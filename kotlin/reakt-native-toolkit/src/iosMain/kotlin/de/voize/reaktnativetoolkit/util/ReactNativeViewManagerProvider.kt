@@ -1,9 +1,9 @@
 package de.voize.reaktnativetoolkit.util
 
 actual interface ReactNativeViewManagerProvider {
-    fun getViewManager(): Pair<String, ReactNativeIOSViewManager>
+    fun getViewWrapperFactory(): Pair<String, ReactNativeIOSViewWrapperFactory>
 }
 
-fun List<ReactNativeViewManagerProvider>.getViewManagers(): Map<String, ReactNativeIOSViewManager> {
-    return associate { it.getViewManager() }
+fun List<ReactNativeViewManagerProvider>.getViewWrapperFactories(): Map<String, ReactNativeIOSViewWrapperFactory> {
+    return associate { it.getViewWrapperFactory() }
 }

@@ -9,4 +9,11 @@ package de.voize.reaktnativetoolkit.util
  *
  * Methods of a class implementing this interface are called from the RCViewManager subclass from Objective-C.
  */
-interface ReactNativeIOSViewManager
+interface ReactNativeIOSViewWrapper
+
+/**
+ * A subclass of this interface serves as a factory for creating instances of the [ReactNativeIOSViewWrapper].
+ * Such a factory is needed so the factory is initialized from Kotlin injecting all the necessary dependencies
+ * and then the factory can be used in Objective-C to create instances of the corresponding [ReactNativeIOSViewWrapper].
+ */
+interface ReactNativeIOSViewWrapperFactory

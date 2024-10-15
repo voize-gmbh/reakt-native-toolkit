@@ -74,15 +74,16 @@ class ReactNativeViewManagerGenerator(
     private var typescriptGenerationInvoked = false
 
     /**
-     * Corresponds to de.voize.reaktnativetoolkit.util.ReactNativeIOSViewManager
+     * Corresponds to de.voize.reaktnativetoolkit.util.ReactNativeIOSViewWrapperFactory
      * When generating Obj-C code that references this interface we only plain pointers with a
-     * comment hint reference this interface (id</*ReactNativeIOSViewManager*/>) so that
+     * comment hint reference this interface (id</*ReactNativeIOSViewWrapperFactory*/>) so that
      * reakt-native-toolkit types do not have to be exposed into the shared framework of the host project.
      */
-    private val iosViewManagerTypeName = "ReactNativeIOSViewManager"
+    private val iosViewWrapperFactoryTypeName = "ReactNativeIOSViewWrapperFactory"
 
     private fun String.androidViewManagerClassName() = this + "RNViewManagerAndroid"
-    private fun String.iOSViewManagerClassName() = this + "RNViewManagerIOS"
+    private fun String.iOSViewWrapperClassName() = this + "RNViewWrapperIOS"
+    private fun String.iOSViewWrapperFactoryClassName() = this + "RNViewWrapperFactoryIOS"
     private fun String.iOSViewManagerObjcClassName()= this + "RNViewManagerObjCIos"
     private fun String.viewManagerProviderClassName() = this + "RNViewManagerProvider"
     private fun String.toRNViewManagerPropSetter() = "set${this.replaceFirstChar {
@@ -134,7 +135,8 @@ class ReactNativeViewManagerGenerator(
             }
 
             if (platforms.isIOS()) {
-                generateIOSViewManager(rnViewManager)
+                generateIOSViewWrapper(rnViewManager)
+                generateIOSViewWrapperFactory(rnViewManager)
                 generateIOSViewManagerProvider(rnViewManager)
             }
 
@@ -211,18 +213,16 @@ class ReactNativeViewManagerGenerator(
      *
      * class <class name of annotated compose function>RNViewManagerAndroid(
      *     <... compose function parameters>
-     * ) : SimpleViewManager<ComposeView>() {
+     * ) : SimpleViewManager<ComposeViewWrapper>() {
      *     override fun getName() = "<view manager name specified in annotation>"
-     *
-     *     private val <prop name> = MutableSharedFlow<type of prop>()
-     *
-     *     private fun <lambda prop name>(context: ReactContext, id: Int) {
-     *          context.getJSModule(RCTEventEmitter::class.java).receiveEvent(id, "<lambda prop name>", null)
-     *     }
      *
      *     @ReactProp(name = "<prop name>")
      *     fun set<prop name>(view: ComposeView, value: <type of prop>) {
      *          <prop name>.tryEmit(value)
+     *     }
+     *
+     *     private fun <lambda prop name>(context: ReactContext, id: Int) {
+     *          context.getJSModule(RCTEventEmitter::class.java).receiveEvent(id, "<lambda prop name>", null)
      *     }
      *
      *     override fun getExportedCustomBubblingEventTypeConstants(): Map<String, Any> {
@@ -235,22 +235,24 @@ class ReactNativeViewManagerGenerator(
      *         )
      *     }
      *
-     *     override fun createViewInstance(reactContext: ThemedReactContext): ComposeView {
-     *         return ComposeView(reactContext).apply {
-     *              // workaround for "Cannot locate windowRecomposer" error
-     *              // when compose view is rendered within a FlatList
-     *              val recomposer = Recomposer(EmptyCoroutineContext)
-     *              setParentCompositionContext(recomposer)
-     *              doOnAttach { setParentCompositionContext(null) }
+     *     class ComposeViewWrapper(
+     *          private val reactContext: ThemedReactContext,
+     *          <... compose function parameters>
+     *     ): AbstractComposeView(reactContext) {
+     *          private val <prop name> = MutableSharedFlow<type of prop>()
      *
-     *              setContent {
-     *                   <class name of annotated compose function>(
-     *                        <prop value>,
-     *                        <lambda prop name>(reactContext as ReactContext, id),
-     *                        <... compose function parameters>,
-     *                   )
-     *              }
-     *         }
+     *          @Composable
+     *          override fun Content() {
+     *              <class name of annotated compose function>(
+     *                  <prop value>,
+     *                  <lambda prop name>(reactContext as ReactContext, id),
+     *                  <... compose function parameters>,
+     *              )
+     *          }
+     *     }
+     *
+     *     override fun createViewInstance(reactContext: ThemedReactContext): ComposeViewWrapper {
+     *         return ComposeViewWrapper(reactContext, <... compose function parameters>)
      *     }
      * }
      * ```
@@ -259,6 +261,11 @@ class ReactNativeViewManagerGenerator(
         val wrappedFunctionName = rnViewManager.wrappedFunctionDeclaration.simpleName.asString()
         val viewManagerClassName = wrappedFunctionName.androidViewManagerClassName()
         val packageName = rnViewManager.wrappedFunctionDeclaration.packageName.asString()
+        val composeViewWrapperClassName = ClassName(
+            packageName,
+            viewManagerClassName,
+            "ComposeViewWrapper",
+        )
 
         val classSpec = TypeSpec.classBuilder(viewManagerClassName).apply {
             if (rnViewManager.isInternal) {
@@ -273,7 +280,7 @@ class ReactNativeViewManagerGenerator(
                     .build()
             )
 
-            superclass(ReactSimpleViewManagerClassName.parameterizedBy(ComposeViewClassName))
+            superclass(ReactSimpleViewManagerClassName.parameterizedBy(composeViewWrapperClassName))
 
             addProperties(
                 constructorParameters.map {
@@ -290,21 +297,95 @@ class ReactNativeViewManagerGenerator(
                     .build()
             )
 
+            addType(TypeSpec.classBuilder(composeViewWrapperClassName).apply {
+                primaryConstructor(
+                    FunSpec.constructorBuilder()
+                        .addParameter("reactContext", ReactThemedReactContextClassName)
+                        .addParameters(constructorParameters)
+                        .build()
+                )
+
+                superclass(AbstractComposeViewClassName)
+                addSuperclassConstructorParameter("reactContext")
+
+                addProperty(
+                    PropertySpec.builder("reactContext", ReactThemedReactContextClassName)
+                        .addModifiers(KModifier.PRIVATE)
+                        .initializer("reactContext")
+                        .build()
+                )
+                constructorParameters.forEach { parameter ->
+                    addProperty(
+                        PropertySpec.builder(parameter.name, parameter.type)
+                            .addModifiers(KModifier.PRIVATE)
+                            .initializer(parameter.name)
+                            .build()
+                    )
+                }
+
+                rnViewManager.reactNativeProps.forEach { prop ->
+                    when (prop) {
+                        is RNViewManager.ReactNativeProp.FlowProp -> {
+                            addProperty(
+                                PropertySpec.builder(
+                                    prop.name,
+                                    MutableSharedFlowClassName.parameterizedBy(prop.typeArgument.toTypeName())
+                                )
+                                    .initializer("%T(replay = 1)", MutableSharedFlowClassName)
+                                    .build()
+                            )
+                        }
+                        is RNViewManager.ReactNativeProp.FunctionProp -> {
+                            // nothing to do here
+                        }
+                    }
+                }
+
+                addFunction(
+                    FunSpec
+                        .builder("Content")
+                        .addModifiers(KModifier.OVERRIDE)
+                        .addAnnotation(ClassName("androidx.compose.runtime", "Composable"))
+                        .addCode(CodeBlock.of(
+                            "%T(%L)",
+                            ClassName(rnViewManager.packageName, wrappedFunctionName),
+                            CodeBlock.Builder().apply {
+                                rnViewManager.reactNativeProps.forEach { prop ->
+                                    when (prop) {
+                                        is RNViewManager.ReactNativeProp.FlowProp -> {
+                                            add("%L = %L,\n", prop.name, prop.name)
+                                        }
+                                        is RNViewManager.ReactNativeProp.FunctionProp -> {
+                                            add(
+                                                "%L = { %L -> %L },\n",
+                                                prop.name,
+                                                prop.parameters
+                                                    .withIndex()
+                                                    .joinToString { "arg${it.index}" },
+                                                generateAndroidEventLambda(prop),
+                                            )
+                                        }
+                                    }
+                                }
+                                constructorParameters.forEach { parameter ->
+                                    add(
+                                        "%L = %L,\n",
+                                        parameter.name,
+                                        parameter.name,
+                                    )
+                                }
+                            }.build()
+                        ))
+                        .build()
+                )
+            }.build())
+
             rnViewManager.reactNativeProps.forEach { prop ->
                 when (prop) {
                     is RNViewManager.ReactNativeProp.FlowProp -> {
                         val setterName = prop.name.toRNViewManagerPropSetter()
                         val varName = "value"
-
-                        addProperty(
-                            PropertySpec.builder(
-                                prop.name,
-                                MutableSharedFlowClassName.parameterizedBy(prop.typeArgument.toTypeName())
-                            )
-                                .addModifiers(KModifier.PRIVATE)
-                                .initializer("%T(replay = 1)", MutableSharedFlowClassName)
-                                .build()
-                        )
+                        val viewVarName = "view"
 
                         addFunction(
                             FunSpec.builder(setterName)
@@ -315,7 +396,10 @@ class ReactNativeViewManagerGenerator(
                                         .build()
                                 )
                                 .addParameter(
-                                    ParameterSpec.builder("view", ComposeViewClassName).build()
+                                    ParameterSpec.builder(
+                                        viewVarName,
+                                        composeViewWrapperClassName,
+                                    ).build()
                                 )
                                 .addParameter(
                                     ParameterSpec.builder(
@@ -326,7 +410,8 @@ class ReactNativeViewManagerGenerator(
                                     ).build()
                                 )
                                 .addStatement(
-                                    "%L.tryEmit(%L)",
+                                    "%L.%L.tryEmit(%L)",
+                                    viewVarName,
                                     prop.name,
                                     if (prop.typeArgument.declaration.requiresSerialization()) {
                                         decodeFromString(CodeBlock.of("%N", varName))
@@ -374,52 +459,11 @@ class ReactNativeViewManagerGenerator(
                 FunSpec.builder("createViewInstance")
                     .addModifiers(KModifier.OVERRIDE)
                     .addParameter("reactContext", ReactThemedReactContextClassName)
-                    .returns(ComposeViewClassName)
-                    .addCode(
-                        """
-                        return %T(reactContext).apply {
-                            // workaround for "Cannot locate windowRecomposer" error
-                            // when compose view is rendered within a FlatList
-                            val recomposer = %T(%T)
-                            setParentCompositionContext(recomposer)
-                            %T { setParentCompositionContext(null) }
-
-                            setContent {
-                                %T(%L)
-                            }
-                        }
-                        """.trimIndent(),
-                        ComposeViewClassName,
-                        ClassName("androidx.compose.runtime", "Recomposer"),
-                        ClassName("kotlin.coroutines", "EmptyCoroutineContext"),
-                        ClassName("androidx.core.view", "doOnAttach"),
-                        ClassName(rnViewManager.packageName, wrappedFunctionName),
-                        CodeBlock.Builder().apply {
-                            rnViewManager.reactNativeProps.forEach { prop ->
-                                when (prop) {
-                                    is RNViewManager.ReactNativeProp.FlowProp -> {
-                                        add("%L = %L,\n", prop.name, prop.name)
-                                    }
-                                    is RNViewManager.ReactNativeProp.FunctionProp -> {
-                                        add(
-                                            "%L = { %L -> %L },\n",
-                                            prop.name,
-                                            prop.parameters
-                                                .withIndex()
-                                                .joinToString { "arg${it.index}" },
-                                            generateAndroidEventLambda(prop),
-                                        )
-                                    }
-                                }
-                            }
-                            constructorParameters.forEach { parameter ->
-                                add(
-                                    "%L = %L,\n",
-                                    parameter.name,
-                                    parameter.name,
-                                )
-                            }
-                        }.build()
+                    .returns(composeViewWrapperClassName)
+                    .addStatement(
+                        "return %T(reactContext, %L)",
+                        composeViewWrapperClassName,
+                        constructorParameters.map { CodeBlock.of("%N", it) }.joinToCode()
                     )
                     .build()
             )
@@ -480,19 +524,21 @@ class ReactNativeViewManagerGenerator(
 
     /**
      * Given the metadata of a compose function annotated with `@ReactNativeViewManager`
-     * generates a React Native View Manager for iOS that renders the annotated compose function.
+     * generates a ViewWrapper for iOS that renders the annotated compose function.
+     * The wrapper is responsible for wiring event lambdas and
+     * intermediately storing props and forwarding them to the compose function
      *
      * ```kotlin
      * package <package of annotated compose function>
      *
      * import androidx.compose.ui.window.ComposeUIViewController
-     * import de.voize.reaktnativetoolkit.util.ReactNativeIOSViewManager
+     * import de.voize.reaktnativetoolkit.util.ReactNativeIOSViewWrapper
      * import kotlinx.coroutines.flow.MutableSharedFlow
      * import platform.UIKit.UIView
      *
-     * class <class name of annotated compose function>RNViewManagerIOS(
+     * class <class name of annotated compose function>RNViewWrapperIOS(
      *   <... compose function parameters>
-     * ) : ReactNativeIOSViewManager() {
+     * ) : ReactNativeIOSViewWrapper() {
      *     private val <flow prop name>: MutableSharedFlow<<type of flow prop>> = MutableSharedFlow(replay = 1)
      *
      *     public fun set<flow prop name>(value: <type of flow prop>) {
@@ -517,11 +563,11 @@ class ReactNativeViewManagerGenerator(
      * }
      * ```
      */
-    private fun generateIOSViewManager(rnViewManager: RNViewManager) {
-        val viewManagerClassName = rnViewManager.functionName.iOSViewManagerClassName()
+    private fun generateIOSViewWrapper(rnViewManager: RNViewManager) {
+        val viewWrapperClassName = rnViewManager.functionName.iOSViewWrapperClassName()
         val constructorParameters = rnViewManager.restParameters.map { it.toParameterSpec() }
 
-        val classSpec = TypeSpec.classBuilder(viewManagerClassName).apply {
+        val classSpec = TypeSpec.classBuilder(viewWrapperClassName).apply {
             // This class can not be internal, even when the annotated function is internal.
             // This is because the generated Objective-C code needs to
             // be able to access this class from the shared framework.
@@ -539,7 +585,7 @@ class ReactNativeViewManagerGenerator(
                 }
             )
 
-            addSuperinterface(ReactNativeIOSViewManagerClassName)
+            addSuperinterface(ReactNativeIOSViewWrapperClassName)
 
             rnViewManager.reactNativeProps.forEach { prop ->
                 when (prop) {
@@ -658,7 +704,71 @@ class ReactNativeViewManagerGenerator(
             )
         }.build()
 
-        val fileSpec = FileSpec.builder(rnViewManager.packageName, viewManagerClassName)
+        val fileSpec = FileSpec.builder(rnViewManager.packageName, viewWrapperClassName)
+            .addType(classSpec)
+            .build()
+
+        fileSpec.writeTo(codeGenerator, false)
+    }
+
+    /**
+     * Given the metadata of a compose function annotated with `@ReactNativeViewManager`
+     * generates a factory that creates the corresponding iOS view wrapper.
+     *
+     * ```kotlin
+     * package <package of annotated compose function>
+     *
+     * import androidx.compose.ui.window.ComposeUIViewController
+     * import de.voize.reaktnativetoolkit.util.ReactNativeIOSViewWrapper
+     * import kotlinx.coroutines.flow.MutableSharedFlow
+     * import platform.UIKit.UIView
+     *
+     * class <class name of annotated compose function>RNViewWrapperFactoryIOS(
+     *   <... compose function parameters>
+     * ) {
+     *    public fun createViewWrapper(): <class name of annotated compose function>RNViewManagerIOS {
+     *        return <class name of annotated compose function>RNViewManagerIOS(
+     *            <... compose function parameters>
+     *        )
+     *    )
+     * }
+     * ```
+     */
+    private fun generateIOSViewWrapperFactory(rnViewManager: RNViewManager) {
+        val factoryClassName = rnViewManager.functionName.iOSViewWrapperFactoryClassName()
+        val packageName = rnViewManager.packageName
+        val viewWrapperClassName = ClassName(packageName, rnViewManager.functionName.iOSViewWrapperClassName())
+        val constructorParameters = rnViewManager.restParameters.map { it.toParameterSpec() }
+
+        val classSpec = TypeSpec.classBuilder(factoryClassName).apply {
+            primaryConstructor(
+                FunSpec.constructorBuilder()
+                    .addParameters(constructorParameters)
+                    .build()
+            )
+            addSuperinterface(ReactNativeIOSViewWrapperFactoryClassName)
+
+            addProperties(
+                constructorParameters.map {
+                    PropertySpec.builder(it.name, it.type).addModifiers(KModifier.PRIVATE)
+                        .initializer(it.name).build()
+                }
+            )
+
+            addFunction(
+                FunSpec.builder("createViewWrapper")
+                    .addModifiers(KModifier.PUBLIC)
+                    .returns(viewWrapperClassName)
+                    .addStatement(
+                        "return %T(%L)",
+                        viewWrapperClassName,
+                        constructorParameters.map { CodeBlock.of("%N", it.name) }.joinToCode()
+                    )
+                    .build()
+            )
+        }.build()
+
+        val fileSpec = FileSpec.builder(packageName, factoryClassName)
             .addType(classSpec)
             .build()
 
@@ -680,7 +790,7 @@ class ReactNativeViewManagerGenerator(
 
 @interface ReactNativeViewManagers : NSObject
 
-+ (NSArray<id<RCTBridgeModule>>*)getRNViewManagers:(NSDictionary<NSString*, id/*<$iosViewManagerTypeName>*/>*)viewManagers;
++ (NSArray<id<RCTBridgeModule>>*)getRNViewManagers:(NSDictionary<NSString*, id/*<$iosViewWrapperFactoryTypeName>*/>*)viewWrapperFactory;
 
 @end
         """.trimIndent()
@@ -696,11 +806,11 @@ ${rnViewManagers.joinToString("\n") { it.implementationCode }}
 
 @implementation ReactNativeViewManagers
 
-+ (NSArray<id<RCTBridgeModule>>*)getRNViewManagers:(NSDictionary<NSString*, id/*<$iosViewManagerTypeName>*/>*)viewManagers
++ (NSArray<id<RCTBridgeModule>>*)getRNViewManagers:(NSDictionary<NSString*, id/*<$iosViewWrapperFactoryTypeName>*/>*)viewWrapperFactories
 {
     return @[
         ${rnViewManagers.joinToString(",\n") { 
-            "[[${it.viewManager.functionName.iOSViewManagerObjcClassName()} alloc] initWithViewManager:viewManagers[@\"${it.viewManager.moduleName}\"]]" 
+            "[[${it.viewManager.functionName.iOSViewManagerObjcClassName()} alloc] initWithViewWrapperFactory:viewWrapperFactories[@\"${it.viewManager.moduleName}\"]]" 
         }}
     ];
 }
@@ -727,7 +837,8 @@ ${rnViewManagers.joinToString("\n") { it.implementationCode }}
 
     private fun generateIOSViewManagerObjcCode(rnViewManager: RNViewManager): RNViewManagerObjC {
         val className = rnViewManager.functionName.iOSViewManagerObjcClassName()
-        val specificIosViewManagerTypeName = "Shared${rnViewManager.functionName.iOSViewManagerClassName()}"
+        val specificIosViewWrapperFactoryTypeName = "Shared${rnViewManager.functionName.iOSViewWrapperFactoryClassName()}"
+        val specificIosViewWrapperTypeName = "Shared${rnViewManager.functionName.iOSViewWrapperClassName()}"
         val iosViewClassName = "${className}View"
 
         val implementationCode = """
@@ -737,17 +848,20 @@ ${rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.
 "@property (nonatomic, copy) RCTBubblingEventBlock ${prop.name};"
 }}
 
-- (instancetype)initWithComposeView:(UIView *)composeView;
+@property (nonatomic, strong) $specificIosViewWrapperTypeName *viewWrapper;
+
+- (instancetype)initWithViewWrapper:(id/*<$specificIosViewWrapperTypeName>*/)viewWrapper;
 
 @end
 
 @implementation $iosViewClassName : UIView
 
-- (instancetype)initWithComposeView:(UIView *)composeView
+- (instancetype)initWithViewWrapper:(id/*<$specificIosViewWrapperTypeName>*/)viewWrapper
 {
     self = [super init];
     if (self) {
-        [self addSubview:composeView];
+        self.viewWrapper = ($specificIosViewWrapperTypeName*)viewWrapper;
+        [self addSubview:self.viewWrapper.view];
     }
     return self;
 }
@@ -762,9 +876,9 @@ ${rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.
 
 @interface $className : RCTViewManager
 
-@property (nonatomic, strong) $specificIosViewManagerTypeName *viewManager;
+@property (nonatomic, strong) $specificIosViewWrapperFactoryTypeName *viewWrapperFactory;
 
-- (instancetype)initWithViewManager:(id/*<$iosViewManagerTypeName>*/)viewManager;
+- (instancetype)initWithViewWrapperFactory:(id/*<$iosViewWrapperFactoryTypeName>*/)viewWrapperFactory;
 
 @end
 
@@ -790,9 +904,9 @@ ${rnViewManager.reactNativeProps.map { prop ->
             }
             
             """
-RCT_CUSTOM_VIEW_PROPERTY(${prop.name}, $nsTypeName, UIView)
+RCT_CUSTOM_VIEW_PROPERTY(${prop.name}, $nsTypeName, $iosViewClassName)
 {
-    [self.viewManager ${prop.name.toRNViewManagerPropSetter()}Value:$conversion];
+    [view.viewWrapper ${prop.name.toRNViewManagerPropSetter()}Value:$conversion];
 }
         """.trimIndent()
         }
@@ -803,22 +917,23 @@ RCT_EXPORT_VIEW_PROPERTY(${prop.name}, RCTBubblingEventBlock)
     }
 }.joinToString("\n")}
 
-- (instancetype)initWithViewManager:(id/*<$iosViewManagerTypeName>*/)viewManager
+- (instancetype)initWithViewWrapperFactory:(id/*<$iosViewWrapperFactoryTypeName>*/)viewWrapperFactory
 {
     self = [super init];
     if (self) {
-        self.viewManager = ($specificIosViewManagerTypeName*)viewManager;
+        self.viewWrapperFactory = ($specificIosViewWrapperFactoryTypeName*)viewWrapperFactory;
     }
     return self;
 }
 
 - (UIView *)view
 {
-    $iosViewClassName *view = [[${iosViewClassName} alloc] initWithComposeView:[self.viewManager view]];
+    $specificIosViewWrapperTypeName *viewWrapper = [self.viewWrapperFactory createViewWrapper];
+    $iosViewClassName *view = [[${iosViewClassName} alloc] initWithViewWrapper:viewWrapper];
     
      ${rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.FunctionProp>().map { prop ->
 """
-[self.viewManager ${prop.name.toRNViewManagerPropSetter()}Value:^(NSDictionary *args) {
+[viewWrapper ${prop.name.toRNViewManagerPropSetter()}Value:^(NSDictionary *args) {
     view.${prop.name}(args);
 }];
 """.trimIndent()
@@ -938,18 +1053,22 @@ RCT_EXPORT_VIEW_PROPERTY(${prop.name}, RCTBubblingEventBlock)
      * import de.voize.reaktnativetoolkit.util.ReactNativeViewManagerProvider
      * import react_native.RCTViewManager
      *
-     * public actual class <class name of annotated compose function>RNView ManagerProvider actual constructor(
+     * public actual class <class name of annotated compose function>RNViewManagerProvider actual constructor(
      *   <... compose function parameters>
      * ): ReactNativeViewManagerProvider {
-     *   public override fun getViewManager(): RCTViewManager = <class name of annotated compose function>RNViewManagerIOS(
-     *      <... compose function parameters>
-     *   )
+     *   public override fun getViewWrapperFactory(): Pair<String, ReactNativeIOSViewWrapperFactory> =
+     *      Pair(
+     *          "<compose view name>",
+     *          <class name of annotated compose function>RNViewWrapperFactoryIOS(
+     *              <... compose function parameters>
+     *          )
+     *      )
      * }
      * ```
      */
     private fun generateIOSViewManagerProvider(rnViewManager: RNViewManager) {
         val className = rnViewManager.functionName.viewManagerProviderClassName()
-        val iOSViewManagerClassName = rnViewManager.functionName.iOSViewManagerClassName()
+        val iOSViewWrapperFactoryClassName = rnViewManager.functionName.iOSViewWrapperFactoryClassName()
         val constructorParameters = rnViewManager.restParameters.map { it.toParameterSpec() }
 
         val classSpec = TypeSpec.classBuilder(className).apply {
@@ -972,12 +1091,12 @@ RCT_EXPORT_VIEW_PROPERTY(${prop.name}, RCTBubblingEventBlock)
             addSuperinterface(ReactNativeViewManagerProviderClassName)
 
             addFunction(
-                FunSpec.builder("getViewManager").run {
+                FunSpec.builder("getViewWrapperFactory").run {
                     addModifiers(KModifier.OVERRIDE)
                     returns(
                         ClassName("kotlin", "Pair").parameterizedBy(
                             STRING,
-                            ReactNativeIOSViewManagerClassName
+                            ReactNativeIOSViewWrapperFactoryClassName,
                         )
                     )
                     addStatement(
@@ -985,7 +1104,7 @@ RCT_EXPORT_VIEW_PROPERTY(${prop.name}, RCTBubblingEventBlock)
                         // which break the syntax of the generated code
                         "return Pair(%S, %T(%L))",
                         rnViewManager.moduleName,
-                        ClassName(rnViewManager.packageName, iOSViewManagerClassName),
+                        ClassName(rnViewManager.packageName, iOSViewWrapperFactoryClassName),
                         constructorParameters.map {
                             CodeBlock.of("%N", it.name)
                         }.joinToCode()
@@ -1022,7 +1141,6 @@ RCT_EXPORT_VIEW_PROPERTY(${prop.name}, RCTBubblingEventBlock)
                     it.annotations.any { it.annotationType.resolve() == reactNativePropAnnotationType }
                 }.map { parameter ->
                     val parameterType = parameter.type.resolve()
-                    val parameterDeclaration = parameterType.declaration
                     val name = (parameter.name ?: error("Prop name is required")).asString()
 
                     if (parameterType.declaration.qualifiedName?.asString() == "kotlinx.coroutines.flow.Flow") {
@@ -1110,12 +1228,13 @@ private fun KSType.resolveTypeArgument(index: Int): KSType {
 
 private val ArgumentsClassName = ClassName("com.facebook.react.bridge", "Arguments")
 private val MutableSharedFlowClassName = ClassName("kotlinx.coroutines.flow", "MutableSharedFlow")
-private val KotlinFlowClassName = ClassName("kotlinx.coroutines.flow", "Flow")
 private val ReactPropClassName = ClassName("com.facebook.react.uimanager.annotations", "ReactProp")
+private val AbstractComposeViewClassName = ClassName("androidx.compose.ui.platform", "AbstractComposeView")
 
 private val ReactNativeViewManagerProviderClassName =
     ClassName(toolkitUtilPackageName, "ReactNativeViewManagerProvider")
-private val ReactNativeIOSViewManagerClassName = ClassName(toolkitUtilPackageName, "ReactNativeIOSViewManager")
+private val ReactNativeIOSViewWrapperClassName = ClassName(toolkitUtilPackageName, "ReactNativeIOSViewWrapper")
+private val ReactNativeIOSViewWrapperFactoryClassName = ClassName(toolkitUtilPackageName, "ReactNativeIOSViewWrapperFactory")
 
 private val ReactViewManagerClassName = ClassName("com.facebook.react.uimanager", "ViewManager")
 private val RCTEventEmitterClassName = ClassName("com.facebook.react.uimanager.events", "RCTEventEmitter")
@@ -1126,8 +1245,4 @@ private val ReactContextClassName =
 private val ReactThemedReactContextClassName =
     ClassName("com.facebook.react.uimanager", "ThemedReactContext")
 private val ComposeUIViewControllerClassName = ClassName("androidx.compose.ui.window", "ComposeUIViewController")
-private val ComposeViewClassName = ClassName("androidx.compose.ui.platform", "ComposeView")
-private val RCTViewManagerClassName = ClassName(reactNativeInteropNamespace, "RCTViewManager")
-private val RCTViewManagerMetaClassName = ClassName(reactNativeInteropNamespace, "RCTViewManagerMeta")
 private val UIViewClassName = ClassName("platform.UIKit", "UIView")
-private val CGRectMakeClassName = ClassName("platform.CoreGraphics", "CGRectMake")

@@ -16,7 +16,7 @@
 {
   SharedIOSRNModules* iOSRNModules = [[SharedIOSRNModules alloc] init];
   NSArray<id<RCTBridgeModule>> *rnNativeModules = [iOSRNModules createNativeModules];
-  NSArray<id<RCTBridgeModule>> *rnViewManagers = [ReactNativeViewManagers getRNViewManagers:[iOSRNModules createViewManagers]];
+  NSArray<id<RCTBridgeModule>> *rnViewManagers = [ReactNativeViewManagers getRNViewManagers:[iOSRNModules createViewWrapperFactories]];
   return [rnNativeModules arrayByAddingObjectsFromArray:rnViewManagers];
 }
 

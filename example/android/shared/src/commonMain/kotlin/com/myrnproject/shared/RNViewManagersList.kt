@@ -7,5 +7,6 @@ fun getReactNativeViewManagerProviders(
 ): List<ReactNativeViewManagerProvider> {
     return listOf(
         MyComposeViewRNViewManagerProvider(persistentConfig),
+        MySecondComposeViewRNViewManagerProvider(),
     )
 }

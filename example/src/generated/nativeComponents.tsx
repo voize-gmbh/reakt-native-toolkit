@@ -64,6 +64,22 @@ interface MyComposeViewProps extends ViewProps {
 
 }
 
+interface NativeMySecondComposeViewProps {
+
+  index: number;
+
+  onPress: (event: any) => void;
+
+}
+
+interface MySecondComposeViewProps extends ViewProps {
+
+  index: number;
+
+  onPress: () => void;
+
+}
+
 const NativeMyComposeView = requireNativeComponent<NativeMyComposeViewProps>("MyComposeView");
 
 export const MyComposeView = (props: MyComposeViewProps) => {
@@ -178,4 +194,22 @@ export const MyComposeView = (props: MyComposeViewProps) => {
   onTextFieldValueChange={nativeOnTextFieldValueChange}
   onButtonPress={nativeOnButtonPress}
   onTestParams={nativeOnTestParams} />;
+};
+
+const NativeMySecondComposeView = requireNativeComponent<NativeMySecondComposeViewProps>("MySecondComposeView");
+
+export const MySecondComposeView = (props: MySecondComposeViewProps) => {
+  const {
+  index,
+  onPress,
+  ...rest
+  } = props;
+  const indexMemoized = useMemo(() => (() => {
+    const temp = index;
+    return temp;
+  })(), [index]);
+  const nativeOnPress = useCallback(() => {
+    onPress()}, [onPress]);
+  return <NativeMySecondComposeView {...rest} index={indexMemoized}
+  onPress={nativeOnPress} />;
 };

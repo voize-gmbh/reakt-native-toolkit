@@ -6,6 +6,7 @@
 - Update KSP to 2.0.21-1.0.25
 - Update KotlinPoet to 1.18.1
 - Return interface (RCTBridgeModuleProtocol, ReactNativeModuleBase) instead of narrow type in RN module provider getModule
+- Fix Compose view managers for multiple instances
 
 ## v0.18.0
 
