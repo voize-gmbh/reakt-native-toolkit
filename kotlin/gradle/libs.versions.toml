@@ -1,8 +1,8 @@
 [versions]
-kotlin = "1.9.23"
+kotlin = "2.0.21"
 kotlin-coroutines = "1.8.0"
-ksp = "1.9.23-1.0.20"
-kotlinpoet = "1.13.2"
+ksp = "2.0.21-1.0.25"
+kotlinpoet = "1.18.1"
 
 [libraries]
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }

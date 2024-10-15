@@ -372,7 +372,7 @@ class ReactNativeModuleGenerator(
                     addModifiers(KModifier.OVERRIDE)
                     addParameter(reactApplicationContextVarName, ReactApplicationContextClassName)
                     addParameter(lifecycleScopeVarName, CoroutineScopeClassName)
-                    returns(ClassName(packageName, androidModuleClassName))
+                    returns(ReactNativeModuleBaseClassName)
                     addStatement(
                         "return %T(%L)",
                         ClassName(packageName, androidModuleClassName),
@@ -432,7 +432,7 @@ class ReactNativeModuleGenerator(
                     val lifecycleScopeVarName = "lifecycleScope"
                     addModifiers(KModifier.OVERRIDE)
                     addParameter(lifecycleScopeVarName, CoroutineScopeClassName)
-                    returns(ClassName(packageName, iOSModuleClassName))
+                    returns(RCTBridgeModuleProtocolClassName)
                     addStatement(
                         "return %T(%L)",
                         ClassName(packageName, iOSModuleClassName),
@@ -644,7 +644,7 @@ class ReactNativeModuleGenerator(
                     .build()
             )
             superclass(ClassName("platform.darwin", "NSObject"))
-            addSuperinterface(RCTBrigdeModuleProtocolClassName)
+            addSuperinterface(RCTBridgeModuleProtocolClassName)
             addProperty(
                 PropertySpec.builder(coroutineScopeVarName, CoroutineScopeClassName)
                     .addModifiers(KModifier.PRIVATE).initializer(coroutineScopeVarName).build()
@@ -1349,18 +1349,20 @@ private val ReactApplicationContextClassName =
 private val CoroutineScopeClassName = ClassName("kotlinx.coroutines", "CoroutineScope")
 private val PromiseIOSClassName = ClassName(toolkitUtilPackageName, "PromiseIOS")
 private val EventEmitterIOS = ClassName(toolkitUtilPackageName, "EventEmitterIOS")
-private val ReactNativeModuleProviderClassName =
-    ClassName(toolkitUtilPackageName, "ReactNativeModuleProvider")
+
+private val ReactNativeModuleProviderClassName = ClassName(toolkitUtilPackageName, "ReactNativeModuleProvider")
+private val ReactNativeModuleBaseClassName = ClassName(toolkitUtilPackageName, "ReactNativeModuleBase")
+
 private val RCTCallableJSModulesClassName =
     ClassName(reactNativeInteropNamespace, "RCTCallableJSModules")
-private val RCTBrigdeModuleProtocolClassName =
+private val RCTBridgeModuleProtocolClassName =
     ClassName(reactNativeInteropNamespace, "RCTBridgeModuleProtocol")
 private val ListOfMember = MemberName("kotlin.collections", "listOf")
 private val JsonClassName = ClassName("kotlinx.serialization.json", "Json")
 private val EncodeToStringMember = MemberName("kotlinx.serialization", "encodeToString")
 private val DecodeFromStringMember = MemberName("kotlinx.serialization", "decodeFromString")
-private val FlowToReactMember = MemberName("$toolkitPackageName.util", "toReact")
+private val FlowToReactMember = MemberName(toolkitUtilPackageName, "toReact")
 private val UnsubscribeFromFlowMember =
-    MemberName("$toolkitPackageName.util", "unsubscribeFromFlow")
+    MemberName(toolkitUtilPackageName, "unsubscribeFromFlow")
 private val RCTBridgeMethodWrapperClassName =
-    ClassName("$toolkitPackageName.util", "RCTBridgeMethodWrapper")
+    ClassName(toolkitUtilPackageName, "RCTBridgeMethodWrapper")
