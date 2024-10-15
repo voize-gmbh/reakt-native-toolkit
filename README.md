@@ -720,9 +720,9 @@ class MyRNPackage(private val analytics: Analytics) : ReactPackage {
 ```kotlin
 // iosMain
 
-import de.voize.reaktnativetoolkit.util.ReactNativeIOSViewManager
+import de.voize.reaktnativetoolkit.util.ReactNativeIOSViewWrapperFactory
 import de.voize.reaktnativetoolkit.util.getModules
-import de.voize.reaktnativetoolkit.util.getViewManagers
+import de.voize.reaktnativetoolkit.util.getViewWrapperFactories
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import react_native.RCTBridgeModuleProtocol
@@ -734,10 +734,10 @@ class IOSRNModules(private val analytics: Analytics) {
         // ...
     }
 
-    fun createViewManagers(): Map<String, ReactNativeIOSViewManager> {
+    fun createViewWrapperFactories(): Map<String, ReactNativeIOSViewWrapperFactory> {
         return getReactNativeViewManagerProviders(
             persistentConfig,
-        ).getViewManagers()
+        ).getViewWrapperFactories()
     }
 }
 ```
@@ -753,7 +753,7 @@ class IOSRNModules(private val analytics: Analytics) {
     {
         SharedIOSRNModules* iOSRNModules = [[SharedIOSRNModules alloc] init];
         NSArray<id<RCTBridgeModule>> *rnNativeModules = [iOSRNModules createNativeModules];
-        NSArray<id<RCTBridgeModule>> *rnViewManagers = [ReactNativeViewManagers getRNViewManagers:[iOSRNModules createViewManagers]];
+        NSArray<id<RCTBridgeModule>> *rnViewManagers = [ReactNativeViewManagers getRNViewManagers:[iOSRNModules createViewWrapperFactories]];
         return [rnNativeModules arrayByAddingObjectsFromArray:rnViewManagers];
     }
 }

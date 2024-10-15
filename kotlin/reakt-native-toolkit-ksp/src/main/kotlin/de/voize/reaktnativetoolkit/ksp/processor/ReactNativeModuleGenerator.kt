@@ -1284,7 +1284,7 @@ internal fun KSValueParameter.toParameterSpec(): ParameterSpec {
             this.type.toTypeName()
         } catch (e: Throwable) {
             throw IllegalArgumentException("Could get type of $this at ${this.location}", e)
-        }
+        },
     ).build()
 }
 
