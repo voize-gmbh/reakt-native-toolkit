@@ -1,6 +1,12 @@
 # CHANGELOG
 
 ## unreleased
+
+- Update Kotlin to 2.0.21
+- Update KSP to 2.0.21-1.0.25
+- Update KotlinPoet to 1.18.1
+- Return interface (RCTBridgeModuleProtocol, ReactNativeModuleBase) instead of narrow type in RN module provider getModule
+
 ## v0.18.0
 
 - Update example app iOS part to correct setup for RN 0.74.0
