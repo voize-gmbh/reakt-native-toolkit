@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.19.0
 
 - Update Kotlin to 2.0.21
 - Update KSP to 2.0.21-1.0.25
