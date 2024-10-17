@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.19.1
 
 - Add workaround for "Cannot locate windowRecomposer" again
 

@@ -8,7 +8,7 @@ plugins {
     id("com.google.devtools.ksp") version "2.0.21-1.0.25"
 }
 
-val reaktNativeToolkitVersion = "0.19.0"
+val reaktNativeToolkitVersion = "0.19.1"
 
 kotlin {
     androidTarget {
