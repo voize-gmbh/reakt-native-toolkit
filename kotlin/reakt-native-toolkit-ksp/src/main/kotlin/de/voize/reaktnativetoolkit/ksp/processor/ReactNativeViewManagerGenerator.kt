@@ -242,6 +242,14 @@ class ReactNativeViewManagerGenerator(
      *     ): AbstractComposeView(reactContext) {
      *          private val <prop name> = MutableSharedFlow<type of prop>()
      *
+     *          init {
+     *              // workaround for "Cannot locate windowRecomposer" error
+     *              // when compose view is rendered within a FlatList
+     *              val recomposer = Recomposer(EmptyCoroutineContext)
+     *              setParentCompositionContext(recomposer)
+     *              doOnAttach { setParentCompositionContext(null) }
+     *          }
+     *
      *          @Composable
      *          override fun Content() {
      *              <class name of annotated compose function>(
@@ -341,6 +349,23 @@ class ReactNativeViewManagerGenerator(
                         }
                     }
                 }
+
+                addInitializerBlock(
+                    CodeBlock.builder()
+                        .addStatement(
+                            """
+                            // workaround for "Cannot locate windowRecomposer" error
+                            // when compose view is rendered within a FlatList
+                            val recomposer = %T(%T)
+                            setParentCompositionContext(recomposer)
+                            %T { setParentCompositionContext(null) }
+                            """.trimIndent(),
+                            ClassName("androidx.compose.runtime", "Recomposer"),
+                            ClassName("kotlin.coroutines", "EmptyCoroutineContext"),
+                            ClassName("androidx.core.view", "doOnAttach"),
+                        )
+                        .build()
+                )
 
                 addFunction(
                     FunSpec

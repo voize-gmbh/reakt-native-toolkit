@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Add workaround for "Cannot locate windowRecomposer" again
+
 ## v0.19.0
 
 - Update Kotlin to 2.0.21
