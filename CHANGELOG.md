@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.19.2
 
 - Fix view manager boolean react prop is always true
 
