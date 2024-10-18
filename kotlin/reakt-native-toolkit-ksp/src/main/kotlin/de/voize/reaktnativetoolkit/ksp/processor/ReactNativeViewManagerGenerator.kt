@@ -934,6 +934,7 @@ ${rnViewManager.reactNativeProps.map { prop ->
             val valueVarName = "json"
             val nsTypeName = prop.typeArgument.toNSTypeName()
             val conversion = when (prop.typeArgument.declaration.qualifiedName?.asString()) {
+                "kotlin.Boolean" -> "[$valueVarName boolValue]"
                 "kotlin.Int" -> "[$valueVarName intValue]"
                 "kotlin.Long" -> "[$valueVarName longLongValue]"
                 "kotlin.Float" -> "[$valueVarName floatValue]"
@@ -1224,6 +1225,9 @@ RCT_EXPORT_VIEW_PROPERTY(${prop.name}, RCTBubblingEventBlock)
     private fun KSType.toNSTypeName() = when (this.declaration.qualifiedName?.asString()) {
         "kotlin.String" -> "NSString"
         "kotlin.Int" -> "NSNumber"
+        // Using BOOL here instead of NSNumber has no effect.
+        // Either way you need to call `boolValue` on the NSNumber
+        // otherwise Kotlin will always interpret it as "true".
         "kotlin.Boolean"  -> "NSNumber"
         "kotlin.Long" -> "NSNumber"
         "kotlin.Float" -> "NSNumber"
