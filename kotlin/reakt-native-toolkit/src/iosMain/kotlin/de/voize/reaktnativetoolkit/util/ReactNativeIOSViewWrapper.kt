@@ -1,5 +1,7 @@
 package de.voize.reaktnativetoolkit.util
 
+import platform.UIKit.UIView
+
 /**
  * A subclass of this interface serves as the communication between an annotated Compose view
  * and its respective RCTViewManager subclass (which is generated into Objective-C code).
@@ -9,11 +11,17 @@ package de.voize.reaktnativetoolkit.util
  *
  * Methods of a class implementing this interface are called from the RCViewManager subclass from Objective-C.
  */
-interface ReactNativeIOSViewWrapper
+interface ReactNativeIOSViewWrapper {
+    fun registerCallback(withName: String, callback: (args: Map<String, Any>) -> Unit)
+    fun setPropValue(withName: String, value: Any)
+    fun view(): UIView
+}
 
 /**
  * A subclass of this interface serves as a factory for creating instances of the [ReactNativeIOSViewWrapper].
  * Such a factory is needed so the factory is initialized from Kotlin injecting all the necessary dependencies
  * and then the factory can be used in Objective-C to create instances of the corresponding [ReactNativeIOSViewWrapper].
  */
-interface ReactNativeIOSViewWrapperFactory
+interface ReactNativeIOSViewWrapperFactory {
+    fun createViewWrapper(): ReactNativeIOSViewWrapper
+}

@@ -27,6 +27,7 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.ksp.writeTo
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.LambdaTypeName
+import com.squareup.kotlinpoet.MUTABLE_MAP
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.STAR
 import com.squareup.kotlinpoet.STRING
@@ -36,7 +37,6 @@ import com.squareup.kotlinpoet.ksp.addOriginatingKSFile
 import com.squareup.kotlinpoet.ksp.toTypeName
 import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
-import java.util.Locale
 
 private const val generatedObjcFilePath = "$generatedCommonFilePath/objc/"
 
@@ -74,22 +74,27 @@ class ReactNativeViewManagerGenerator(
     private var objcGenerationInvoked = false
     private var typescriptGenerationInvoked = false
 
+    private val iosFrameworkName = "shared"
+    private val iosFrameworkNameCapitalized = iosFrameworkName.replaceFirstChar { it.uppercase() }
+
+    /**
+     * Corresponds to de.voize.reaktnativetoolkit.util.ReactNativeIOSViewWrapper
+     */
+    private val toolkitReactNativeIOSViewWrapperInterfaceTypeName =
+        "${iosFrameworkNameCapitalized}Reakt_native_toolkitReactNativeIOSViewWrapper"
+
     /**
      * Corresponds to de.voize.reaktnativetoolkit.util.ReactNativeIOSViewWrapperFactory
-     * When generating Obj-C code that references this interface we only plain pointers with a
-     * comment hint reference this interface (id</*ReactNativeIOSViewWrapperFactory*/>) so that
-     * reakt-native-toolkit types do not have to be exposed into the shared framework of the host project.
      */
-    private val iosViewWrapperFactoryTypeName = "ReactNativeIOSViewWrapperFactory"
+    private val toolkitReactNativeIOSViewWrapperFactoryInterfaceTypeName =
+        "${iosFrameworkNameCapitalized}Reakt_native_toolkitReactNativeIOSViewWrapperFactory"
 
     private fun String.androidViewManagerClassName() = this + "RNViewManagerAndroid"
     private fun String.iOSViewWrapperClassName() = this + "RNViewWrapperIOS"
     private fun String.iOSViewWrapperFactoryClassName() = this + "RNViewWrapperFactoryIOS"
     private fun String.iOSViewManagerObjcClassName()= this + "RNViewManagerObjCIos"
     private fun String.viewManagerProviderClassName() = this + "RNViewManagerProvider"
-    private fun String.toRNViewManagerPropSetter() = "set${this.replaceFirstChar {
-        if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
-    }}"
+    private fun String.toRNViewManagerPropSetter() = "set${this.replaceFirstChar { it.uppercase() }}"
 
     internal fun process(resolver: Resolver): ToolkitSymbolProcessor.ProcessResult {
         val reactNativeViewManagerAnnotationType = resolver.getClassDeclarationByName("$toolkitPackageName.annotation.ReactNativeViewManager")
@@ -569,23 +574,26 @@ class ReactNativeViewManagerGenerator(
      * class <class name of annotated compose function>RNViewWrapperIOS(
      *   <... compose function parameters>
      * ) : ReactNativeIOSViewWrapper() {
-     *     private val <flow prop name>: MutableSharedFlow<<type of flow prop>> = MutableSharedFlow(replay = 1)
+     *     private val callbacks: Map<String, (args: Map<String, Any>) -> Unit> = mutableMapOf()
      *
-     *     public fun set<flow prop name>(value: <type of flow prop>) {
-     *         <flow prop name>.tryEmit(value)
+     *     override fun registerCallback(withName: String, callback: (args: Map<String, Any>) -> Unit) {
+     *         callbacks[withName] = callback
      *     }
      *
-     *     private lateinit var <function prop name>: (args: Map<String, Any>) -> Unit
+     *     private val <flow prop name>: MutableSharedFlow<<type of flow prop>> = MutableSharedFlow(replay = 1)
      *
-     *     public fun set<function prop name>(value: (args: Map<String, Any>) -> Unit) {
-     *          <function prop name> = value
+     *     public fun setPropValue(withName: String, value: Any) {
+     *         when (withName) {
+     *             "<flow prop name>" -> <flow prop name>.tryEmit(value as <type of flow prop>)
+     *             ...
+     *         }
      *     }
      *
      *     public fun view(): UIView = ComposeUIViewController {
      *         <class name of annotated compose function>(
      *              <prop name> = <prop name>,
      *              <function prop name> = { arg0, arg1 ->
-     *                  <function prop name>(mapOf("args" to listOf(arg0, arg1)))
+     *                  callbacks.getValue("<function prop name>")(mapOf("args" to listOf(arg0, arg1)))
      *              },
      *              <... compose function parameters>,
      *          )
@@ -617,11 +625,76 @@ class ReactNativeViewManagerGenerator(
 
             addSuperinterface(ReactNativeIOSViewWrapperClassName)
 
+            if (rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.FunctionProp>().isNotEmpty()) {
+                addProperty(
+                    PropertySpec.builder(
+                        "callbacks",
+                        MUTABLE_MAP.parameterizedBy(STRING, LambdaTypeName.get(
+                            receiver = null,
+                            parameters = listOf(ParameterSpec.builder("args", Map::class.parameterizedBy(String::class, Any::class)).build()),
+                            returnType = UNIT
+                        ))
+                    ).addModifiers(KModifier.PRIVATE)
+                        .initializer("mutableMapOf()")
+                        .build()
+                )
+
+                addFunction(
+                    FunSpec.builder("registerCallback")
+                        .addModifiers(KModifier.OVERRIDE)
+                        .addParameter("withName", STRING)
+                        .addParameter("callback", LambdaTypeName.get(
+                            receiver = null,
+                            parameters = listOf(ParameterSpec.builder("args", Map::class.parameterizedBy(String::class, Any::class)).build()),
+                            returnType = UNIT
+                        ))
+                        .addStatement("callbacks[withName] = callback")
+                        .build()
+                )
+            }
+
+            if (rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.FlowProp>().isNotEmpty()) {
+                val valueVarName = "value"
+
+                addFunction(
+                    FunSpec.builder("setPropValue")
+                        .addModifiers(KModifier.OVERRIDE)
+                        .addParameter("withName", STRING)
+                        .addParameter(valueVarName, Any::class)
+                        .addStatement(
+                            """
+                            when (withName) {
+                                %L
+                            }
+                            """.trimIndent(),
+                            rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.FlowProp>().map { prop ->
+                                CodeBlock.Builder().apply {
+                                    add(
+                                        "%S -> %L.tryEmit(%L)",
+                                        prop.name,
+                                        prop.name,
+                                        if (prop.typeArgument.declaration.requiresSerialization()) {
+                                            decodeFromString(CodeBlock.of("%N as String", valueVarName))
+                                        } else {
+                                            when (prop.typeArgument.declaration.qualifiedName?.asString()) {
+                                                "kotlin.Int" -> CodeBlock.of("(%N as %T).intValue", valueVarName, NSNumberClassName)
+                                                "kotlin.Double" -> CodeBlock.of("(%N as %T).doubleValue", valueVarName, NSNumberClassName)
+                                                "kotlin.Float" -> CodeBlock.of("(%N as %T).floatValue", valueVarName, NSNumberClassName)
+                                                "kotlin.Boolean" -> CodeBlock.of("(%N as %T).boolValue", valueVarName, NSNumberClassName)
+                                                else -> CodeBlock.of("%N as %T", valueVarName, prop.typeArgument.toTypeName())
+                                            }
+                                        }
+                                    )
+                                }.build()
+                            }.joinToCode("\n")
+                        )
+                        .build()
+                )
+            }
+
             rnViewManager.reactNativeProps.forEach { prop ->
                 when (prop) {
                     is RNViewManager.ReactNativeProp.FlowProp -> {
-                        val varName = "value"
-
                         addProperty(
                             PropertySpec.builder(
                                 prop.name,
@@ -631,59 +704,14 @@ class ReactNativeViewManagerGenerator(
                                 .initializer("%T(replay = 1)", MutableSharedFlowClassName)
                                 .build()
                         )
-
-                        addFunction(
-                            FunSpec.builder(prop.name.toRNViewManagerPropSetter())
-                                .addParameter(
-                                    varName,
-                                    if (prop.typeArgument.declaration.requiresSerialization()) {
-                                        STRING
-                                    } else prop.typeArgument.toTypeName(),
-                                )
-                                .addStatement(
-                                    "${prop.name}.tryEmit(%L)",
-                                    if (prop.typeArgument.declaration.requiresSerialization()) {
-                                        decodeFromString(CodeBlock.of("%N", varName))
-                                    } else {
-                                        varName
-                                    }
-                                )
-                                .build()
-                        )
                     }
-                    is RNViewManager.ReactNativeProp.FunctionProp -> {
-                        addProperty(
-                            // (Map<String, Any?>) -> Unit
-                            PropertySpec.builder(
-                                prop.name,
-                                LambdaTypeName.get(
-                                    receiver = null,
-                                    parameters = listOf(ParameterSpec.builder("args", Map::class.parameterizedBy(String::class, Any::class)).build()),
-                                    returnType = UNIT
-                                )
-                            )
-                                .mutable(true)
-                                .addModifiers(KModifier.PRIVATE, KModifier.LATEINIT)
-                                .build()
-                        )
-
-                        addFunction(
-                            FunSpec.builder(prop.name.toRNViewManagerPropSetter())
-                                .addParameter("value", LambdaTypeName.get(
-                                    receiver = null,
-                                    parameters = listOf(ParameterSpec.builder("args", Map::class.parameterizedBy(String::class, Any::class)).build()),
-                                    returnType = UNIT
-                                ))
-                                .addStatement("%L = value", prop.name)
-                                .build()
-                        )
-                    }
+                    is RNViewManager.ReactNativeProp.FunctionProp -> {}
                 }
             }
 
             addFunction(
                 FunSpec.builder("view")
-                    .addModifiers(KModifier.PUBLIC)
+                    .addModifiers(KModifier.PUBLIC, KModifier.OVERRIDE)
                     .returns(UIViewClassName)
                     .addStatement(
                         """
@@ -701,11 +729,12 @@ class ReactNativeViewManagerGenerator(
                                     }
                                     is RNViewManager.ReactNativeProp.FunctionProp -> {
                                         add(
-                                            "%L = { %L -> %L(mapOf(\"args\" to %L)) },\n",
+                                            "%L = { %L -> %L.getValue(%S)(mapOf(\"args\" to %L)) },\n",
                                             prop.name,
                                             prop.parameters
                                                 .withIndex()
                                                 .joinToString(", ") { "arg${it.index}" },
+                                            "callbacks",
                                             prop.name,
                                             if (prop.parameters.isNotEmpty()) {
                                                 CodeBlock.of(
@@ -760,7 +789,7 @@ class ReactNativeViewManagerGenerator(
      * class <class name of annotated compose function>RNViewWrapperFactoryIOS(
      *   <... compose function parameters>
      * ) {
-     *    public fun createViewWrapper(): <class name of annotated compose function>RNViewManagerIOS {
+     *    public override fun createViewWrapper(): <class name of annotated compose function>RNViewManagerIOS {
      *        return <class name of annotated compose function>RNViewManagerIOS(
      *            <... compose function parameters>
      *        )
@@ -791,7 +820,7 @@ class ReactNativeViewManagerGenerator(
 
             addFunction(
                 FunSpec.builder("createViewWrapper")
-                    .addModifiers(KModifier.PUBLIC)
+                    .addModifiers(KModifier.PUBLIC, KModifier.OVERRIDE)
                     .returns(viewWrapperClassName)
                     .addStatement(
                         "return %T(%L)",
@@ -828,7 +857,7 @@ class ReactNativeViewManagerGenerator(
 
 @interface ReactNativeViewManagers : NSObject
 
-+ (NSArray<id<RCTBridgeModule>>*)getRNViewManagers:(NSDictionary<NSString*, id/*<$iosViewWrapperFactoryTypeName>*/>*)viewWrapperFactory;
++ (NSArray<id<RCTBridgeModule>>*)getRNViewManagers:(NSDictionary<NSString*, id<$toolkitReactNativeIOSViewWrapperFactoryInterfaceTypeName>>*)viewWrapperFactory;
 
 @end
         """.trimIndent()
@@ -844,7 +873,7 @@ ${rnViewManagers.joinToString("\n") { it.implementationCode }}
 
 @implementation ReactNativeViewManagers
 
-+ (NSArray<id<RCTBridgeModule>>*)getRNViewManagers:(NSDictionary<NSString*, id/*<$iosViewWrapperFactoryTypeName>*/>*)viewWrapperFactories
++ (NSArray<id<RCTBridgeModule>>*)getRNViewManagers:(NSDictionary<NSString*, id<$toolkitReactNativeIOSViewWrapperFactoryInterfaceTypeName>>*)viewWrapperFactories
 {
     return @[
         ${rnViewManagers.joinToString(",\n") { 
@@ -875,8 +904,6 @@ ${rnViewManagers.joinToString("\n") { it.implementationCode }}
 
     private fun generateIOSViewManagerObjcCode(rnViewManager: RNViewManager): RNViewManagerObjC {
         val className = rnViewManager.functionName.iOSViewManagerObjcClassName()
-        val specificIosViewWrapperFactoryTypeName = "Shared${rnViewManager.functionName.iOSViewWrapperFactoryClassName()}"
-        val specificIosViewWrapperTypeName = "Shared${rnViewManager.functionName.iOSViewWrapperClassName()}"
         val iosViewClassName = "${className}View"
 
         val implementationCode = """
@@ -886,19 +913,19 @@ ${rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.
 "@property (nonatomic, copy) RCTBubblingEventBlock ${prop.name};"
 }}
 
-@property (nonatomic, strong) $specificIosViewWrapperTypeName *viewWrapper;
+@property (nonatomic, strong) id<$toolkitReactNativeIOSViewWrapperInterfaceTypeName> viewWrapper;
 
-- (instancetype)initWithViewWrapper:(id/*<$specificIosViewWrapperTypeName>*/)viewWrapper;
+- (instancetype)initWithViewWrapper:(id<$toolkitReactNativeIOSViewWrapperInterfaceTypeName>)viewWrapper;
 
 @end
 
 @implementation $iosViewClassName : UIView
 
-- (instancetype)initWithViewWrapper:(id/*<$specificIosViewWrapperTypeName>*/)viewWrapper
+- (instancetype)initWithViewWrapper:(id<$toolkitReactNativeIOSViewWrapperInterfaceTypeName>)viewWrapper
 {
     self = [super init];
     if (self) {
-        self.viewWrapper = ($specificIosViewWrapperTypeName*)viewWrapper;
+        self.viewWrapper = (id<$toolkitReactNativeIOSViewWrapperInterfaceTypeName>)viewWrapper;
         [self addSubview:self.viewWrapper.view];
     }
     return self;
@@ -914,9 +941,10 @@ ${rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.
 
 @interface $className : RCTViewManager
 
-@property (nonatomic, strong) $specificIosViewWrapperFactoryTypeName *viewWrapperFactory;
+@property (nonatomic, strong) id<$toolkitReactNativeIOSViewWrapperFactoryInterfaceTypeName> viewWrapperFactory;
 
-- (instancetype)initWithViewWrapperFactory:(id/*<$iosViewWrapperFactoryTypeName>*/)viewWrapperFactory;
+- (instancetype)initWithViewWrapperFactory:(id<$toolkitReactNativeIOSViewWrapperFactoryInterfaceTypeName>
+)viewWrapperFactory;
 
 @end
 
@@ -933,19 +961,11 @@ ${rnViewManager.reactNativeProps.map { prop ->
         is RNViewManager.ReactNativeProp.FlowProp -> {
             val valueVarName = "json"
             val nsTypeName = prop.typeArgument.toNSTypeName()
-            val conversion = when (prop.typeArgument.declaration.qualifiedName?.asString()) {
-                "kotlin.Boolean" -> "[$valueVarName boolValue]"
-                "kotlin.Int" -> "[$valueVarName intValue]"
-                "kotlin.Long" -> "[$valueVarName longLongValue]"
-                "kotlin.Float" -> "[$valueVarName floatValue]"
-                "kotlin.Double" -> "[$valueVarName doubleValue]"
-                else -> valueVarName
-            }
             
             """
 RCT_CUSTOM_VIEW_PROPERTY(${prop.name}, $nsTypeName, $iosViewClassName)
 {
-    [view.viewWrapper ${prop.name.toRNViewManagerPropSetter()}Value:$conversion];
+    [view.viewWrapper setPropValueWithName:@"${prop.name}" value:$valueVarName];
 }
         """.trimIndent()
         }
@@ -956,23 +976,23 @@ RCT_EXPORT_VIEW_PROPERTY(${prop.name}, RCTBubblingEventBlock)
     }
 }.joinToString("\n")}
 
-- (instancetype)initWithViewWrapperFactory:(id/*<$iosViewWrapperFactoryTypeName>*/)viewWrapperFactory
+- (instancetype)initWithViewWrapperFactory:(id<$toolkitReactNativeIOSViewWrapperFactoryInterfaceTypeName>)viewWrapperFactory
 {
     self = [super init];
     if (self) {
-        self.viewWrapperFactory = ($specificIosViewWrapperFactoryTypeName*)viewWrapperFactory;
+        self.viewWrapperFactory = (id<$toolkitReactNativeIOSViewWrapperFactoryInterfaceTypeName>)viewWrapperFactory;
     }
     return self;
 }
 
 - (UIView *)view
 {
-    $specificIosViewWrapperTypeName *viewWrapper = [self.viewWrapperFactory createViewWrapper];
+    id<$toolkitReactNativeIOSViewWrapperInterfaceTypeName> viewWrapper = [self.viewWrapperFactory createViewWrapper];
     $iosViewClassName *view = [[${iosViewClassName} alloc] initWithViewWrapper:viewWrapper];
     
      ${rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.FunctionProp>().map { prop ->
 """
-[viewWrapper ${prop.name.toRNViewManagerPropSetter()}Value:^(NSDictionary *args) {
+[viewWrapper registerCallbackWithName:@"${prop.name}" callback:^(NSDictionary *args) {
     view.${prop.name}(args);
 }];
 """.trimIndent()
@@ -1299,3 +1319,4 @@ private val ReactThemedReactContextClassName =
     ClassName("com.facebook.react.uimanager", "ThemedReactContext")
 private val ComposeUIViewControllerClassName = ClassName("androidx.compose.ui.window", "ComposeUIViewController")
 private val UIViewClassName = ClassName("platform.UIKit", "UIView")
+private val NSNumberClassName = ClassName("platform.Foundation", "NSNumber")
