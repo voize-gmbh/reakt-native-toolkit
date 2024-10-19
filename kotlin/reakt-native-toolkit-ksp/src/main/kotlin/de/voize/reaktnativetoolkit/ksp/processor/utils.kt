@@ -68,4 +68,3 @@ internal fun List<PlatformInfo>.isAndroid(): Boolean {
     val platformNames = this.map { it.platformName }
     return JvmPlatform in platformNames && NativePlatform !in platformNames
 }
-

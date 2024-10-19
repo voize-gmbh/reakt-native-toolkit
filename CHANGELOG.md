@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Update iOS view manager code generation to only require interfaces for view wrapper and view wrapper factory in Obj-C code
+
 ## v0.19.2
 
 - Fix view manager boolean react prop is always true
