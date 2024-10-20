@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.19.3
 
 - Update iOS view manager code generation to only require interfaces for view wrapper and view wrapper factory in Obj-C code
 
