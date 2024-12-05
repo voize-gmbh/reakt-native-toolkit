@@ -64,6 +64,12 @@ interface MyComposeViewProps extends ViewProps {
 
 }
 
+interface NativeMyMinimalComposeViewProps {
+}
+
+interface MyMinimalComposeViewProps extends ViewProps {
+}
+
 interface NativeMySecondComposeViewProps {
 
   index: number;
@@ -194,6 +200,15 @@ export const MyComposeView = (props: MyComposeViewProps) => {
   onTextFieldValueChange={nativeOnTextFieldValueChange}
   onButtonPress={nativeOnButtonPress}
   onTestParams={nativeOnTestParams} />;
+};
+
+const NativeMyMinimalComposeView = requireNativeComponent<NativeMyMinimalComposeViewProps>("MyMinimalComposeView");
+
+export const MyMinimalComposeView = (props: MyMinimalComposeViewProps) => {
+  const {
+  ...rest
+  } = props;
+  return <NativeMyMinimalComposeView {...rest}  />;
 };
 
 const NativeMySecondComposeView = requireNativeComponent<NativeMySecondComposeViewProps>("MySecondComposeView");
