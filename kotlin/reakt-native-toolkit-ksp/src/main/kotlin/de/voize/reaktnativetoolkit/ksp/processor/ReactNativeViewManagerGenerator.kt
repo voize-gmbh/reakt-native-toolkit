@@ -625,7 +625,9 @@ class ReactNativeViewManagerGenerator(
 
             addSuperinterface(ReactNativeIOSViewWrapperClassName)
 
-            if (rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.FunctionProp>().isNotEmpty()) {
+            val hasFunctionProps = rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.FunctionProp>().isNotEmpty()
+
+            if (hasFunctionProps) {
                 addProperty(
                     PropertySpec.builder(
                         "callbacks",
@@ -638,59 +640,75 @@ class ReactNativeViewManagerGenerator(
                         .initializer("mutableMapOf()")
                         .build()
                 )
-
-                addFunction(
-                    FunSpec.builder("registerCallback")
-                        .addModifiers(KModifier.OVERRIDE)
-                        .addParameter("withName", STRING)
-                        .addParameter("callback", LambdaTypeName.get(
-                            receiver = null,
-                            parameters = listOf(ParameterSpec.builder("args", Map::class.parameterizedBy(String::class, Any::class)).build()),
-                            returnType = UNIT
-                        ))
-                        .addStatement("callbacks[withName] = callback")
-                        .build()
-                )
             }
 
-            if (rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.FlowProp>().isNotEmpty()) {
-                val valueVarName = "value"
+            addFunction(
+                FunSpec.builder("registerCallback")
+                    .addModifiers(KModifier.OVERRIDE)
+                    .addParameter("withName", STRING)
+                    .addParameter("callback", LambdaTypeName.get(
+                        receiver = null,
+                        parameters = listOf(ParameterSpec.builder("args", Map::class.parameterizedBy(String::class, Any::class)).build()),
+                        returnType = UNIT
+                    ))
+                    .apply {
+                        if (hasFunctionProps) {
+                            addStatement("callbacks[withName] = callback")
+                        } else {
+                            addStatement(
+                                "error(%S)",
+                                "This composable has no function props",
+                            )
+                        }
+                    }
+                    .build()
+            )
 
-                addFunction(
-                    FunSpec.builder("setPropValue")
-                        .addModifiers(KModifier.OVERRIDE)
-                        .addParameter("withName", STRING)
-                        .addParameter(valueVarName, Any::class)
-                        .addStatement(
-                            """
-                            when (withName) {
-                                %L
-                            }
-                            """.trimIndent(),
-                            rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.FlowProp>().map { prop ->
-                                CodeBlock.Builder().apply {
-                                    add(
-                                        "%S -> %L.tryEmit(%L)",
-                                        prop.name,
-                                        prop.name,
-                                        if (prop.typeArgument.declaration.requiresSerialization()) {
-                                            decodeFromString(CodeBlock.of("%N as String", valueVarName))
-                                        } else {
-                                            when (prop.typeArgument.declaration.qualifiedName?.asString()) {
-                                                "kotlin.Int" -> CodeBlock.of("(%N as %T).intValue", valueVarName, NSNumberClassName)
-                                                "kotlin.Double" -> CodeBlock.of("(%N as %T).doubleValue", valueVarName, NSNumberClassName)
-                                                "kotlin.Float" -> CodeBlock.of("(%N as %T).floatValue", valueVarName, NSNumberClassName)
-                                                "kotlin.Boolean" -> CodeBlock.of("(%N as %T).boolValue", valueVarName, NSNumberClassName)
-                                                else -> CodeBlock.of("%N as %T", valueVarName, prop.typeArgument.toTypeName())
+            val valueVarName = "value"
+
+            addFunction(
+                FunSpec.builder("setPropValue")
+                    .addModifiers(KModifier.OVERRIDE)
+                    .addParameter("withName", STRING)
+                    .addParameter(valueVarName, Any::class)
+                    .apply {
+                        if (rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.FlowProp>().isNotEmpty()) {
+                            addStatement(
+                                """
+                                when (withName) {
+                                    %L
+                                }
+                                """.trimIndent(),
+                                rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.FlowProp>().map { prop ->
+                                    CodeBlock.Builder().apply {
+                                        add(
+                                            "%S -> %L.tryEmit(%L)",
+                                            prop.name,
+                                            prop.name,
+                                            if (prop.typeArgument.declaration.requiresSerialization()) {
+                                                decodeFromString(CodeBlock.of("%N as String", valueVarName))
+                                            } else {
+                                                when (prop.typeArgument.declaration.qualifiedName?.asString()) {
+                                                    "kotlin.Int" -> CodeBlock.of("(%N as %T).intValue", valueVarName, NSNumberClassName)
+                                                    "kotlin.Double" -> CodeBlock.of("(%N as %T).doubleValue", valueVarName, NSNumberClassName)
+                                                    "kotlin.Float" -> CodeBlock.of("(%N as %T).floatValue", valueVarName, NSNumberClassName)
+                                                    "kotlin.Boolean" -> CodeBlock.of("(%N as %T).boolValue", valueVarName, NSNumberClassName)
+                                                    else -> CodeBlock.of("%N as %T", valueVarName, prop.typeArgument.toTypeName())
+                                                }
                                             }
-                                        }
-                                    )
-                                }.build()
-                            }.joinToCode("\n")
-                        )
-                        .build()
-                )
-            }
+                                        )
+                                    }.build()
+                                }.joinToCode("\n")
+                            )
+                        } else {
+                            addStatement(
+                                "error(%S)",
+                                "This composable has no flow props",
+                            )
+                        }
+                    }
+                    .build()
+            )
 
             rnViewManager.reactNativeProps.forEach { prop ->
                 when (prop) {

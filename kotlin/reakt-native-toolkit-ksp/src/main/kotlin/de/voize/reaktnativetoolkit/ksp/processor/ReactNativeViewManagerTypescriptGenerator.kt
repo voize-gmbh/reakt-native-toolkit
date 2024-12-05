@@ -171,13 +171,15 @@ internal class ReactNativeViewManagerTypescriptGenerator(
                         CodeBlock.builder().apply {
                             add(
                                 of(
-                                    "const {\n%L,\n...%N\n} = %N;\n",
-                                    rnViewManager.reactNativeProps.joinToString(",\n") {
-                                        when (it) {
-                                            is ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.FlowProp -> it.name
-                                            is ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.FunctionProp -> it.name
-                                        }
-                                    },
+                                    "const {\n%L...%N\n} = %N;\n",
+                                    if (rnViewManager.reactNativeProps.isNotEmpty()) {
+                                        rnViewManager.reactNativeProps.joinToString(",\n") {
+                                            when (it) {
+                                                is ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.FlowProp -> it.name
+                                                is ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.FunctionProp -> it.name
+                                            }
+                                        } + ",\n"
+                                    } else "",
                                     restVarName,
                                     propsVarName,
                                 )
