@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import {
   MyComposeView,
   MySecondComposeView,
+  MyTransparentComposeView,
 } from '../generated/nativeComponents';
 import { com } from '../generated/models';
 
@@ -59,6 +60,12 @@ const NativeComposeView: React.FC = () => {
           style={styles.nativeListItem}
         />
       ))}
+      <View style={{ borderWidth: 1, width: '100%' }}>
+        <Text style={{ padding: 20 }}>This RN text should be visible</Text>
+        <MyTransparentComposeView
+          style={{ width: '100%', height: '100%', position: 'absolute' }}
+        />
+      </View>
     </View>
   );
 };

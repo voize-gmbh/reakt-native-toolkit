@@ -86,6 +86,12 @@ interface MySecondComposeViewProps extends ViewProps {
 
 }
 
+interface NativeMyTransparentComposeViewProps {
+}
+
+interface MyTransparentComposeViewProps extends ViewProps {
+}
+
 const NativeMyComposeView = requireNativeComponent<NativeMyComposeViewProps>("MyComposeView");
 
 export const MyComposeView = (props: MyComposeViewProps) => {
@@ -227,4 +233,13 @@ export const MySecondComposeView = (props: MySecondComposeViewProps) => {
     onPress()}, [onPress]);
   return <NativeMySecondComposeView {...rest} index={indexMemoized}
   onPress={nativeOnPress} />;
+};
+
+const NativeMyTransparentComposeView = requireNativeComponent<NativeMyTransparentComposeViewProps>("MyTransparentComposeView");
+
+export const MyTransparentComposeView = (props: MyTransparentComposeViewProps) => {
+  const {
+  ...rest
+  } = props;
+  return <NativeMyTransparentComposeView {...rest}  />;
 };

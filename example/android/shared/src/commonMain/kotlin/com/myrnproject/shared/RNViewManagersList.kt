@@ -9,5 +9,6 @@ fun getReactNativeViewManagerProviders(
         MyComposeViewRNViewManagerProvider(persistentConfig),
         MySecondComposeViewRNViewManagerProvider(),
         MyMinimalComposeViewRNViewManagerProvider(),
+        MyTransparentComposeViewRNViewManagerProvider(),
     )
 }
