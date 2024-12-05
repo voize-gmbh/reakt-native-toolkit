@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.19.4
 
 - Fix generation for compose views with no props and no callbacks
 - Make compose views transparent on iOS
