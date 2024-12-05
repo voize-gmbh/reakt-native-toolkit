@@ -566,6 +566,7 @@ class ReactNativeViewManagerGenerator(
      * ```kotlin
      * package <package of annotated compose function>
      *
+     * import androidx.compose.runtime.ExperimentalComposeApi
      * import androidx.compose.ui.window.ComposeUIViewController
      * import de.voize.reaktnativetoolkit.util.ReactNativeIOSViewWrapper
      * import kotlinx.coroutines.flow.MutableSharedFlow
@@ -589,7 +590,8 @@ class ReactNativeViewManagerGenerator(
      *         }
      *     }
      *
-     *     public fun view(): UIView = ComposeUIViewController {
+     *     @OptIn(ExperimentalComposeApi::class)
+     *     public fun view(): UIView = ComposeUIViewController({ opaque = false }) {
      *         <class name of annotated compose function>(
      *              <prop name> = <prop name>,
      *              <function prop name> = { arg0, arg1 ->
@@ -730,10 +732,15 @@ class ReactNativeViewManagerGenerator(
             addFunction(
                 FunSpec.builder("view")
                     .addModifiers(KModifier.PUBLIC, KModifier.OVERRIDE)
+                    .addAnnotation(
+                        AnnotationSpec.builder(OptInClassName)
+                            .addMember("%T::class", ExperimentalComposeApiClassName)
+                            .build()
+                    )
                     .returns(UIViewClassName)
                     .addStatement(
                         """
-                            return %T {
+                            return %T({ opaque = false }) {
                                 %T(%L)
                             }.view
                             """.trimIndent(),
@@ -1338,3 +1345,5 @@ private val ReactThemedReactContextClassName =
 private val ComposeUIViewControllerClassName = ClassName("androidx.compose.ui.window", "ComposeUIViewController")
 private val UIViewClassName = ClassName("platform.UIKit", "UIView")
 private val NSNumberClassName = ClassName("platform.Foundation", "NSNumber")
+private val ExperimentalComposeApiClassName = ClassName("androidx.compose.runtime", "ExperimentalComposeApi")
+private val OptInClassName = ClassName("kotlin", "OptIn")
