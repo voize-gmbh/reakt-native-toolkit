@@ -63,7 +63,7 @@ internal class ReactNativeViewManagerTypescriptGenerator(
         val nativePropsInterface = InterfaceSpec.builder(nativePropsInterfaceName).apply {
             rnViewManager.reactNativeProps.map { reactNativeProp ->
                 when (reactNativeProp) {
-                    is ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.FlowProp -> {
+                    is ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.ValueProp -> {
                         addProperty(
                             PropertySpec.builder(
                                 reactNativeProp.name,
@@ -91,7 +91,7 @@ internal class ReactNativeViewManagerTypescriptGenerator(
             addSuperInterface(ViewPropsTypeName)
             rnViewManager.reactNativeProps.map { reactNativeProp ->
                 when (reactNativeProp) {
-                    is ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.FlowProp -> {
+                    is ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.ValueProp -> {
                         addProperty(
                             PropertySpec.builder(
                                 reactNativeProp.name,
@@ -175,7 +175,7 @@ internal class ReactNativeViewManagerTypescriptGenerator(
                                     if (rnViewManager.reactNativeProps.isNotEmpty()) {
                                         rnViewManager.reactNativeProps.joinToString(",\n") {
                                             when (it) {
-                                                is ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.FlowProp -> it.name
+                                                is ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.ValueProp -> it.name
                                                 is ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.FunctionProp -> it.name
                                             }
                                         } + ",\n"
@@ -185,7 +185,7 @@ internal class ReactNativeViewManagerTypescriptGenerator(
                                 )
                             )
 
-                            rnViewManager.reactNativeProps.filterIsInstance<ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.FlowProp>().forEach {
+                            rnViewManager.reactNativeProps.filterIsInstance<ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.ValueProp>().forEach {
                                 val type = it.typeArgument
                                 val value = convertTypeToJson(
                                     it.name.asCodeBlock(),
@@ -269,7 +269,7 @@ internal class ReactNativeViewManagerTypescriptGenerator(
                                     CodeBlock.of("{...%L}", restVarName),
                                     rnViewManager.reactNativeProps.map {
                                         when (it) {
-                                            is ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.FlowProp -> {
+                                            is ReactNativeViewManagerGenerator.RNViewManager.ReactNativeProp.ValueProp -> {
                                                 jsxProp(it.name, CodeBlock.of(it.name.toMemoizedPropName()))
                                             }
 

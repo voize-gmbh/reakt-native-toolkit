@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Update generation for compose views so props are direct values instead of flows
+
 ## v0.19.4
 
 - Fix generation for compose views with no props and no callbacks

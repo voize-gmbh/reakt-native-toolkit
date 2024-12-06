@@ -54,7 +54,7 @@ class ReactNativeViewManagerGenerator(
         val restParameters: List<KSValueParameter>,
     ) {
         sealed class ReactNativeProp {
-            data class FlowProp(
+            data class ValueProp(
                 val name: String,
                 val typeArgument: KSType,
             ) : ReactNativeProp()
@@ -202,7 +202,7 @@ class ReactNativeViewManagerGenerator(
         val typeDeclarations =
             rnViewManagers.flatMap { it.reactNativeProps }.flatMap {
                 when (it) {
-                    is RNViewManager.ReactNativeProp.FlowProp -> listOf(it.typeArgument)
+                    is RNViewManager.ReactNativeProp.ValueProp -> listOf(it.typeArgument)
                     is RNViewManager.ReactNativeProp.FunctionProp -> it.parameters
                 }
             }.distinct()
@@ -222,9 +222,9 @@ class ReactNativeViewManagerGenerator(
      * ) : SimpleViewManager<ComposeViewWrapper>() {
      *     override fun getName() = "<view manager name specified in annotation>"
      *
-     *     @ReactProp(name = "<prop name>")
-     *     fun set<prop name>(view: ComposeView, value: <type of prop>) {
-     *          <prop name>.tryEmit(value)
+     *     @ReactProp(name = "<value prop name>")
+     *     fun set<value prop name>(view: ComposeView, value: <type of prop>) {
+     *          <value prop name>.value = StateOrInitial.State(value)
      *     }
      *
      *     private fun <lambda prop name>(context: ReactContext, id: Int) {
@@ -245,7 +245,7 @@ class ReactNativeViewManagerGenerator(
      *          private val reactContext: ThemedReactContext,
      *          <... compose function parameters>
      *     ): AbstractComposeView(reactContext) {
-     *          private val <prop name> = MutableSharedFlow<type of prop>()
+     *          private val <value prop name> = MutableStateFlow<StateOrInitial<type of value prop>>(StateOrInitial.Initial)
      *
      *          init {
      *              // workaround for "Cannot locate windowRecomposer" error
@@ -257,9 +257,15 @@ class ReactNativeViewManagerGenerator(
      *
      *          @Composable
      *          override fun Content() {
+     *              val <value prop name>State by <value prop name>.collectAsState()
+     *
+     *              if (<value prop name>State !is StateOrInitial.State) {
+     *                  return
+     *              }
+     *
      *              <class name of annotated compose function>(
-     *                  <prop value>,
-     *                  <lambda prop name>(reactContext as ReactContext, id),
+     *                  <value prop name> = <value prop name>State.value,
+     *                  <lambda prop name> = <lambda prop name>(reactContext as ReactContext, id),
      *                  <... compose function parameters>,
      *              )
      *          }
@@ -339,13 +345,21 @@ class ReactNativeViewManagerGenerator(
 
                 rnViewManager.reactNativeProps.forEach { prop ->
                     when (prop) {
-                        is RNViewManager.ReactNativeProp.FlowProp -> {
+                        is RNViewManager.ReactNativeProp.ValueProp -> {
                             addProperty(
                                 PropertySpec.builder(
                                     prop.name,
-                                    MutableSharedFlowClassName.parameterizedBy(prop.typeArgument.toTypeName())
+                                    MutableStateFlowClassName.parameterizedBy(
+                                        StateOrInitialClassName.parameterizedBy(
+                                            prop.typeArgument.toTypeName()
+                                        )
+                                    )
                                 )
-                                    .initializer("%T(replay = 1)", MutableSharedFlowClassName)
+                                    .initializer(
+                                        "%T(%T.Initial)",
+                                        MutableStateFlowClassName,
+                                        StateOrInitialClassName,
+                                    )
                                     .build()
                             )
                         }
@@ -372,19 +386,45 @@ class ReactNativeViewManagerGenerator(
                         .build()
                 )
 
+                fun String.toStateVarName() = "${this}State"
+
                 addFunction(
                     FunSpec
                         .builder("Content")
                         .addModifiers(KModifier.OVERRIDE)
                         .addAnnotation(ClassName("androidx.compose.runtime", "Composable"))
+                        .addCode(CodeBlock.Builder().apply {
+                            rnViewManager.reactNativeProps.forEach { prop ->
+                                when (prop) {
+                                    is RNViewManager.ReactNativeProp.ValueProp -> {
+                                        addStatement(
+                                            "val %L = %L.%T().value",
+                                            prop.name.toStateVarName(),
+                                            prop.name,
+                                            CollectAsStateClassName,
+                                        )
+                                        addStatement(
+                                            "if (%L !is %T.State) { return }",
+                                            prop.name.toStateVarName(),
+                                            StateOrInitialClassName,
+                                        )
+                                    }
+                                    else -> {}
+                                }
+                            }
+                        }.build())
                         .addCode(CodeBlock.of(
                             "%T(%L)",
                             ClassName(rnViewManager.packageName, wrappedFunctionName),
                             CodeBlock.Builder().apply {
                                 rnViewManager.reactNativeProps.forEach { prop ->
                                     when (prop) {
-                                        is RNViewManager.ReactNativeProp.FlowProp -> {
-                                            add("%L = %L,\n", prop.name, prop.name)
+                                        is RNViewManager.ReactNativeProp.ValueProp -> {
+                                            add(
+                                                "%L = %L.value,\n",
+                                                prop.name,
+                                                prop.name.toStateVarName()
+                                            )
                                         }
                                         is RNViewManager.ReactNativeProp.FunctionProp -> {
                                             add(
@@ -413,7 +453,7 @@ class ReactNativeViewManagerGenerator(
 
             rnViewManager.reactNativeProps.forEach { prop ->
                 when (prop) {
-                    is RNViewManager.ReactNativeProp.FlowProp -> {
+                    is RNViewManager.ReactNativeProp.ValueProp -> {
                         val setterName = prop.name.toRNViewManagerPropSetter()
                         val varName = "value"
                         val viewVarName = "view"
@@ -441,9 +481,10 @@ class ReactNativeViewManagerGenerator(
                                     ).build()
                                 )
                                 .addStatement(
-                                    "%L.%L.tryEmit(%L)",
+                                    "%L.%L.value = %T.State(%L)",
                                     viewVarName,
                                     prop.name,
+                                    StateOrInitialClassName,
                                     if (prop.typeArgument.declaration.requiresSerialization()) {
                                         decodeFromString(CodeBlock.of("%N", varName))
                                     } else {
@@ -569,7 +610,7 @@ class ReactNativeViewManagerGenerator(
      * import androidx.compose.runtime.ExperimentalComposeApi
      * import androidx.compose.ui.window.ComposeUIViewController
      * import de.voize.reaktnativetoolkit.util.ReactNativeIOSViewWrapper
-     * import kotlinx.coroutines.flow.MutableSharedFlow
+     * import kotlinx.coroutines.flow.MutableStateFlow
      * import platform.UIKit.UIView
      *
      * class <class name of annotated compose function>RNViewWrapperIOS(
@@ -581,19 +622,25 @@ class ReactNativeViewManagerGenerator(
      *         callbacks[withName] = callback
      *     }
      *
-     *     private val <flow prop name>: MutableSharedFlow<<type of flow prop>> = MutableSharedFlow(replay = 1)
+     *     private val <value prop name> = MutableStateFlow<StateOrInitial<type of value prop>>(StateOrInitial.Initial)
      *
      *     public fun setPropValue(withName: String, value: Any) {
      *         when (withName) {
-     *             "<flow prop name>" -> <flow prop name>.tryEmit(value as <type of flow prop>)
+     *             "<value prop name>" -> <value prop name>.value = StateOrInitial.State(value as <type of value prop>)
      *             ...
      *         }
      *     }
      *
      *     @OptIn(ExperimentalComposeApi::class)
      *     public fun view(): UIView = ComposeUIViewController({ opaque = false }) {
+     *          val <value prop name>State by <value prop name>.collectAsState()
+     *
+     *          if (<value prop name>State !is StateOrInitial.State) {
+     *              return
+     *          }
+     *
      *         <class name of annotated compose function>(
-     *              <prop name> = <prop name>,
+     *              <value prop name> = <value prop name>State.value,
      *              <function prop name> = { arg0, arg1 ->
      *                  callbacks.getValue("<function prop name>")(mapOf("args" to listOf(arg0, arg1)))
      *              },
@@ -674,19 +721,20 @@ class ReactNativeViewManagerGenerator(
                     .addParameter("withName", STRING)
                     .addParameter(valueVarName, Any::class)
                     .apply {
-                        if (rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.FlowProp>().isNotEmpty()) {
+                        if (rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.ValueProp>().isNotEmpty()) {
                             addStatement(
                                 """
                                 when (withName) {
                                     %L
                                 }
                                 """.trimIndent(),
-                                rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.FlowProp>().map { prop ->
+                                rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.ValueProp>().map { prop ->
                                     CodeBlock.Builder().apply {
                                         add(
-                                            "%S -> %L.tryEmit(%L)",
+                                            "%S -> %L.value = %T.State(%L)",
                                             prop.name,
                                             prop.name,
+                                            StateOrInitialClassName,
                                             if (prop.typeArgument.declaration.requiresSerialization()) {
                                                 decodeFromString(CodeBlock.of("%N as String", valueVarName))
                                             } else {
@@ -705,7 +753,7 @@ class ReactNativeViewManagerGenerator(
                         } else {
                             addStatement(
                                 "error(%S)",
-                                "This composable has no flow props",
+                                "This composable has no value props",
                             )
                         }
                     }
@@ -714,20 +762,28 @@ class ReactNativeViewManagerGenerator(
 
             rnViewManager.reactNativeProps.forEach { prop ->
                 when (prop) {
-                    is RNViewManager.ReactNativeProp.FlowProp -> {
+                    is RNViewManager.ReactNativeProp.ValueProp -> {
                         addProperty(
                             PropertySpec.builder(
                                 prop.name,
-                                MutableSharedFlowClassName.parameterizedBy(prop.typeArgument.toTypeName())
+                                MutableStateFlowClassName.parameterizedBy(
+                                    StateOrInitialClassName.parameterizedBy(prop.typeArgument.toTypeName())
+                                ),
                             )
                                 .addModifiers(KModifier.PRIVATE)
-                                .initializer("%T(replay = 1)", MutableSharedFlowClassName)
+                                .initializer(
+                                    "%T(%T.Initial)",
+                                    MutableStateFlowClassName,
+                                    StateOrInitialClassName,
+                                )
                                 .build()
                         )
                     }
                     is RNViewManager.ReactNativeProp.FunctionProp -> {}
                 }
             }
+
+            fun String.toStateVarName() = "${this}State"
 
             addFunction(
                 FunSpec.builder("view")
@@ -741,16 +797,43 @@ class ReactNativeViewManagerGenerator(
                     .addStatement(
                         """
                             return %T({ opaque = false }) {
+                                %L
+                            
                                 %T(%L)
                             }.view
                             """.trimIndent(),
                         ComposeUIViewControllerClassName,
+                        CodeBlock.builder().apply {
+                            rnViewManager.reactNativeProps.forEach { prop ->
+                                when (prop) {
+                                    is RNViewManager.ReactNativeProp.ValueProp -> {
+                                        addStatement(
+                                            "val %L = %L.%T().value",
+                                            prop.name.toStateVarName(),
+                                            prop.name,
+                                            CollectAsStateClassName,
+                                        )
+                                        addStatement(
+                                            "if (%L !is %T.State) { return@%T }",
+                                            prop.name.toStateVarName(),
+                                            StateOrInitialClassName,
+                                            ComposeUIViewControllerClassName,
+                                        )
+                                    }
+                                    else -> {}
+                                }
+                            }
+                        }.build(),
                         ClassName(rnViewManager.packageName, rnViewManager.functionName),
                         CodeBlock.builder().apply {
                             rnViewManager.reactNativeProps.forEach { prop ->
                                 when (prop) {
-                                    is RNViewManager.ReactNativeProp.FlowProp -> {
-                                        add("%L = %L,\n", prop.name, prop.name)
+                                    is RNViewManager.ReactNativeProp.ValueProp -> {
+                                        add(
+                                            "%L = %L.value,\n",
+                                            prop.name,
+                                            prop.name.toStateVarName(),
+                                        )
                                     }
                                     is RNViewManager.ReactNativeProp.FunctionProp -> {
                                         add(
@@ -808,7 +891,6 @@ class ReactNativeViewManagerGenerator(
      *
      * import androidx.compose.ui.window.ComposeUIViewController
      * import de.voize.reaktnativetoolkit.util.ReactNativeIOSViewWrapper
-     * import kotlinx.coroutines.flow.MutableSharedFlow
      * import platform.UIKit.UIView
      *
      * class <class name of annotated compose function>RNViewWrapperFactoryIOS(
@@ -983,7 +1065,7 @@ ${rnViewManager.reactNativeProps.filterIsInstance<RNViewManager.ReactNativeProp.
 
 ${rnViewManager.reactNativeProps.map { prop ->
     when (prop) {
-        is RNViewManager.ReactNativeProp.FlowProp -> {
+        is RNViewManager.ReactNativeProp.ValueProp -> {
             val valueVarName = "json"
             val nsTypeName = prop.typeArgument.toNSTypeName()
             
@@ -1238,18 +1320,7 @@ RCT_EXPORT_VIEW_PROPERTY(${prop.name}, RCTBubblingEventBlock)
                     val parameterType = parameter.type.resolve()
                     val name = (parameter.name ?: error("Prop name is required")).asString()
 
-                    if (parameterType.declaration.qualifiedName?.asString() == "kotlinx.coroutines.flow.Flow") {
-                        val typeArgument = parameterType.resolveTypeArgument(0)
-
-                        check (typeArgument.declaration.qualifiedName?.asString() != "kotlin.Long") {
-                            "Flow<Long> is not supported. Use Flow<Int> instead."
-                        }
-
-                        RNViewManager.ReactNativeProp.FlowProp(
-                            name,
-                            typeArgument,
-                        )
-                    } else if (parameterType.isFunctionType) {
+                    if (parameterType.isFunctionType) {
                         RNViewManager.ReactNativeProp.FunctionProp(
                             name,
                             parameterType.arguments
@@ -1257,7 +1328,13 @@ RCT_EXPORT_VIEW_PROPERTY(${prop.name}, RCTBubblingEventBlock)
                                 .map { it.type!!.resolve() }
                         )
                     } else {
-                        error("Unsupported prop type: $parameterType. Prop must either be a Flow<T> or a Function.")
+                        check (parameterType.declaration.qualifiedName?.asString() != "kotlin.Long") {
+                            "Long is not supported. Use Int instead."
+                        }
+                        RNViewManager.ReactNativeProp.ValueProp(
+                            name,
+                            parameterType,
+                        )
                     }
                 },
                 restParameters = parameters.filterNot {
@@ -1318,14 +1395,8 @@ private fun KSDeclaration.requiresSerialization(): Boolean {
     })
 }
 
-private fun KSType.resolveTypeArgument(index: Int): KSType {
-    val argument = arguments[index]
-    val type = argument.type ?: error("Could not resolve type argument")
-    return type.resolve()
-}
-
 private val ArgumentsClassName = ClassName("com.facebook.react.bridge", "Arguments")
-private val MutableSharedFlowClassName = ClassName("kotlinx.coroutines.flow", "MutableSharedFlow")
+private val MutableStateFlowClassName = ClassName("kotlinx.coroutines.flow", "MutableStateFlow")
 private val ReactPropClassName = ClassName("com.facebook.react.uimanager.annotations", "ReactProp")
 private val AbstractComposeViewClassName = ClassName("androidx.compose.ui.platform", "AbstractComposeView")
 
@@ -1333,6 +1404,8 @@ private val ReactNativeViewManagerProviderClassName =
     ClassName(toolkitUtilPackageName, "ReactNativeViewManagerProvider")
 private val ReactNativeIOSViewWrapperClassName = ClassName(toolkitUtilPackageName, "ReactNativeIOSViewWrapper")
 private val ReactNativeIOSViewWrapperFactoryClassName = ClassName(toolkitUtilPackageName, "ReactNativeIOSViewWrapperFactory")
+private val StateOrInitialClassName = ClassName(toolkitUtilPackageName, "StateOrInitial")
+private val CollectAsStateClassName = ClassName("androidx.compose.runtime", "collectAsState")
 
 private val ReactViewManagerClassName = ClassName("com.facebook.react.uimanager", "ViewManager")
 private val RCTEventEmitterClassName = ClassName("com.facebook.react.uimanager.events", "RCTEventEmitter")
