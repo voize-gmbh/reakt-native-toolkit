@@ -1,6 +1,6 @@
 {
   "name": "reakt-native-toolkit",
-  "version": "0.19.4",
+  "version": "0.19.5",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "repository": "https://github.com/voize-gmbh/reakt-native-toolkit",
