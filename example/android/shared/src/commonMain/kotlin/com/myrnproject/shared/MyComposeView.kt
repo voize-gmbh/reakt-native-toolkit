@@ -25,25 +25,25 @@ data class MyDataClass(
 @ReactNativeViewManager("MyComposeView")
 internal fun MyComposeView(
     @ReactNativeProp
-    message: Flow<String>,
+    message: String,
     @ReactNativeProp
-    textFieldValue: Flow<String>,
+    textFieldValue: String,
     @ReactNativeProp
-    nullableStringProp: Flow<String?>,
+    nullableStringProp: String?,
     @ReactNativeProp
-    boolProp: Flow<Boolean>,
+    boolProp: Boolean,
     @ReactNativeProp
-    intProp: Flow<Int>,
+    intProp: Int,
     @ReactNativeProp
-    doubleProp: Flow<Double>,
+    doubleProp: Double,
     @ReactNativeProp
-    floatProp: Flow<Float>,
+    floatProp: Float,
     @ReactNativeProp
-    objectProp: Flow<MyDataClass>,
+    objectProp: MyDataClass,
     @ReactNativeProp
-    enumProp: Flow<Enum>,
+    enumProp: Enum,
     @ReactNativeProp
-    listProp: Flow<List<MyDataClass>>,
+    listProp: List<MyDataClass>,
     @ReactNativeProp
     onTextFieldValueChange: (String) -> Unit,
     @ReactNativeProp
@@ -64,29 +64,20 @@ internal fun MyComposeView(
     persistentConfig: PersistentConfig,
 ) {
     val name by persistentConfig.getConfigAsFlow("name").collectAsState(null)
-    val messageValue by message.collectAsState("initial!")
-    val nullableStringValue by nullableStringProp.collectAsState(null)
-    val boolValue by boolProp.collectAsState(null)
-    val intValue by intProp.collectAsState(null)
-    val doubleValue by doubleProp.collectAsState(null)
-    val floatValue by floatProp.collectAsState(null)
-    val objectValue by objectProp.collectAsState(null)
-    val enumValue by enumProp.collectAsState(null)
-    val listValue by listProp.collectAsState(emptyList())
 
     Column {
         Text("Hello from Compose, ${name ?: "unknown"}!")
 
         listOf(
-            "message" to messageValue,
-            "nullableStringProp" to nullableStringValue,
-            "boolProp" to boolValue,
-            "intProp" to intValue,
-            "doubleProp" to doubleValue,
-            "floatProp" to floatValue,
-            "objectProp" to objectValue,
-            "enumProp" to enumValue,
-            "listProp" to listValue,
+            "message" to message,
+            "nullableStringProp" to nullableStringProp,
+            "boolProp" to boolProp,
+            "intProp" to intProp,
+            "doubleProp" to doubleProp,
+            "floatProp" to floatProp,
+            "objectProp" to objectProp,
+            "enumProp" to enumProp,
+            "listProp" to listProp,
         ).forEach { (propName, propValue) ->
             Text("Value of prop \"$propName\": $propValue")
         }
@@ -122,7 +113,7 @@ internal fun MyComposeView(
             Text("Click me!")
         }
         TextField(
-            value = textFieldValue.collectAsState("").value,
+            value = textFieldValue,
             onValueChange = onTextFieldValueChange,
             label = { Text("This text field is controlled by React Native") },
         )
