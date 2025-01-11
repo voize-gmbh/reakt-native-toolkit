@@ -872,12 +872,12 @@ class ReactNativeModuleGenerator(
                             CodeBlock.of("return %L", true)
                         ).build()
                 )
-                val containingFile = rnModule.wrappedClassDeclaration.containingFile
-                if (containingFile != null) {
-                    addOriginatingKSFile(containingFile)
-                }
             }.build())
 
+            val containingFile = rnModule.wrappedClassDeclaration.containingFile
+            if (containingFile != null) {
+                addOriginatingKSFile(containingFile)
+            }
         }.build()
 
         val fileSpec = FileSpec.builder(packageName, className)
