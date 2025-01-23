@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.20.0
 
 - Set originating file on correct type for ios
 - Support sealed interfaces like sealed classes
