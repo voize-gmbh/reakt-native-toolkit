@@ -1358,7 +1358,13 @@ RCT_EXPORT_VIEW_PROPERTY(${prop.name}, RCTBubblingEventBlock)
         else -> when (val declaration = this.declaration) {
             is KSClassDeclaration -> {
                 when (declaration.classKind) {
-                    ClassKind.INTERFACE -> error("Interfaces are not supported")
+                    ClassKind.INTERFACE -> {
+                        if (Modifier.SEALED in declaration.modifiers) {
+                            "NSString"
+                        } else {
+                            error("Interfaces are not supported")
+                        }
+                    }
                     ClassKind.CLASS -> {
                         if (Modifier.DATA in declaration.modifiers) {
                             "NSString"
@@ -1389,6 +1395,7 @@ private fun KSDeclaration.requiresSerialization(): Boolean {
     return qualifiedName?.asString() in types
             || (this is KSClassDeclaration && when (this.classKind) {
         ClassKind.CLASS -> this.origin == Origin.KOTLIN
+        ClassKind.INTERFACE -> true
         ClassKind.OBJECT -> true
         ClassKind.ENUM_CLASS -> true
         else -> false

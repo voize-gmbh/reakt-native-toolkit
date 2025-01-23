@@ -41,6 +41,9 @@ const NativeComposeView: React.FC = () => {
           ]}
           enumProp={com.myrnproject.shared.Enum.Option1}
           textFieldValue={text}
+          sealedInterface={{
+            type: com.myrnproject.shared.TestSealedInterfaceTypeType.Option3,
+          }}
           onTextFieldValueChange={setText}
           onButtonPress={() => setCounter((prev) => prev + 1)}
           onTestParams={(...args) => {

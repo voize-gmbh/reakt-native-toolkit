@@ -107,12 +107,12 @@ internal class TypescriptModelsGenerator(
     }
 
     private fun KSClassDeclaration.getSealedTypescriptBaseType(): TypeName? {
-        val sealedClassDeclaration = getSealedSuperclass()
-        return if (sealedClassDeclaration != null) {
-            val baseTypeName = sealedClassDeclaration.getTypescriptNameWithNamespace() + "Base"
+        val sealedDeclaration = getSealedSuperclass()
+        return if (sealedDeclaration != null) {
+            val baseTypeName = sealedDeclaration.getTypescriptNameWithNamespace() + "Base"
             val baseTypeTypeName = getTypeName(baseTypeName, config.externalTypeMapping)
             baseTypeTypeName.parameterized(
-                TypeName.standard(getSealedSubclassTypeEnumSymbol(sealedClassDeclaration))
+                TypeName.standard(getSealedSubclassTypeEnumSymbol(sealedDeclaration))
             )
         } else null
     }
@@ -127,7 +127,13 @@ internal class TypescriptModelsGenerator(
                     val sealedBaseType = declaration.getSealedTypescriptBaseType()
 
                     when (declaration.classKind) {
-                        ClassKind.INTERFACE -> error("Interfaces are not supported")
+                        ClassKind.INTERFACE ->  {
+                            if(com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                                createSealedType(sealedBaseType, declaration, typescriptFileBuilder)
+                            } else {
+                                error("Interfaces are not supported: $declaration at ${declaration.location}")
+                            }
+                        }
                         ClassKind.CLASS -> {
                             if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
                                 // data class
@@ -145,66 +151,13 @@ internal class TypescriptModelsGenerator(
                                             declaration.qualifiedName!!.asString()
                                         )
                                         addProperties(
-                                            declaration.getAllProperties()
+                                            declaration.getDeclaredBackedProperties()
                                                 .map { toTypescriptPropertySpec(it) }.toList()
                                         )
                                     }.build()
                                 typescriptFileBuilder.addInterface(interfaceSpec)
                             } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
-                                if (sealedBaseType != null) {
-                                    error("Sealed classes as direct members of other sealed classes are not supported: $declaration")
-                                }
-                                declaration.assertSerializable {
-                                    "Sealed classes must be annotated with @Serializable: $declaration"
-                                }
-                                val subclasses = declaration.getSealedSubclasses()
-                                val subclassesToDiscriminator =
-                                    subclasses.associateWith { it.getSealedSubclassDiscriminatorValue() }
-                                val typeEnumName = declaration.getTypescriptName() + "Type"
-                                val typeEnumTypeName = getTypeName(typeEnumName, config.externalTypeMapping)
-                                EnumSpec.builder(typeEnumName).apply {
-                                    addModifiers(Modifier.EXPORT)
-                                    subclassesToDiscriminator.forEach { (subclassDeclaration, discriminator) ->
-                                        addConstant(
-                                            subclassDeclaration.getTypescriptName(),
-                                            CodeBlock.of("%S", discriminator)
-                                        )
-                                    }
-                                }.build().let {
-                                    typescriptFileBuilder.addEnum(it)
-                                }
-                                val baseTypeName = declaration.getTypescriptName() + "Base"
-
-                                val discriminatorKey =
-                                    declaration.getDiscriminatorKeyForSealedClass()
-
-                                InterfaceSpec.builder(baseTypeName).apply {
-                                    val typeVariable =
-                                        TypeName.typeVariable(
-                                            "T",
-                                            TypeName.bound(typeEnumTypeName)
-                                        )
-                                    addTypeVariable(typeVariable)
-                                    addProperty(
-                                        PropertySpec.builder(
-                                            discriminatorKey,
-                                            typeVariable,
-                                        ).build()
-                                    )
-                                }.build().let {
-                                    typescriptFileBuilder.addInterface(it)
-                                }
-
-                                val sealedTypeUnion = TypeAliasSpec.builder(
-                                    declaration.getTypescriptName(),
-                                    TypeName.unionType(*subclasses.map { getTypeName(it.getTypescriptNameWithNamespace(), config.externalTypeMapping) }
-                                        .toList().toTypedArray())
-                                ).addModifiers(Modifier.EXPORT)
-                                    .addTSDoc(
-                                        "Sealed class generated from {@link %N}\n",
-                                        declaration.qualifiedName!!.asString()
-                                    ).build()
-                                typescriptFileBuilder.addTypeAlias(sealedTypeUnion)
+                                createSealedType(sealedBaseType, declaration, typescriptFileBuilder)
                             } else {
                                 error("Only data classes and sealed classes are supported, found: $declaration")
                             }
@@ -288,6 +241,72 @@ internal class TypescriptModelsGenerator(
         }
     }
 
+    private fun createSealedType(
+        sealedBaseType: TypeName?,
+        declaration: KSClassDeclaration,
+        typescriptFileBuilder: ModuleSpec.Builder
+    ) {
+        if (sealedBaseType != null) {
+            error("Sealed declaration as direct members of other sealed classes/interfaces are not supported: $declaration")
+        }
+        declaration.assertSerializable {
+            "Sealed classes/interfaces must be annotated with @Serializable: $declaration"
+        }
+        val subclasses = declaration.getSealedSubclasses()
+        val subclassesToDiscriminator =
+            subclasses.associateWith { it.getSealedSubclassDiscriminatorValue() }
+        val typeEnumName = declaration.getTypescriptName() + "Type"
+        val typeEnumTypeName = getTypeName(typeEnumName, config.externalTypeMapping)
+        EnumSpec.builder(typeEnumName).apply {
+            addModifiers(Modifier.EXPORT)
+            subclassesToDiscriminator.forEach { (subclassDeclaration, discriminator) ->
+                addConstant(
+                    subclassDeclaration.getTypescriptName(),
+                    CodeBlock.of("%S", discriminator)
+                )
+            }
+        }.build().let {
+            typescriptFileBuilder.addEnum(it)
+        }
+        val baseTypeName = declaration.getTypescriptName() + "Base"
+
+        val discriminatorKey =
+            declaration.getDiscriminatorKeyForSealedClass()
+
+        InterfaceSpec.builder(baseTypeName).apply {
+            val typeVariable =
+                TypeName.typeVariable(
+                    "T",
+                    TypeName.bound(typeEnumTypeName)
+                )
+            addTypeVariable(typeVariable)
+            addProperty(
+                PropertySpec.builder(
+                    discriminatorKey,
+                    typeVariable,
+                ).build()
+            )
+        }.build().let {
+            typescriptFileBuilder.addInterface(it)
+        }
+
+        val sealedTypeUnion = TypeAliasSpec.builder(
+            declaration.getTypescriptName(),
+            TypeName.unionType(*subclasses.map {
+                getTypeName(
+                    it.getTypescriptNameWithNamespace(),
+                    config.externalTypeMapping
+                )
+            }
+                .toList().toTypedArray())
+        ).addModifiers(Modifier.EXPORT)
+            .addTSDoc(
+                "Sealed type generated from {@link %N}\n",
+                declaration.qualifiedName!!.asString()
+            ).build()
+        typescriptFileBuilder.addTypeAlias(sealedTypeUnion)
+    }
+
     /**
      * Create js mappings from and to json for a given declaration.
      */
@@ -299,14 +318,22 @@ internal class TypescriptModelsGenerator(
             else -> when (declaration) {
                 is KSClassDeclaration -> {
                     when (declaration.classKind) {
-                        ClassKind.INTERFACE -> error("Interfaces are not supported")
+                        ClassKind.INTERFACE -> {
+                            if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                                typescriptFileBuilder.createTypescriptTypeMappingForSealedDeclaration(
+                                    declaration
+                                )
+                            } else {
+                                error("Interfaces are not supported")
+                            }
+                        }
                         ClassKind.CLASS -> {
                             if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
                                 typescriptFileBuilder.createTypescriptTypeMappingForDataClass(
                                     declaration
                                 )
                             } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
-                                typescriptFileBuilder.createTypescriptTypeMappingForSealedClass(
+                                typescriptFileBuilder.createTypescriptTypeMappingForSealedDeclaration(
                                     declaration
                                 )
                             } else {
@@ -553,7 +580,7 @@ internal class TypescriptModelsGenerator(
                             returnStatement(
                                 CodeBlock.of(
                                     "{%>%L%<}",
-                                    declaration.getAllProperties()
+                                    declaration.getDeclaredBackedProperties()
                                         .map {
                                             val name = it.getJSName()
                                             property(
@@ -606,7 +633,7 @@ internal class TypescriptModelsGenerator(
                             returnStatement(
                                 CodeBlock.of(
                                     "{%>%L%<}",
-                                    declaration.getAllProperties()
+                                    declaration.getDeclaredBackedProperties()
                                         .map {
                                             val name = it.getJSName()
                                             property(
@@ -640,7 +667,7 @@ internal class TypescriptModelsGenerator(
         addFunction(toJson)
     }
 
-    private fun ModuleSpec.Builder.createTypescriptTypeMappingForSealedClass(
+    private fun ModuleSpec.Builder.createTypescriptTypeMappingForSealedDeclaration(
         declaration: KSClassDeclaration
     ) {
         val subclasses = declaration.getSealedSubclasses()

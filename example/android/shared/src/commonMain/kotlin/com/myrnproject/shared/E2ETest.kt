@@ -12,6 +12,7 @@ import de.voize.reaktnativetoolkit.annotation.ReactNativeMethod
 import de.voize.reaktnativetoolkit.annotation.ReactNativeModule
 import de.voize.reaktnativetoolkit.annotation.ReactNativeFlow
 import de.voize.reaktnativetoolkit.annotation.JSType
+import de.voize.reaktnativetoolkit.annotation.ExportTypescriptType
 import kotlinx.serialization.json.JsonClassDiscriminator
 
 @ReactNativeModule("E2ETest")
@@ -80,6 +81,11 @@ class E2ETest {
     @ReactNativeMethod
     fun example(input: TestSealedType, testEnum: Enum?): Test {
         return Test("Erik", listOf(), mapOf(), 30)
+    }
+
+    @ReactNativeMethod
+    fun testSealedInterface(input: TestSealedInterfaceType): TestSealedInterfaceType {
+        return input
     }
 
     @ReactNativeMethod
@@ -220,6 +226,40 @@ sealed class TestSealedType {
 }
 
 @Serializable
+sealed interface TestSealedInterfaceType {
+    val id: Int
+    @Serializable
+    @SerialName("option1")
+    data class Option1(
+        override val id: Int,
+        val name: String,
+        val nested: Nested,
+    ) : TestSealedInterfaceType {
+        @Serializable
+        data class Nested(
+            val nullable: String?
+        )
+    }
+
+    @Serializable
+    @SerialName("option2")
+    data class Option2(
+        val number: Int,
+        val nonNested: NonNested,
+    ) : TestSealedInterfaceType {
+        override val id: Int
+            get() = number
+    }
+
+    @Serializable
+    @SerialName("option3")
+    object Option3 : TestSealedInterfaceType {
+        override val id: Int
+            get() = 3
+    }
+}
+
+@Serializable
 @JsonClassDiscriminator("customType")
 sealed class TestSealedTypeWithCustomDiscriminator {
     @Serializable
@@ -274,12 +314,9 @@ data class DateTimeTest(
     val dateOrNull: @JSType("date") Instant?,
 )
 
-/*
-// supported with version 0.14.0
 @Serializable
 @ExportTypescriptType // export typescript type manually
 data class ManuallyExportedType(
     val test: String,
     val enum: Enum,
 )
-*/

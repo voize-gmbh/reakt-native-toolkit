@@ -77,6 +77,8 @@ interface NativeE2ETestInterface {
 
   example(input: string, testEnum: string): Promise<string>;
 
+  testSealedInterface(input: string): Promise<string>;
+
   testSealedClassProperties(test: string): Promise<string>;
 
   testKotlinDateTime(
@@ -176,6 +178,8 @@ export interface E2ETestInterface {
 
   example(input: com.myrnproject.shared.TestSealedType,
       testEnum: com.myrnproject.shared.Enum | null): Promise<com.myrnproject.shared.Test>;
+
+  testSealedInterface(input: com.myrnproject.shared.TestSealedInterfaceType): Promise<com.myrnproject.shared.TestSealedInterfaceType>;
 
   testSealedClassProperties(test: com.myrnproject.shared.TestSealedClassProperties): Promise<com.myrnproject.shared.TestSealedClassProperties>;
 
@@ -555,6 +559,14 @@ export const E2ETest: E2ETestInterface = {
     const temp = result;
     return com.myrnproject.shared.fromJsonTest(temp);
   })()) as com.myrnproject.shared.Test),
+  ['testSealedInterface']: (input: com.myrnproject.shared.TestSealedInterfaceType) =>
+      NativeE2ETest.testSealedInterface(JSON.stringify((() => {
+    const temp = input;
+    return com.myrnproject.shared.toJsonTestSealedInterfaceType(temp);
+  })())).then(JSON.parse).then((result) => ((() => {
+    const temp = result;
+    return com.myrnproject.shared.fromJsonTestSealedInterfaceType(temp);
+  })()) as com.myrnproject.shared.TestSealedInterfaceType),
   ['testSealedClassProperties']: (test: com.myrnproject.shared.TestSealedClassProperties) =>
       NativeE2ETest.testSealedClassProperties(JSON.stringify((() => {
     const temp = test;

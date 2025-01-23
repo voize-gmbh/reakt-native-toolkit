@@ -1,5 +1,6 @@
 package de.voize.reaktnativetoolkit.ksp.processor
 
+import com.google.devtools.ksp.getDeclaredProperties
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
@@ -119,7 +120,13 @@ internal fun getTypescriptTypeName(
                     is KSClassDeclaration -> {
                         val sealedSuperclass = declaration.getSealedSuperclass()
                         when (declaration.classKind) {
-                            ClassKind.INTERFACE -> error("Interfaces are not supported")
+                            ClassKind.INTERFACE -> {
+                                if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                                    getTypeName(declaration.getTypescriptNameWithNamespace(), externalTypeMapping)
+                                } else {
+                                    error("Interfaces are not supported")
+                                }
+                            }
                             ClassKind.CLASS -> {
                                 if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
                                     // data class
@@ -245,7 +252,14 @@ internal fun getTypescriptSerializedTypeName(ksType: KSType): TypeName {
             else -> when (val declaration = ksType.declaration) {
                 is KSClassDeclaration -> {
                     when (declaration.classKind) {
-                        ClassKind.INTERFACE -> error("Interfaces are not supported")
+                        ClassKind.INTERFACE -> {
+                            if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                                // sealed interface
+                                TypeName.STRING
+                            } else {
+                                error("Interfaces are not supported")
+                            }
+                        }
                         ClassKind.CLASS -> {
                             if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
                                 // data class
@@ -522,7 +536,18 @@ internal fun convertJsonToType(
                     nonNullVariableName.asCodeBlock()
                 } else when (declaration) {
                     is KSClassDeclaration -> when (declaration.classKind) {
-                        ClassKind.INTERFACE -> error("Interfaces are not supported")
+                        ClassKind.INTERFACE -> {
+                            if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                                // sealed interface
+                                CodeBlock.of(
+                                    "%Q(%N)",
+                                    declaration.getTypescriptFromJsonFunctionNameWithNamespace(externalTypeMapping),
+                                    nonNullVariableName,
+                                )
+                            } else {
+                                error("Interfaces are not supported")
+                            }
+                        }
                         ClassKind.CLASS -> {
                             if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
                                 // data class
@@ -719,7 +744,18 @@ internal fun convertTypeToJson(
                     nonNullVariableName.asCodeBlock()
                 } else when (declaration) {
                     is KSClassDeclaration -> when (declaration.classKind) {
-                        ClassKind.INTERFACE -> error("Interfaces are not supported")
+                        ClassKind.INTERFACE -> {
+                            if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                                // sealed interface
+                                CodeBlock.of(
+                                    "%Q(%N)",
+                                    declaration.getTypescriptToJsonFunctionNameWithNamespace(externalTypeMapping),
+                                    nonNullVariableName,
+                                )
+                            } else {
+                                error("Interfaces are not supported")
+                            }
+                        }
                         ClassKind.CLASS -> {
                             if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
                                 // data class
@@ -804,6 +840,10 @@ internal fun KSDeclaration.getTypescriptToJsonFunctionNameWithNamespace(
 ): SymbolSpec {
     return getSymbol(getTypescriptNamespace(), externalTypeMapping).nested(getTypescriptToJsonFunctionName())
 }
+
+fun KSClassDeclaration.getDeclaredBackedProperties() =
+    getDeclaredProperties().filter { it.hasBackingField }
+
 
 internal fun CodeBlock.ifNotNull(
     isNullable: Boolean,

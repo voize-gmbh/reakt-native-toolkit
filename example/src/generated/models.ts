@@ -19,7 +19,7 @@ export namespace com {
       }
 
       /**
-       * Sealed class generated from {@link com.myrnproject.shared.TestSealedType}
+       * Sealed type generated from {@link com.myrnproject.shared.TestSealedType}
        */
       export type TestSealedType = TestSealedType.Option1 | TestSealedType.Option2 | TestSealedType.Option3;
 
@@ -170,6 +170,57 @@ export namespace com {
             const temp = value['bar'];
             return temp;
           })()
+        };
+      }
+
+      export enum TestSealedInterfaceTypeType {
+        Option1 = 'option1',
+        Option2 = 'option2',
+        Option3 = 'option3'
+      }
+
+      interface TestSealedInterfaceTypeBase<T extends TestSealedInterfaceTypeType> {
+
+        type: T;
+
+      }
+
+      /**
+       * Sealed type generated from {@link com.myrnproject.shared.TestSealedInterfaceType}
+       */
+      export type TestSealedInterfaceType = TestSealedInterfaceType.Option1 | TestSealedInterfaceType.Option2 | TestSealedInterfaceType.Option3;
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.TestSealedInterfaceType}
+       */
+      export function fromJsonTestSealedInterfaceType(json: Record<string, any>): TestSealedInterfaceType {
+        const type = json['type'];
+        return {
+          ...(() => {
+            switch (type) {
+              case TestSealedInterfaceTypeType.Option1: return TestSealedInterfaceType.fromJsonOption1(json);
+              case TestSealedInterfaceTypeType.Option2: return TestSealedInterfaceType.fromJsonOption2(json);
+              case TestSealedInterfaceTypeType.Option3: return TestSealedInterfaceType.fromJsonOption3(json);
+              default: throw new Error('Unknown discriminator value: ' + type);
+            }})(),
+          ['type']: type
+        };
+      }
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.TestSealedInterfaceType}
+       */
+      export function toJsonTestSealedInterfaceType(value: TestSealedInterfaceType): Record<string, any> {
+        const type = value['type'];
+        return {
+          ...(() => {
+            switch (type) {
+              case TestSealedInterfaceTypeType.Option1: return TestSealedInterfaceType.toJsonOption1(value);
+              case TestSealedInterfaceTypeType.Option2: return TestSealedInterfaceType.toJsonOption2(value);
+              case TestSealedInterfaceTypeType.Option3: return TestSealedInterfaceType.toJsonOption3(value);
+              default: throw new Error('Unknown discriminator value: ' + type);
+            }})(),
+          ['type']: type
         };
       }
 
@@ -371,7 +422,7 @@ export namespace com {
       }
 
       /**
-       * Sealed class generated from {@link com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator}
+       * Sealed type generated from {@link com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator}
        */
       export type TestSealedTypeWithCustomDiscriminator = TestSealedTypeWithCustomDiscriminator.Option1 | TestSealedTypeWithCustomDiscriminator.Option2 | TestSealedTypeWithCustomDiscriminator.Option3;
 
@@ -478,6 +529,49 @@ export namespace com {
           ['floatProp']: (() => {
             const temp = value['floatProp'];
             return temp;
+          })()
+        };
+      }
+
+      /**
+       * Data class generated from {@link com.myrnproject.shared.ManuallyExportedType}
+       */
+      export interface ManuallyExportedType {
+
+        test: string;
+
+        enum: Enum;
+
+      }
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.ManuallyExportedType}
+       */
+      export function fromJsonManuallyExportedType(json: Record<string, any>): ManuallyExportedType {
+        return {
+          ['test']: ((() => {
+            const temp = json['test'];
+            return temp;
+          })()) as string,
+          ['enum']: ((() => {
+            const temp = json['enum'];
+            return fromJsonEnum(temp);
+          })()) as Enum
+        };
+      }
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.ManuallyExportedType}
+       */
+      export function toJsonManuallyExportedType(value: ManuallyExportedType): Record<string, any> {
+        return {
+          ['test']: (() => {
+            const temp = value['test'];
+            return temp;
+          })(),
+          ['enum']: (() => {
+            const temp = value['enum'];
+            return toJsonEnum(temp);
           })()
         };
       }
@@ -668,6 +762,163 @@ export namespace com {
 
           /**
            * Mapping generated from {@link com.myrnproject.shared.TestSealedType.Option1.Nested}
+           */
+          export function toJsonNested(value: Nested): Record<string, any> {
+            return {
+              ['nullable']: (() => {
+                const temp = value['nullable'];
+                return temp === null ? null : (temp);
+              })()
+            };
+          }
+
+        }
+
+      }
+
+      export namespace TestSealedInterfaceType {
+
+        /**
+         * Data class generated from {@link com.myrnproject.shared.TestSealedInterfaceType.Option1}
+         */
+        export interface Option1 extends TestSealedInterfaceTypeBase<TestSealedInterfaceTypeType.Option1> {
+
+          id: number;
+
+          name: string;
+
+          nested: Option1.Nested;
+
+        }
+
+        /**
+         * Mapping generated from {@link com.myrnproject.shared.TestSealedInterfaceType.Option1}
+         */
+        export function fromJsonOption1(json: Record<string, any>): Omit<Option1, 'type'> {
+          return {
+            ['id']: ((() => {
+              const temp = json['id'];
+              return temp;
+            })()) as number,
+            ['name']: ((() => {
+              const temp = json['name'];
+              return temp;
+            })()) as string,
+            ['nested']: ((() => {
+              const temp = json['nested'];
+              return Option1.fromJsonNested(temp);
+            })()) as Option1.Nested
+          };
+        }
+
+        /**
+         * Mapping generated from {@link com.myrnproject.shared.TestSealedInterfaceType.Option1}
+         */
+        export function toJsonOption1(value: Omit<Option1, 'type'>): Record<string, any> {
+          return {
+            ['id']: (() => {
+              const temp = value['id'];
+              return temp;
+            })(),
+            ['name']: (() => {
+              const temp = value['name'];
+              return temp;
+            })(),
+            ['nested']: (() => {
+              const temp = value['nested'];
+              return Option1.toJsonNested(temp);
+            })()
+          };
+        }
+
+        /**
+         * Data class generated from {@link com.myrnproject.shared.TestSealedInterfaceType.Option2}
+         */
+        export interface Option2 extends TestSealedInterfaceTypeBase<TestSealedInterfaceTypeType.Option2> {
+
+          number: number;
+
+          nonNested: NonNested;
+
+        }
+
+        /**
+         * Mapping generated from {@link com.myrnproject.shared.TestSealedInterfaceType.Option2}
+         */
+        export function fromJsonOption2(json: Record<string, any>): Omit<Option2, 'type'> {
+          return {
+            ['number']: ((() => {
+              const temp = json['number'];
+              return temp;
+            })()) as number,
+            ['nonNested']: ((() => {
+              const temp = json['nonNested'];
+              return fromJsonNonNested(temp);
+            })()) as NonNested
+          };
+        }
+
+        /**
+         * Mapping generated from {@link com.myrnproject.shared.TestSealedInterfaceType.Option2}
+         */
+        export function toJsonOption2(value: Omit<Option2, 'type'>): Record<string, any> {
+          return {
+            ['number']: (() => {
+              const temp = value['number'];
+              return temp;
+            })(),
+            ['nonNested']: (() => {
+              const temp = value['nonNested'];
+              return toJsonNonNested(temp);
+            })()
+          };
+        }
+
+        /**
+         * Object generated from {@link com.myrnproject.shared.TestSealedInterfaceType.Option3}
+         */
+        export interface Option3 extends TestSealedInterfaceTypeBase<TestSealedInterfaceTypeType.Option3> {
+        }
+
+        /**
+         * Mapping generated from {@link com.myrnproject.shared.TestSealedInterfaceType.Option3}
+         */
+        export function fromJsonOption3(_: Record<string, any>): Omit<Option3, 'type'> {
+          return {};
+        }
+
+        /**
+         * Mapping generated from {@link com.myrnproject.shared.TestSealedInterfaceType.Option3}
+         */
+        export function toJsonOption3(_: Omit<Option3, 'type'>): Record<string, any> {
+          return {};
+        }
+
+        export namespace Option1 {
+
+          /**
+           * Data class generated from {@link com.myrnproject.shared.TestSealedInterfaceType.Option1.Nested}
+           */
+          export interface Nested {
+
+            nullable: string | null;
+
+          }
+
+          /**
+           * Mapping generated from {@link com.myrnproject.shared.TestSealedInterfaceType.Option1.Nested}
+           */
+          export function fromJsonNested(json: Record<string, any>): Nested {
+            return {
+              ['nullable']: ((() => {
+                const temp = json['nullable'];
+                return temp === null ? null : (temp);
+              })()) as string | null
+            };
+          }
+
+          /**
+           * Mapping generated from {@link com.myrnproject.shared.TestSealedInterfaceType.Option1.Nested}
            */
           export function toJsonNested(value: Nested): Record<string, any> {
             return {
