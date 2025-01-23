@@ -45,6 +45,8 @@ internal fun MyComposeView(
     @ReactNativeProp
     listProp: List<MyDataClass>,
     @ReactNativeProp
+    sealedInterface: TestSealedInterfaceType,
+    @ReactNativeProp
     onTextFieldValueChange: (String) -> Unit,
     @ReactNativeProp
     onButtonPress: () -> Unit,
@@ -59,6 +61,7 @@ internal fun MyComposeView(
         objectParam: MyDataClass,
         enumParam: Enum,
         listParam: List<MyDataClass>,
+        sealedInterfaceParam: TestSealedInterfaceType,
     ) -> Unit,
     // dependency injection
     persistentConfig: PersistentConfig,
@@ -108,6 +111,7 @@ internal fun MyComposeView(
                         2.718f,
                     ),
                 ),
+                TestSealedInterfaceType.Option3,
             )
         }) {
             Text("Click me!")

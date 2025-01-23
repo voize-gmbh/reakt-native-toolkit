@@ -1,5 +1,6 @@
 package de.voize.reaktnativetoolkit.ksp.processor
 
+import com.google.devtools.ksp.getDeclaredProperties
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSDeclaration
@@ -50,7 +51,7 @@ internal object TypescriptModelsNamespaceTree {
                             ClassKind.CLASS -> {
                                 if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
                                     // data class
-                                    declaration.getAllProperties().forEach {
+                                    declaration.getDeclaredBackedProperties().forEach {
                                         scheduleForProcessing(it.type.resolve())
                                     }
                                 } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
@@ -61,9 +62,21 @@ internal object TypescriptModelsNamespaceTree {
                                 }
                             }
 
+                            ClassKind.INTERFACE -> {
+                                if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                                    // sealed interface
+                                    declaration.getSealedSubclasses().forEach {
+                                        scheduleForProcessing(it.asStarProjectedType())
+                                    }
+                                }
+                            }
+
                             else -> Unit
                         }
-                        declaration.superTypes.forEach {
+                        declaration.superTypes.filter {
+                            // only process sealed superclasses
+                            com.google.devtools.ksp.symbol.Modifier.SEALED in it.resolve().declaration.modifiers
+                        }.forEach {
                             scheduleForProcessing(it.resolve())
                         }
                     }
@@ -129,7 +142,7 @@ internal object TypescriptModelsNamespaceTree {
 
         return customTypes.filter {
             when (it) {
-                is KSClassDeclaration -> it.classKind != ClassKind.INTERFACE && it.origin == Origin.KOTLIN
+                is KSClassDeclaration -> it.origin == Origin.KOTLIN
                 is KSTypeParameter -> false
                 else -> true
             }
