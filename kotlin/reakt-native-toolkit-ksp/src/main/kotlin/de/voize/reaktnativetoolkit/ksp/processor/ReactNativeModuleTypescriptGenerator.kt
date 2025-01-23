@@ -3,15 +3,10 @@ package de.voize.reaktnativetoolkit.ksp.processor
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
-import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotation
-import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
-import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
-import com.google.devtools.ksp.symbol.KSTypeAlias
-import com.google.devtools.ksp.symbol.KSTypeParameter
 import io.outfoxx.typescriptpoet.CodeBlock
 import io.outfoxx.typescriptpoet.CodeBlock.Companion.joinToCode
 import io.outfoxx.typescriptpoet.FileSpec
@@ -196,12 +191,12 @@ internal class ReactNativeModuleTypescriptGenerator(
                     .castTo(TypeName.implicit(nativeInterfaceName))
             )
         )
-        val exportedRNModuleName = rnModule.moduleName
-        val exportedRNModuleSymbol = getSymbolInModule(exportedRNModuleName)
-        nameAllocator.newName(exportedRNModuleName)
+        val wrapperRNModuleName = rnModule.moduleName + "Wrapper"
+        val wrapperRNModuleSymbol = getSymbolInModule(wrapperRNModuleName)
+        nameAllocator.newName(wrapperRNModuleName)
         fileBuilder.addCode(
             const(
-                name = exportedRNModuleName,
+                name = wrapperRNModuleName,
                 typeName = TypeName.implicit(interfaceName),
                 expression = CodeBlock.of(
                     "{\n%>...%Q,\n%L%<\n}",
@@ -379,7 +374,7 @@ internal class ReactNativeModuleTypescriptGenerator(
                                                 useFlowName.asCodeBlock().invoke(
                                                     buildList {
                                                         add(
-                                                            exportedRNModuleSymbol.nested(
+                                                            wrapperRNModuleSymbol.nested(
                                                                 functionDeclaration.simpleName.asString(),
                                                             ).asCodeBlock()
                                                         )
@@ -391,7 +386,7 @@ internal class ReactNativeModuleTypescriptGenerator(
                                                         add(
                                                             CodeBlock.of(
                                                                 "%S",
-                                                                "${exportedRNModuleName}.${functionDeclaration.simpleName.asString()}",
+                                                                "${wrapperRNModuleName}.${functionDeclaration.simpleName.asString()}",
                                                             )
                                                         )
                                                         addAll(args)
@@ -485,6 +480,25 @@ internal class ReactNativeModuleTypescriptGenerator(
                             )
                         }
                     }.joinToCode(",\n")
+                )
+            )
+        )
+
+        val exportedRNModuleName = rnModule.moduleName
+        nameAllocator.newName(exportedRNModuleName)
+        fileBuilder.addCode(
+            const(
+                name = exportedRNModuleName,
+                expression = CodeBlock.of(
+                    "%N ? %N : new %T(%N, %L)",
+                    nativeRNModuleSymbol,
+                    wrapperRNModuleSymbol,
+                    TypescriptProxyTypeName,
+                    wrapperRNModuleSymbol,
+                    CodeBlock.of(
+                        "{\n%>get() {%>throw new Error(%S)%<}%<\n}",
+                        "The native module '$exportedRNModuleName' is not available."
+                    )
                 )
             ).export()
         )
