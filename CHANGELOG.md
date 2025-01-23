@@ -5,6 +5,7 @@
 - Set originating file on correct type for ios
 - Support sealed interfaces like sealed classes
 - Fix handling of properties without backing fields (getters and setters only)
+- Improve linking error message for missing RN module
 
 ## v0.19.5
 

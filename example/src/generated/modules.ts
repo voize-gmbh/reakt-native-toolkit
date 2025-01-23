@@ -300,7 +300,7 @@ export interface TimeProviderInterface {
 
 const NativeE2ETest = (NativeModules.E2ETest) as NativeE2ETestInterface;
 
-export const E2ETest: E2ETestInterface = {
+const E2ETestWrapper: E2ETestInterface = {
   ...NativeE2ETest,
   ['testDefaultTypes']: (string: string, int: number, long: number, float: number, double: number, boolean: boolean, byte: number, char: number, short: number) =>
       NativeE2ETest.testDefaultTypes((() => {
@@ -715,7 +715,7 @@ export const E2ETest: E2ETestInterface = {
   ['testFlowReturnInstantAsDate']: (subscriptionId: string, currentValue: string | null) =>
       NativeE2ETest.testFlowReturnInstantAsDate(subscriptionId, currentValue),
   ['useTestFlow']: () => {
-    const value = useFlow(E2ETest.testFlow, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlow');
+    const value = useFlow(E2ETestWrapper.testFlow, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETestWrapper.testFlow');
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -725,7 +725,7 @@ export const E2ETest: E2ETestInterface = {
     })(), [value]);
   },
   ['useTestFlowNullable']: () => {
-    const value = useFlow(E2ETest.testFlowNullable, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowNullable');
+    const value = useFlow(E2ETestWrapper.testFlowNullable, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETestWrapper.testFlowNullable');
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -735,7 +735,7 @@ export const E2ETest: E2ETestInterface = {
     })(), [value]);
   },
   ['useTestFlowComplex']: () => {
-    const value = useFlow(E2ETest.testFlowComplex, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowComplex');
+    const value = useFlow(E2ETestWrapper.testFlowComplex, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETestWrapper.testFlowComplex');
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -745,7 +745,7 @@ export const E2ETest: E2ETestInterface = {
     })(), [value]);
   },
   ['useTestFlowParameterized']: (arg1: number) => {
-    const value = useFlow(E2ETest.testFlowParameterized, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowParameterized', arg1);
+    const value = useFlow(E2ETestWrapper.testFlowParameterized, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETestWrapper.testFlowParameterized', arg1);
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -755,7 +755,7 @@ export const E2ETest: E2ETestInterface = {
     })(), [value]);
   },
   ['useTestFlowParameterized2']: (arg1_: number, arg2: string) => {
-    const value = useFlow(E2ETest.testFlowParameterized2, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowParameterized2', arg1_, arg2);
+    const value = useFlow(E2ETestWrapper.testFlowParameterized2, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETestWrapper.testFlowParameterized2', arg1_, arg2);
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -765,7 +765,7 @@ export const E2ETest: E2ETestInterface = {
     })(), [value]);
   },
   ['useTestFlowParameterizedComplex']: (arg1__: com.myrnproject.shared.Test) => {
-    const value = useFlow(E2ETest.testFlowParameterizedComplex, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowParameterizedComplex', arg1__);
+    const value = useFlow(E2ETestWrapper.testFlowParameterizedComplex, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETestWrapper.testFlowParameterizedComplex', arg1__);
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -776,7 +776,7 @@ export const E2ETest: E2ETestInterface = {
   },
   ['useTestFlowParameterizedComplex2']: (arg1___: Array<com.myrnproject.shared.Test>, arg2_: Record<string, com.myrnproject.shared.Test>) =>
       {
-    const value = useFlow(E2ETest.testFlowParameterizedComplex2, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowParameterizedComplex2', arg1___, arg2_);
+    const value = useFlow(E2ETestWrapper.testFlowParameterizedComplex2, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETestWrapper.testFlowParameterizedComplex2', arg1___, arg2_);
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -787,7 +787,7 @@ export const E2ETest: E2ETestInterface = {
   },
   ['useTestFlowParameterizedMany']: (arg1____: number, arg2__: string, arg3: Array<string>, arg4: Record<string, com.myrnproject.shared.Test>) =>
       {
-    const value = useFlow(E2ETest.testFlowParameterizedMany, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowParameterizedMany', arg1____, arg2__, arg3, arg4);
+    const value = useFlow(E2ETestWrapper.testFlowParameterizedMany, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETestWrapper.testFlowParameterizedMany', arg1____, arg2__, arg3, arg4);
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -797,7 +797,7 @@ export const E2ETest: E2ETestInterface = {
     })(), [value]);
   },
   ['useTestFlowReturnInstant']: () => {
-    const value = useFlow(E2ETest.testFlowReturnInstant, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowReturnInstant');
+    const value = useFlow(E2ETestWrapper.testFlowReturnInstant, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETestWrapper.testFlowReturnInstant');
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -807,7 +807,7 @@ export const E2ETest: E2ETestInterface = {
     })(), [value]);
   },
   ['useTestFlowReturnInstantAsDate']: () => {
-    const value = useFlow(E2ETest.testFlowReturnInstantAsDate, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowReturnInstantAsDate');
+    const value = useFlow(E2ETestWrapper.testFlowReturnInstantAsDate, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETestWrapper.testFlowReturnInstantAsDate');
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -818,9 +818,13 @@ export const E2ETest: E2ETestInterface = {
   }
 };
 
+export const E2ETest = NativeE2ETest ? E2ETestWrapper : new Proxy(E2ETestWrapper, {
+  get() {throw new Error('The native module \'E2ETest\' is not available.')}
+});
+
 const NativeNameManager = (NativeModules.NameManager) as NativeNameManagerInterface;
 
-export const NameManager: NameManagerInterface = {
+const NameManagerWrapper: NameManagerInterface = {
   ...NativeNameManager,
   ['setName']: (name: string) => NativeNameManager.setName((() => {
     const temp = name;
@@ -836,7 +840,7 @@ export const NameManager: NameManagerInterface = {
   ['name']: (subscriptionId: string, currentValue: string | null) =>
       NativeNameManager.name(subscriptionId, currentValue),
   ['useName']: () => {
-    const value = useFlow(NameManager.name, NativeNameManager.unsubscribeFromToolkitUseFlow, 'NameManager.name');
+    const value = useFlow(NameManagerWrapper.name, NativeNameManager.unsubscribeFromToolkitUseFlow, 'NameManagerWrapper.name');
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -847,9 +851,13 @@ export const NameManager: NameManagerInterface = {
   }
 };
 
+export const NameManager = NativeNameManager ? NameManagerWrapper : new Proxy(NameManagerWrapper, {
+  get() {throw new Error('The native module \'NameManager\' is not available.')}
+});
+
 const NativeNotificationDemo = (NativeModules.NotificationDemo) as NativeNotificationDemoInterface;
 
-export const NotificationDemo: NotificationDemoInterface = {
+const NotificationDemoWrapper: NotificationDemoInterface = {
   ...NativeNotificationDemo,
   ['addEventListener']: (key: string, listener: (result: any) => void) => {
     const eventEmitter = new NativeEventEmitter((NativeNotificationDemo) as any);
@@ -857,9 +865,13 @@ export const NotificationDemo: NotificationDemoInterface = {
   }
 };
 
+export const NotificationDemo = NativeNotificationDemo ? NotificationDemoWrapper : new Proxy(NotificationDemoWrapper, {
+  get() {throw new Error('The native module \'NotificationDemo\' is not available.')}
+});
+
 const NativeTimeProvider = (NativeModules.TimeProvider) as NativeTimeProviderInterface;
 
-export const TimeProvider: TimeProviderInterface = {
+const TimeProviderWrapper: TimeProviderInterface = {
   ...NativeTimeProvider,
   ['time']: (subscriptionId: string, currentValue: string | null) =>
       NativeTimeProvider.time(subscriptionId, currentValue),
@@ -871,7 +883,7 @@ export const TimeProvider: TimeProviderInterface = {
   ['timeAsState']: (subscriptionId: string, currentValue: string | null) =>
       NativeTimeProvider.timeAsState(subscriptionId, currentValue),
   ['useTime']: () => {
-    const value = useFlow(TimeProvider.time, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProvider.time');
+    const value = useFlow(TimeProviderWrapper.time, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProviderWrapper.time');
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -881,7 +893,7 @@ export const TimeProvider: TimeProviderInterface = {
     })(), [value]);
   },
   ['useIsAfter']: (time: string) => {
-    const value = useFlow(TimeProvider.isAfter, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProvider.isAfter', time);
+    const value = useFlow(TimeProviderWrapper.isAfter, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProviderWrapper.isAfter', time);
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -891,7 +903,7 @@ export const TimeProvider: TimeProviderInterface = {
     })(), [value]);
   },
   ['useTimeAsState']: () => {
-    const value = useFlow(TimeProvider.timeAsState, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProvider.timeAsState');
+    const value = useFlow(TimeProviderWrapper.timeAsState, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProviderWrapper.timeAsState');
     return useMemo(() => (() => {
       const temp = value;
       return temp === null ? null : (((() => {
@@ -901,3 +913,7 @@ export const TimeProvider: TimeProviderInterface = {
     })(), [value]);
   }
 };
+
+export const TimeProvider = NativeTimeProvider ? TimeProviderWrapper : new Proxy(TimeProviderWrapper, {
+  get() {throw new Error('The native module \'TimeProvider\' is not available.')}
+});
