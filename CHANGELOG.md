@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Revert "Improve linking error message for missing RN module"
+
 ## v0.20.0
 
 - Set originating file on correct type for ios

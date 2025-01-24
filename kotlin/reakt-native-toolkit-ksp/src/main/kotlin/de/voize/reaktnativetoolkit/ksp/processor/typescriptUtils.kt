@@ -982,7 +982,6 @@ internal val jsonParseName = TypescriptJsonName.nested("parse")
 
 internal val TypescriptRecordTypeName = TypeName.implicit("Record")
 internal val TypescriptOmitTypeName = TypeName.implicit("Omit")
-internal val TypescriptProxyTypeName = TypeName.implicit("Proxy")
 
 private val TypescriptObjectName = SymbolSpec.implicit("Object")
 private val objectEntriesName = TypescriptObjectName.nested("entries")
