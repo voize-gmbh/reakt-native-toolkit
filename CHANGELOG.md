@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.20.1
 
 - Revert "Improve linking error message for missing RN module"
 
