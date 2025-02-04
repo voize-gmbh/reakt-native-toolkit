@@ -14,6 +14,7 @@ import de.voize.reaktnativetoolkit.annotation.ReactNativeFlow
 import de.voize.reaktnativetoolkit.annotation.JSType
 import de.voize.reaktnativetoolkit.annotation.ExportTypescriptType
 import kotlinx.serialization.json.JsonClassDiscriminator
+import kotlin.jvm.JvmInline
 
 @ReactNativeModule("E2ETest")
 class E2ETest {
@@ -74,6 +75,8 @@ class E2ETest {
         nestedMapNullable: Map<String, Map<String, String?>?>,
         complexListNullable: List<Test?>,
         complexMapNullable: Map<String, Test?>,
+        valueClassMap: Map<TestValueClassPrimitive, TestValueClassPrimitive>,
+        valueClassMapNullable: Map<TestValueClassPrimitive, TestValueClassPrimitive?>,
     ): List<Int?> {
         return emptyList()
     }
@@ -154,8 +157,18 @@ class E2ETest {
         return flowOf()
     }
 
+    @ReactNativeFlow
+    fun testFlowValueClass(): Flow<TestValueClassPrimitive> {
+        return flowOf()
+    }
+
     @ReactNativeMethod
     fun testTypeAlias(test: TestTypeAlias): TestTypeAlias {
+        return test
+    }
+
+    @ReactNativeMethod
+    fun testPrimitiveTypeAlias(test: TestPrimitiveTypeAlias): TestPrimitiveTypeAlias {
         return test
     }
 
@@ -173,8 +186,22 @@ class E2ETest {
     fun testMapWithEnumKey(map: Map<Enum, String>): Map<Enum, String> {
         return map
     }
-}
 
+    @ReactNativeMethod
+    fun testValueClass(value: TestValueClassPrimitive): TestValueClassPrimitive {
+        return value
+    }
+
+    @ReactNativeMethod
+    fun testValueClassComplex(value: TestValueClassComplex): TestValueClassComplex {
+        return value
+    }
+
+    @ReactNativeMethod
+    fun testNestedValueClass(value: TestNestedValueClass): TestNestedValueClass {
+        return value
+    }
+}
 
 @Serializable
 data class Test(
@@ -301,6 +328,7 @@ enum class Enum {
 @Serializable
 object FlowTest
 
+typealias TestPrimitiveTypeAlias = String
 typealias TestTypeAlias = Test
 
 @Serializable
@@ -320,3 +348,39 @@ data class ManuallyExportedType(
     val test: String,
     val enum: Enum,
 )
+
+@JvmInline
+@Serializable
+value class TestValueClassPrimitive(val value: String)
+
+@JvmInline
+@Serializable
+value class TestValueClassComplex(val value: Test)
+
+/**
+ * A data class that is not used anywhere else but the value class.
+ */
+@Serializable
+data class IsolatedDataClass(val test: String)
+
+@JvmInline
+@Serializable
+@ExportTypescriptType
+value class TestValueClassIsolatedValueType(val value: IsolatedDataClass)
+
+@Serializable
+data class TestNestedValueClass(
+    val simple: TestValueClassPrimitive,
+    val complex: TestValueClassComplex,
+    val simpleList: List<TestValueClassPrimitive>,
+    val complexList: List<TestValueClassComplex>,
+    val simpleMap: Map<String, TestValueClassPrimitive>,
+    val complexMap: Map<String, TestValueClassComplex>,
+    val simpleMapWithKey: Map<TestValueClassPrimitive, TestValueClassPrimitive>,
+    val complexMapWithKey: Map<TestValueClassPrimitive, TestValueClassComplex>,
+    val nested: NestedValueClass,
+) {
+    @JvmInline
+    @Serializable
+    value class NestedValueClass(val value: TestValueClassPrimitive)
+}

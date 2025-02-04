@@ -15,6 +15,7 @@ import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeAlias
 import com.google.devtools.ksp.symbol.KSTypeParameter
+import com.google.devtools.ksp.symbol.Modifier
 import com.google.devtools.ksp.symbol.Origin
 import io.outfoxx.typescriptpoet.FileSpec
 import io.outfoxx.typescriptpoet.TypeName
@@ -67,4 +68,15 @@ internal fun List<PlatformInfo>.isIOS(): Boolean {
 internal fun List<PlatformInfo>.isAndroid(): Boolean {
     val platformNames = this.map { it.platformName }
     return JvmPlatform in platformNames && NativePlatform !in platformNames
+}
+
+internal fun KSClassDeclaration.getValueClassValueType(): KSType {
+    require(Modifier.VALUE in modifiers) {
+        "Declaration is not a value class"
+    }
+    val constructor = primaryConstructor
+    requireNotNull(constructor) {
+        "Value class must have a primary constructor"
+    }
+    return constructor.parameters.single().type.resolve()
 }

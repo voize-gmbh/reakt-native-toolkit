@@ -158,8 +158,21 @@ internal class TypescriptModelsGenerator(
                                 typescriptFileBuilder.addInterface(interfaceSpec)
                             } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
                                 createSealedType(sealedBaseType, declaration, typescriptFileBuilder)
+                            } else if (com.google.devtools.ksp.symbol.Modifier.VALUE in declaration.modifiers) {
+                                typescriptFileBuilder.addTypeAlias(
+                                    TypeAliasSpec.builder(
+                                        declaration.getTypescriptName(),
+                                        getTypescriptTypeName(declaration.getValueClassValueType())
+                                    )
+                                        .addModifiers(Modifier.EXPORT)
+                                        .addTSDoc(
+                                            "Value class generated from {@link %N}\n",
+                                            declaration.qualifiedName!!.asString()
+                                        )
+                                        .build()
+                                )
                             } else {
-                                error("Only data classes and sealed classes are supported, found: $declaration")
+                                error("Only data classes, sealed classes and value classes are supported, found: $declaration")
                             }
                         }
 
@@ -307,6 +320,7 @@ internal class TypescriptModelsGenerator(
         typescriptFileBuilder.addTypeAlias(sealedTypeUnion)
     }
 
+
     /**
      * Create js mappings from and to json for a given declaration.
      */
@@ -336,8 +350,12 @@ internal class TypescriptModelsGenerator(
                                 typescriptFileBuilder.createTypescriptTypeMappingForSealedDeclaration(
                                     declaration
                                 )
+                            } else if (com.google.devtools.ksp.symbol.Modifier.VALUE in declaration.modifiers) {
+                                typescriptFileBuilder.createTypescriptTypeMappingForValueClass(
+                                    declaration
+                                )
                             } else {
-                                error("Only data classes and sealed classes are supported, found: $declaration")
+                                error("Only data classes, sealed classes and value classes are supported, found: $declaration")
                             }
                         }
 
@@ -444,7 +462,78 @@ internal class TypescriptModelsGenerator(
                         )
                     )
                 )
-                returns(recordType(TypeName.STRING, TypeName.ANY))
+                returns(TypeName.ANY)
+            }.build()
+        addFunction(fromJson)
+        addFunction(toJson)
+    }
+
+    private fun ModuleSpec.Builder.createTypescriptTypeMappingForValueClass(
+        declaration: KSClassDeclaration
+    ) {
+        val type = declaration.getValueClassValueType()
+
+        val fromJson = FunctionSpec.builder(declaration.getTypescriptFromJsonFunctionName())
+            .apply {
+                val nameAllocator = NameAllocator()
+                addModifiers(Modifier.EXPORT)
+                addTSDoc(
+                    "Mapping generated from {@link %N}\n",
+                    declaration.qualifiedName!!.asString()
+                )
+                val jsonParameterTag = UUID.randomUUID()
+                nameAllocator.newName("json", jsonParameterTag)
+
+                addParameter(
+                    ParameterSpec.builder(
+                        nameAllocator[jsonParameterTag],
+                        TypeName.ANY,
+                    ).build()
+                )
+                addCode(
+                    returnStatement(
+                        convertJsonToType(
+                            nameAllocator[jsonParameterTag].asCodeBlock(),
+                            type,
+                            nameAllocator.copy(),
+                            config.externalTypeMapping,
+                            config.defaultInstantJSType,
+                            logger,
+                        )
+                    )
+                )
+                returns(getTypescriptTypeName(type))
+            }.build()
+
+        val toJson = FunctionSpec.builder(declaration.getTypescriptToJsonFunctionName())
+            .apply {
+                val nameAllocator = NameAllocator()
+                addModifiers(Modifier.EXPORT)
+                addTSDoc(
+                    "Mapping generated from {@link %N}\n",
+                    declaration.qualifiedName!!.asString()
+                )
+                val valueParameterTag = UUID.randomUUID()
+                nameAllocator.newName("value", valueParameterTag)
+                addParameter(
+                    ParameterSpec.builder(
+                        nameAllocator[valueParameterTag],
+                        getTypescriptTypeName(type),
+                    ).build()
+                )
+                addCode(
+                    returnStatement(
+                        convertTypeToJson(
+                            nameAllocator[valueParameterTag].asCodeBlock(),
+                            type,
+                            nameAllocator.copy(),
+                            config.externalTypeMapping,
+                            config.defaultInstantJSType,
+                            logger,
+                        )
+                    )
+                )
+                returns(TypeName.ANY)
             }.build()
         addFunction(fromJson)
         addFunction(toJson)

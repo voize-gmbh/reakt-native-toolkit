@@ -1378,7 +1378,7 @@ RCT_EXPORT_VIEW_PROPERTY(${prop.name}, RCTBubblingEventBlock)
                         } else if (Modifier.SEALED in declaration.modifiers) {
                             "NSString"
                         } else {
-                            error("Only data classes and sealed classes are supported, found: $declaration")
+                            error("Only data classes, sealed classes and value classes are supported, found: $declaration")
                         }
                     }
                     ClassKind.OBJECT -> "NSString"
