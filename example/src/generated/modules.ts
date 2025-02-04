@@ -27,6 +27,8 @@ interface NativeE2ETestInterface {
 
   testFlowReturnInstantAsDate: Next<Date>;
 
+  testFlowValueClass: Next<com.myrnproject.shared.TestValueClassPrimitive>;
+
   testDefaultTypes(
       string: string,
       int: number,
@@ -72,7 +74,9 @@ interface NativeE2ETestInterface {
       nestedListNullable: string,
       nestedMapNullable: string,
       complexListNullable: string,
-      complexMapNullable: string
+      complexMapNullable: string,
+      valueClassMap: string,
+      valueClassMapNullable: string
   ): Promise<string>;
 
   example(input: string, testEnum: string): Promise<string>;
@@ -93,11 +97,19 @@ interface NativeE2ETestInterface {
 
   testTypeAlias(test: string): Promise<string>;
 
+  testPrimitiveTypeAlias(test: string): Promise<string>;
+
   testSealedSubtype(test: string): Promise<string>;
 
   testSealedCustomDiscriminator(test: string): Promise<void>;
 
   testMapWithEnumKey(map: string): Promise<string>;
+
+  testValueClass(value: string): Promise<string>;
+
+  testValueClassComplex(value: string): Promise<string>;
+
+  testNestedValueClass(value: string): Promise<string>;
 
   unsubscribeFromToolkitUseFlow(subscriptionId: string): Promise<void>;
 
@@ -127,6 +139,8 @@ export interface E2ETestInterface {
   testFlowReturnInstant: Next<string>;
 
   testFlowReturnInstantAsDate: Next<Date>;
+
+  testFlowValueClass: Next<com.myrnproject.shared.TestValueClassPrimitive>;
 
   testDefaultTypes(
       string: string,
@@ -173,7 +187,9 @@ export interface E2ETestInterface {
       nestedListNullable: Array<Array<string | null> | null>,
       nestedMapNullable: Record<string, Record<string, string | null> | null>,
       complexListNullable: Array<com.myrnproject.shared.Test | null>,
-      complexMapNullable: Record<string, com.myrnproject.shared.Test | null>
+      complexMapNullable: Record<string, com.myrnproject.shared.Test | null>,
+      valueClassMap: Record<com.myrnproject.shared.TestValueClassPrimitive, com.myrnproject.shared.TestValueClassPrimitive>,
+      valueClassMapNullable: Record<com.myrnproject.shared.TestValueClassPrimitive, com.myrnproject.shared.TestValueClassPrimitive | null>
   ): Promise<Array<number | null>>;
 
   example(input: com.myrnproject.shared.TestSealedType,
@@ -195,11 +211,19 @@ export interface E2ETestInterface {
 
   testTypeAlias(test: com.myrnproject.shared.TestTypeAlias): Promise<com.myrnproject.shared.TestTypeAlias>;
 
+  testPrimitiveTypeAlias(test: com.myrnproject.shared.TestPrimitiveTypeAlias): Promise<com.myrnproject.shared.TestPrimitiveTypeAlias>;
+
   testSealedSubtype(test: Omit<com.myrnproject.shared.TestSealedType.Option1, 'type'>): Promise<Omit<com.myrnproject.shared.TestSealedType.Option1, 'type'>>;
 
   testSealedCustomDiscriminator(test: com.myrnproject.shared.TestSealedTypeWithCustomDiscriminator): Promise<void>;
 
   testMapWithEnumKey(map: Record<com.myrnproject.shared.Enum, string>): Promise<Record<com.myrnproject.shared.Enum, string>>;
+
+  testValueClass(value: com.myrnproject.shared.TestValueClassPrimitive): Promise<com.myrnproject.shared.TestValueClassPrimitive>;
+
+  testValueClassComplex(value: com.myrnproject.shared.TestValueClassComplex): Promise<com.myrnproject.shared.TestValueClassComplex>;
+
+  testNestedValueClass(value: com.myrnproject.shared.TestNestedValueClass): Promise<com.myrnproject.shared.TestNestedValueClass>;
 
   useTestFlow(): number | null;
 
@@ -222,6 +246,8 @@ export interface E2ETestInterface {
   useTestFlowReturnInstant(): string | null;
 
   useTestFlowReturnInstantAsDate(): Date | null;
+
+  useTestFlowValueClass(): com.myrnproject.shared.TestValueClassPrimitive | null;
 
 }
 
@@ -428,7 +454,7 @@ export const E2ETest: E2ETestInterface = {
       return temp_;
     })()) as number);
   })()) as Array<number>),
-  ['testListAndMapNullable']: (list: Array<string> | null, map: Record<string, string> | null, nestedList: Array<Array<string>> | null, nestedMap: Record<string, Record<string, string>> | null, complexList: Array<com.myrnproject.shared.Test> | null, complexMap: Record<string, com.myrnproject.shared.Test> | null, listNullable: Array<string | null>, mapNullable: Record<string, string | null>, nestedListNullable: Array<Array<string | null> | null>, nestedMapNullable: Record<string, Record<string, string | null> | null>, complexListNullable: Array<com.myrnproject.shared.Test | null>, complexMapNullable: Record<string, com.myrnproject.shared.Test | null>) =>
+  ['testListAndMapNullable']: (list: Array<string> | null, map: Record<string, string> | null, nestedList: Array<Array<string>> | null, nestedMap: Record<string, Record<string, string>> | null, complexList: Array<com.myrnproject.shared.Test> | null, complexMap: Record<string, com.myrnproject.shared.Test> | null, listNullable: Array<string | null>, mapNullable: Record<string, string | null>, nestedListNullable: Array<Array<string | null> | null>, nestedMapNullable: Record<string, Record<string, string | null> | null>, complexListNullable: Array<com.myrnproject.shared.Test | null>, complexMapNullable: Record<string, com.myrnproject.shared.Test | null>, valueClassMap: Record<com.myrnproject.shared.TestValueClassPrimitive, com.myrnproject.shared.TestValueClassPrimitive>, valueClassMapNullable: Record<com.myrnproject.shared.TestValueClassPrimitive, com.myrnproject.shared.TestValueClassPrimitive | null>) =>
       NativeE2ETest.testListAndMapNullable(JSON.stringify((() => {
     const temp = list;
     return temp === null ? null : (temp.map((it: any) => (() => {
@@ -541,6 +567,24 @@ export const E2ETest: E2ETestInterface = {
       const temp_ = value;
       return temp_ === null ? null : (com.myrnproject.shared.toJsonTest(temp_));
     })()]));
+  })()), JSON.stringify((() => {
+    const temp = valueClassMap;
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+      const temp_ = key;
+      return temp_;
+    })(), (() => {
+      const temp_ = value;
+      return temp_;
+    })()]));
+  })()), JSON.stringify((() => {
+    const temp = valueClassMapNullable;
+    return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) => [(() => {
+      const temp_ = key;
+      return temp_;
+    })(), (() => {
+      const temp_ = value;
+      return temp_ === null ? null : (temp_);
+    })()]));
   })())).then(JSON.parse).then((result) => ((() => {
     const temp = result;
     return temp.map((it: any) => ((() => {
@@ -608,6 +652,14 @@ export const E2ETest: E2ETestInterface = {
     const temp = result;
     return temp;
   })()) as com.myrnproject.shared.TestTypeAlias),
+  ['testPrimitiveTypeAlias']: (test: com.myrnproject.shared.TestPrimitiveTypeAlias) =>
+      NativeE2ETest.testPrimitiveTypeAlias(JSON.stringify((() => {
+    const temp = test;
+    return temp;
+  })())).then(JSON.parse).then((result) => ((() => {
+    const temp = result;
+    return temp;
+  })()) as com.myrnproject.shared.TestPrimitiveTypeAlias),
   ['testSealedSubtype']: (test: Omit<com.myrnproject.shared.TestSealedType.Option1, 'type'>) =>
       NativeE2ETest.testSealedSubtype(JSON.stringify((() => {
     const temp = test;
@@ -644,6 +696,30 @@ export const E2ETest: E2ETestInterface = {
       return temp_;
     })()) as string]));
   })()) as Record<com.myrnproject.shared.Enum, string>),
+  ['testValueClass']: (value: com.myrnproject.shared.TestValueClassPrimitive) =>
+      NativeE2ETest.testValueClass(JSON.stringify((() => {
+    const temp = value;
+    return temp;
+  })())).then(JSON.parse).then((result) => ((() => {
+    const temp = result;
+    return temp;
+  })()) as com.myrnproject.shared.TestValueClassPrimitive),
+  ['testValueClassComplex']: (value: com.myrnproject.shared.TestValueClassComplex) =>
+      NativeE2ETest.testValueClassComplex(JSON.stringify((() => {
+    const temp = value;
+    return temp;
+  })())).then(JSON.parse).then((result) => ((() => {
+    const temp = result;
+    return temp;
+  })()) as com.myrnproject.shared.TestValueClassComplex),
+  ['testNestedValueClass']: (value: com.myrnproject.shared.TestNestedValueClass) =>
+      NativeE2ETest.testNestedValueClass(JSON.stringify((() => {
+    const temp = value;
+    return com.myrnproject.shared.toJsonTestNestedValueClass(temp);
+  })())).then(JSON.parse).then((result) => ((() => {
+    const temp = result;
+    return com.myrnproject.shared.fromJsonTestNestedValueClass(temp);
+  })()) as com.myrnproject.shared.TestNestedValueClass),
   ['testFlow']: (subscriptionId: string, currentValue: string | null) =>
       NativeE2ETest.testFlow(subscriptionId, currentValue),
   ['testFlowNullable']: (subscriptionId: string, currentValue: string | null) =>
@@ -714,6 +790,8 @@ export const E2ETest: E2ETestInterface = {
       NativeE2ETest.testFlowReturnInstant(subscriptionId, currentValue),
   ['testFlowReturnInstantAsDate']: (subscriptionId: string, currentValue: string | null) =>
       NativeE2ETest.testFlowReturnInstantAsDate(subscriptionId, currentValue),
+  ['testFlowValueClass']: (subscriptionId: string, currentValue: string | null) =>
+      NativeE2ETest.testFlowValueClass(subscriptionId, currentValue),
   ['useTestFlow']: () => {
     const value = useFlow(E2ETest.testFlow, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlow');
     return useMemo(() => (() => {
@@ -814,6 +892,16 @@ export const E2ETest: E2ETestInterface = {
         const temp_ = temp;
         return new Date(temp_);
       })()) as Date);
+    })(), [value]);
+  },
+  ['useTestFlowValueClass']: () => {
+    const value = useFlow(E2ETest.testFlowValueClass, NativeE2ETest.unsubscribeFromToolkitUseFlow, 'E2ETest.testFlowValueClass');
+    return useMemo(() => (() => {
+      const temp = value;
+      return temp === null ? null : (((() => {
+        const temp_ = temp;
+        return temp_;
+      })()) as com.myrnproject.shared.TestValueClassPrimitive);
     })(), [value]);
   }
 };

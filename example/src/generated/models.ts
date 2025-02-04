@@ -402,10 +402,35 @@ export namespace com {
       /**
        * Mapping generated from {@link com.myrnproject.shared.TestTypeAlias}
        */
-      export function toJsonTestTypeAlias(value: Test): Record<string, any> {
+      export function toJsonTestTypeAlias(value: Test): any {
         return (() => {
           const temp = value;
           return toJsonTest(temp);
+        })();
+      }
+
+      /**
+       * Type alias generated from {@link com.myrnproject.shared.TestPrimitiveTypeAlias}
+       */
+      export type TestPrimitiveTypeAlias = string;
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.TestPrimitiveTypeAlias}
+       */
+      export function fromJsonTestPrimitiveTypeAlias(json: any): string {
+        return ((() => {
+          const temp = json;
+          return temp;
+        })()) as string;
+      }
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.TestPrimitiveTypeAlias}
+       */
+      export function toJsonTestPrimitiveTypeAlias(value: string): any {
+        return (() => {
+          const temp = value;
+          return temp;
         })();
       }
 
@@ -457,6 +482,237 @@ export namespace com {
               default: throw new Error('Unknown discriminator value: ' + type);
             }})(),
           ['customType']: type
+        };
+      }
+
+      /**
+       * Value class generated from {@link com.myrnproject.shared.TestValueClassPrimitive}
+       */
+      export type TestValueClassPrimitive = string;
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.TestValueClassPrimitive}
+       */
+      export function fromJsonTestValueClassPrimitive(json: any): string {
+        return ((() => {
+          const temp = json;
+          return temp;
+        })()) as string;
+      }
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.TestValueClassPrimitive}
+       */
+      export function toJsonTestValueClassPrimitive(value: string): any {
+        return (() => {
+          const temp = value;
+          return temp;
+        })();
+      }
+
+      /**
+       * Value class generated from {@link com.myrnproject.shared.TestValueClassComplex}
+       */
+      export type TestValueClassComplex = Test;
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.TestValueClassComplex}
+       */
+      export function fromJsonTestValueClassComplex(json: any): Test {
+        return ((() => {
+          const temp = json;
+          return fromJsonTest(temp);
+        })()) as Test;
+      }
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.TestValueClassComplex}
+       */
+      export function toJsonTestValueClassComplex(value: Test): any {
+        return (() => {
+          const temp = value;
+          return toJsonTest(temp);
+        })();
+      }
+
+      /**
+       * Data class generated from {@link com.myrnproject.shared.TestNestedValueClass}
+       */
+      export interface TestNestedValueClass {
+
+        simple: TestValueClassPrimitive;
+
+        complex: TestValueClassComplex;
+
+        simpleList: Array<TestValueClassPrimitive>;
+
+        complexList: Array<TestValueClassComplex>;
+
+        simpleMap: Record<string, TestValueClassPrimitive>;
+
+        complexMap: Record<string, TestValueClassComplex>;
+
+        simpleMapWithKey: Record<TestValueClassPrimitive, TestValueClassPrimitive>;
+
+        complexMapWithKey: Record<TestValueClassPrimitive, TestValueClassComplex>;
+
+        nested: TestNestedValueClass.NestedValueClass;
+
+      }
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.TestNestedValueClass}
+       */
+      export function fromJsonTestNestedValueClass(json: Record<string, any>): TestNestedValueClass {
+        return {
+          ['simple']: ((() => {
+            const temp = json['simple'];
+            return temp;
+          })()) as TestValueClassPrimitive,
+          ['complex']: ((() => {
+            const temp = json['complex'];
+            return temp;
+          })()) as TestValueClassComplex,
+          ['simpleList']: ((() => {
+            const temp = json['simpleList'];
+            return temp.map((it: any) => ((() => {
+              const temp_ = it;
+              return temp_;
+            })()) as TestValueClassPrimitive);
+          })()) as Array<TestValueClassPrimitive>,
+          ['complexList']: ((() => {
+            const temp = json['complexList'];
+            return temp.map((it: any) => ((() => {
+              const temp_ = it;
+              return temp_;
+            })()) as TestValueClassComplex);
+          })()) as Array<TestValueClassComplex>,
+          ['simpleMap']: ((() => {
+            const temp = json['simpleMap'];
+            return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) =>
+                [((() => {
+              const temp_ = key;
+              return temp_;
+            })()) as string, ((() => {
+              const temp_ = value;
+              return temp_;
+            })()) as TestValueClassPrimitive]));
+          })()) as Record<string, TestValueClassPrimitive>,
+          ['complexMap']: ((() => {
+            const temp = json['complexMap'];
+            return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) =>
+                [((() => {
+              const temp_ = key;
+              return temp_;
+            })()) as string, ((() => {
+              const temp_ = value;
+              return temp_;
+            })()) as TestValueClassComplex]));
+          })()) as Record<string, TestValueClassComplex>,
+          ['simpleMapWithKey']: ((() => {
+            const temp = json['simpleMapWithKey'];
+            return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) =>
+                [((() => {
+              const temp_ = key;
+              return temp_;
+            })()) as TestValueClassPrimitive, ((() => {
+              const temp_ = value;
+              return temp_;
+            })()) as TestValueClassPrimitive]));
+          })()) as Record<TestValueClassPrimitive, TestValueClassPrimitive>,
+          ['complexMapWithKey']: ((() => {
+            const temp = json['complexMapWithKey'];
+            return Object.fromEntries(Object.entries(temp).map(([key, value]: [any, any]) =>
+                [((() => {
+              const temp_ = key;
+              return temp_;
+            })()) as TestValueClassPrimitive, ((() => {
+              const temp_ = value;
+              return temp_;
+            })()) as TestValueClassComplex]));
+          })()) as Record<TestValueClassPrimitive, TestValueClassComplex>,
+          ['nested']: ((() => {
+            const temp = json['nested'];
+            return temp;
+          })()) as TestNestedValueClass.NestedValueClass
+        };
+      }
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.TestNestedValueClass}
+       */
+      export function toJsonTestNestedValueClass(value: TestNestedValueClass): Record<string, any> {
+        return {
+          ['simple']: (() => {
+            const temp = value['simple'];
+            return temp;
+          })(),
+          ['complex']: (() => {
+            const temp = value['complex'];
+            return temp;
+          })(),
+          ['simpleList']: (() => {
+            const temp = value['simpleList'];
+            return temp.map((it: any) => (() => {
+              const temp_ = it;
+              return temp_;
+            })());
+          })(),
+          ['complexList']: (() => {
+            const temp = value['complexList'];
+            return temp.map((it: any) => (() => {
+              const temp_ = it;
+              return temp_;
+            })());
+          })(),
+          ['simpleMap']: (() => {
+            const temp = value['simpleMap'];
+            return Object.fromEntries(Object.entries(temp).map(([key, value_]: [any, any]) =>
+                [(() => {
+              const temp_ = key;
+              return temp_;
+            })(), (() => {
+              const temp_ = value_;
+              return temp_;
+            })()]));
+          })(),
+          ['complexMap']: (() => {
+            const temp = value['complexMap'];
+            return Object.fromEntries(Object.entries(temp).map(([key, value_]: [any, any]) =>
+                [(() => {
+              const temp_ = key;
+              return temp_;
+            })(), (() => {
+              const temp_ = value_;
+              return temp_;
+            })()]));
+          })(),
+          ['simpleMapWithKey']: (() => {
+            const temp = value['simpleMapWithKey'];
+            return Object.fromEntries(Object.entries(temp).map(([key, value_]: [any, any]) =>
+                [(() => {
+              const temp_ = key;
+              return temp_;
+            })(), (() => {
+              const temp_ = value_;
+              return temp_;
+            })()]));
+          })(),
+          ['complexMapWithKey']: (() => {
+            const temp = value['complexMapWithKey'];
+            return Object.fromEntries(Object.entries(temp).map(([key, value_]: [any, any]) =>
+                [(() => {
+              const temp_ = key;
+              return temp_;
+            })(), (() => {
+              const temp_ = value_;
+              return temp_;
+            })()]));
+          })(),
+          ['nested']: (() => {
+            const temp = value['nested'];
+            return temp;
+          })()
         };
       }
 
@@ -577,6 +833,31 @@ export namespace com {
       }
 
       /**
+       * Value class generated from {@link com.myrnproject.shared.TestValueClassIsolatedValueType}
+       */
+      export type TestValueClassIsolatedValueType = IsolatedDataClass;
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.TestValueClassIsolatedValueType}
+       */
+      export function fromJsonTestValueClassIsolatedValueType(json: any): IsolatedDataClass {
+        return ((() => {
+          const temp = json;
+          return fromJsonIsolatedDataClass(temp);
+        })()) as IsolatedDataClass;
+      }
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.TestValueClassIsolatedValueType}
+       */
+      export function toJsonTestValueClassIsolatedValueType(value: IsolatedDataClass): any {
+        return (() => {
+          const temp = value;
+          return toJsonIsolatedDataClass(temp);
+        })();
+      }
+
+      /**
        * Object generated from {@link com.myrnproject.shared.FlowTest}
        */
       export interface FlowTest {
@@ -594,6 +875,39 @@ export namespace com {
        */
       export function toJsonFlowTest(_: FlowTest): Record<string, any> {
         return {};
+      }
+
+      /**
+       * Data class generated from {@link com.myrnproject.shared.IsolatedDataClass}
+       */
+      export interface IsolatedDataClass {
+
+        test: string;
+
+      }
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.IsolatedDataClass}
+       */
+      export function fromJsonIsolatedDataClass(json: Record<string, any>): IsolatedDataClass {
+        return {
+          ['test']: ((() => {
+            const temp = json['test'];
+            return temp;
+          })()) as string
+        };
+      }
+
+      /**
+       * Mapping generated from {@link com.myrnproject.shared.IsolatedDataClass}
+       */
+      export function toJsonIsolatedDataClass(value: IsolatedDataClass): Record<string, any> {
+        return {
+          ['test']: (() => {
+            const temp = value['test'];
+            return temp;
+          })()
+        };
       }
 
       /**
@@ -1076,6 +1390,35 @@ export namespace com {
             };
           }
 
+        }
+
+      }
+
+      export namespace TestNestedValueClass {
+
+        /**
+         * Value class generated from {@link com.myrnproject.shared.TestNestedValueClass.NestedValueClass}
+         */
+        export type NestedValueClass = TestValueClassPrimitive;
+
+        /**
+         * Mapping generated from {@link com.myrnproject.shared.TestNestedValueClass.NestedValueClass}
+         */
+        export function fromJsonNestedValueClass(json: any): TestValueClassPrimitive {
+          return ((() => {
+            const temp = json;
+            return temp;
+          })()) as TestValueClassPrimitive;
+        }
+
+        /**
+         * Mapping generated from {@link com.myrnproject.shared.TestNestedValueClass.NestedValueClass}
+         */
+        export function toJsonNestedValueClass(value: TestValueClassPrimitive): any {
+          return (() => {
+            const temp = value;
+            return temp;
+          })();
         }
 
       }

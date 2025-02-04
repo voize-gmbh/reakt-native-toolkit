@@ -13,6 +13,7 @@ import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeAlias
 import com.google.devtools.ksp.symbol.KSTypeParameter
+import com.google.devtools.ksp.symbol.Modifier
 import com.google.devtools.ksp.symbol.Origin
 import io.outfoxx.typescriptpoet.CodeBlock
 import io.outfoxx.typescriptpoet.CodeBlock.Companion.joinToCode
@@ -74,6 +75,39 @@ internal fun getTypescriptTypeName(
             }
         }
 
+        fun isSupportedMapKeyType(ksType: KSType): Boolean {
+            return when (val declaration = ksType.declaration) {
+                is KSClassDeclaration -> {
+                    if (
+                        listOf(
+                            "kotlin.String",
+                            "kotlin.Char",
+                            "kotlin.Int",
+                            "kotlin.Long",
+                            "kotlin.Short",
+                            "kotlin.Float",
+                            "kotlin.Double",
+                            "kotlin.Number",
+                            "kotlin.Boolean",
+                            "kotlin.Byte",
+                        ).contains(declaration.qualifiedName?.asString())
+                    ) {
+                        true
+                    } else if (Modifier.ENUM in declaration.modifiers) {
+                        true
+                    } else if (Modifier.VALUE in declaration.modifiers) {
+                        isSupportedMapKeyType(declaration.primaryConstructor!!.parameters.first().type.resolve())
+                    } else {
+                        false
+                    }
+                }
+                is KSTypeAlias -> {
+                    isSupportedMapKeyType(declaration.type.resolve())
+                }
+                else -> false
+            }
+        }
+
         val typeName = when (ksType.declaration.qualifiedName?.asString()) {
             "kotlin.Any" -> TypeName.ANY
             "kotlin.Boolean" -> TypeName.BOOLEAN
@@ -93,10 +127,18 @@ internal fun getTypescriptTypeName(
                 resolveTypeArgument(0)
             )
 
-            "kotlin.collections.Map" -> recordType(
-                resolveTypeArgument(0),
-                resolveTypeArgument(1),
-            )
+            "kotlin.collections.Map" -> {
+                val keyType = ksType.arguments.first().type!!.resolve()
+
+                require(isSupportedMapKeyType(keyType)) {
+                    "Map key type must be a primitive or assignable to a primitive in TypeScript (e.g. value class or typealias) in $ksType"
+                }
+
+                recordType(
+                    resolveTypeArgument(0),
+                    resolveTypeArgument(1),
+                )
+            }
 
             else -> null
         } ?: when (ksType.declaration.qualifiedName?.asString()) {
@@ -121,14 +163,14 @@ internal fun getTypescriptTypeName(
                         val sealedSuperclass = declaration.getSealedSuperclass()
                         when (declaration.classKind) {
                             ClassKind.INTERFACE -> {
-                                if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                                if (Modifier.SEALED in declaration.modifiers) {
                                     getTypeName(declaration.getTypescriptNameWithNamespace(), externalTypeMapping)
                                 } else {
                                     error("Interfaces are not supported")
                                 }
                             }
                             ClassKind.CLASS -> {
-                                if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
+                                if (Modifier.DATA in declaration.modifiers) {
                                     // data class
                                     val rawTypeName = getTypeName(declaration.getTypescriptNameWithNamespace(), externalTypeMapping)
                                     if (sealedSuperclass != null) {
@@ -136,10 +178,13 @@ internal fun getTypescriptTypeName(
                                     } else {
                                         rawTypeName
                                     }
-                                } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                                } else if (Modifier.SEALED in declaration.modifiers) {
+                                    getTypeName(declaration.getTypescriptNameWithNamespace(), externalTypeMapping)
+                                } else if (Modifier.VALUE in declaration.modifiers) {
+                                    // value class
                                     getTypeName(declaration.getTypescriptNameWithNamespace(), externalTypeMapping)
                                 } else {
-                                    error("Only data classes and sealed classes are supported, found: $declaration")
+                                    error("Only data classes, sealed classes and value classes are supported, found: $declaration")
                                 }
                             }
 
@@ -188,7 +233,7 @@ internal fun getTypescriptTypeName(
 
         return typeName.withNullable(ksType.isMarkedNullable)
     } catch (e: Exception) {
-        throw IllegalArgumentException("Cannot get typescript type name for ${ksType.declaration.qualifiedName?.asString()}", e)
+        throw IllegalArgumentException("Cannot get typescript type name for $ksType", e)
     }
 }
 
@@ -253,7 +298,7 @@ internal fun getTypescriptSerializedTypeName(ksType: KSType): TypeName {
                 is KSClassDeclaration -> {
                     when (declaration.classKind) {
                         ClassKind.INTERFACE -> {
-                            if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                            if (Modifier.SEALED in declaration.modifiers) {
                                 // sealed interface
                                 TypeName.STRING
                             } else {
@@ -261,14 +306,17 @@ internal fun getTypescriptSerializedTypeName(ksType: KSType): TypeName {
                             }
                         }
                         ClassKind.CLASS -> {
-                            if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
+                            if (Modifier.DATA in declaration.modifiers) {
                                 // data class
                                 TypeName.STRING
-                            } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                            } else if (Modifier.SEALED in declaration.modifiers) {
                                 // sealed class
                                 TypeName.STRING
+                            } else if (Modifier.VALUE in declaration.modifiers) {
+                                // value class
+                                TypeName.STRING
                             } else {
-                                error("Only data classes and sealed classes are supported")
+                                error("Only data classes, sealed classes and value classes are supported")
                             }
                         }
 
@@ -537,7 +585,7 @@ internal fun convertJsonToType(
                 } else when (declaration) {
                     is KSClassDeclaration -> when (declaration.classKind) {
                         ClassKind.INTERFACE -> {
-                            if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                            if (Modifier.SEALED in declaration.modifiers) {
                                 // sealed interface
                                 CodeBlock.of(
                                     "%Q(%N)",
@@ -549,22 +597,25 @@ internal fun convertJsonToType(
                             }
                         }
                         ClassKind.CLASS -> {
-                            if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
+                            if (Modifier.DATA in declaration.modifiers) {
                                 // data class
                                 CodeBlock.of(
                                     "%Q(%N)",
                                     declaration.getTypescriptFromJsonFunctionNameWithNamespace(externalTypeMapping),
                                     nonNullVariableName,
                                 )
-                            } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                            } else if (Modifier.SEALED in declaration.modifiers) {
                                 // sealed class
                                 CodeBlock.of(
                                     "%Q(%N)",
                                     declaration.getTypescriptFromJsonFunctionNameWithNamespace(externalTypeMapping),
                                     nonNullVariableName,
                                 )
+                            } else if (Modifier.VALUE in declaration.modifiers) {
+                                // value class
+                                nonNullVariableName.asCodeBlock()
                             } else {
-                                error("Only data classes and sealed classes are supported, found: $declaration")
+                                error("Only data classes, sealed classes and value classes are supported, found: $declaration")
                             }
                         }
 
@@ -745,7 +796,7 @@ internal fun convertTypeToJson(
                 } else when (declaration) {
                     is KSClassDeclaration -> when (declaration.classKind) {
                         ClassKind.INTERFACE -> {
-                            if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                            if (Modifier.SEALED in declaration.modifiers) {
                                 // sealed interface
                                 CodeBlock.of(
                                     "%Q(%N)",
@@ -757,25 +808,27 @@ internal fun convertTypeToJson(
                             }
                         }
                         ClassKind.CLASS -> {
-                            if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
+                            if (Modifier.DATA in declaration.modifiers) {
                                 // data class
                                 CodeBlock.of(
                                     "%Q(%N)",
                                     declaration.getTypescriptToJsonFunctionNameWithNamespace(externalTypeMapping),
                                     nonNullVariableName,
                                 )
-                            } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                            } else if (Modifier.SEALED in declaration.modifiers) {
                                 // sealed class
                                 CodeBlock.of(
                                     "%Q(%N)",
                                     declaration.getTypescriptToJsonFunctionNameWithNamespace(externalTypeMapping),
                                     nonNullVariableName,
                                 )
+                            } else if (Modifier.VALUE in declaration.modifiers) {
+                                // value class
+                                nonNullVariableName.asCodeBlock()
                             } else {
-                                error("Only data classes and sealed classes are supported, found: $declaration")
+                                    error("Only data classes, sealed classes and value classes are supported, found: $declaration")
+                                }
                             }
-                        }
-
                         ClassKind.ENUM_CLASS -> {
                             CodeBlock.of(
                                 "%Q(%N)",

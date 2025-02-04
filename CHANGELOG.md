@@ -3,6 +3,9 @@
 ## unreleased
 
 - Allow configuring namespace to prefix generated ObjC filenames and classes to avoid symbol conflicts
+- Add support for value classes
+- Add check that Map keys are supported
+- Fix support for primitive typealias in Kotlin 
 
 ## v0.20.1
 

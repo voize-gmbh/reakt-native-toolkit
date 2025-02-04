@@ -41,67 +41,83 @@ internal object TypescriptModelsNamespaceTree {
                 continue
             }
             val declaration = current.declaration
+
             if (declaration !in processed) {
                 processed.add(declaration)
 
-                when (declaration) {
-                    is KSClassDeclaration -> {
+                // Types from e.g. the Kotlin Lib like String can be ignored
+                // as they can not have any other types that need to be processed
+                if (declaration.origin == Origin.KOTLIN) {
+                    when (declaration) {
+                        is KSClassDeclaration -> {
 
-                        when (declaration.classKind) {
-                            ClassKind.CLASS -> {
-                                if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
-                                    // data class
-                                    declaration.getDeclaredBackedProperties().forEach {
-                                        scheduleForProcessing(it.type.resolve())
-                                    }
-                                } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
-                                    // sealed class
-                                    declaration.getSealedSubclasses().forEach {
-                                        scheduleForProcessing(it.asStarProjectedType())
+                            when (declaration.classKind) {
+                                ClassKind.CLASS -> {
+                                    if (com.google.devtools.ksp.symbol.Modifier.DATA in declaration.modifiers) {
+                                        // data class
+                                        declaration.getDeclaredBackedProperties().forEach {
+                                            scheduleForProcessing(it.type.resolve())
+                                        }
+                                    } else if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                                        // sealed class
+                                        declaration.getSealedSubclasses().forEach {
+                                            scheduleForProcessing(it.asStarProjectedType())
+                                        }
+                                    } else if (com.google.devtools.ksp.symbol.Modifier.VALUE in declaration.modifiers) {
+                                        // value class
+                                        scheduleForProcessing(declaration.getValueClassValueType())
+                                    } else {
+                                        error("Unsupported class modifier: $declaration")
                                     }
                                 }
-                            }
 
-                            ClassKind.INTERFACE -> {
-                                if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
-                                    // sealed interface
-                                    declaration.getSealedSubclasses().forEach {
-                                        scheduleForProcessing(it.asStarProjectedType())
+                                ClassKind.INTERFACE -> {
+                                    if (com.google.devtools.ksp.symbol.Modifier.SEALED in declaration.modifiers) {
+                                        // sealed interface
+                                        declaration.getSealedSubclasses().forEach {
+                                            scheduleForProcessing(it.asStarProjectedType())
+                                        }
                                     }
                                 }
+
+                                ClassKind.OBJECT -> {}
+
+                                ClassKind.ENUM_CLASS -> {}
+
+                                else -> error("Unsupported declaration: $declaration")
                             }
-
-                            else -> Unit
+                            declaration.superTypes.filter {
+                                // only process sealed superclasses
+                                com.google.devtools.ksp.symbol.Modifier.SEALED in it.resolve().declaration.modifiers
+                            }.forEach {
+                                scheduleForProcessing(it.resolve())
+                            }
                         }
-                        declaration.superTypes.filter {
-                            // only process sealed superclasses
-                            com.google.devtools.ksp.symbol.Modifier.SEALED in it.resolve().declaration.modifiers
-                        }.forEach {
-                            scheduleForProcessing(it.resolve())
+
+                        is KSTypeAlias -> {
+                            scheduleForProcessing(declaration.type.resolve())
                         }
-                    }
 
-                    is KSTypeAlias -> {
-                        scheduleForProcessing(declaration.type.resolve())
-                    }
+                        is KSFunctionDeclaration -> {
+                            error("Function declarations are not supported")
+                        }
 
-                    is KSFunctionDeclaration -> {
-                        error("Function declarations are not supported")
-                    }
+                        is KSPropertyDeclaration -> {
+                            scheduleForProcessing(declaration.type.resolve())
+                        }
 
-                    is KSPropertyDeclaration -> {
-                        scheduleForProcessing(declaration.type.resolve())
-                    }
+                        is KSTypeParameter -> {
+                            declaration.bounds.map { it.resolve() }.forEach(::scheduleForProcessing)
+                        }
 
-                    is KSTypeParameter -> {
-                        declaration.bounds.map { it.resolve() }.forEach(::scheduleForProcessing)
-                    }
-
-                    else -> {
-                        error("Unsupported declaration: $declaration")
+                        else -> {
+                            error("Unsupported declaration: $declaration")
+                        }
                     }
                 }
             }
+
+            // Process type arguments, e.g. in a Map or List
             current.arguments.forEach {
                 val type = it.type
                 // if not a type variable
