@@ -762,6 +762,14 @@ class IOSRNModules(private val analytics: Analytics) {
 You also need to reference the generated Objective-C files in your iOS project.
 For this, open your XCode workspace, right click on your target and select "Add files to ...". Then select the directory in `android/shared/build/generated/ksp/metadata/commonMain/resources/reaktNativeToolkit/objc` and add it with the "Create groups" option enabled and the "Copy items if needed" option disabled.
 
+If you experience symbol conflicts with the generated Objective-C files, e.g. because you use the `@ReactNativeViewManager` annotation in multiple modules, you can use set a namespace for the generated Objective-C files that will prefix the generated filenames and classes:
+
+```kotlin
+ksp {
+    arg("reakt.native.toolkit.iosObjcNamespace", "My")
+}
+```
+
 You might have to an initial build to generate the Objective-C files before you can add them to your XCode project:
 
 ```

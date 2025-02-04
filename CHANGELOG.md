@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Allow configuring namespace to prefix generated ObjC filenames and classes to avoid symbol conflicts
+
 ## v0.20.1
 
 - Revert "Improve linking error message for missing RN module"
