@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.21.0
 
 - Allow configuring namespace to prefix generated ObjC filenames and classes to avoid symbol conflicts
 - Add support for value classes
