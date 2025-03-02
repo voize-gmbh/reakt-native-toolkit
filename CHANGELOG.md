@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Fix compiler error for references to external value classes
+
 ## v0.21.0
 
 - Allow configuring namespace to prefix generated ObjC filenames and classes to avoid symbol conflicts

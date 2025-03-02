@@ -95,7 +95,7 @@ internal fun getTypescriptTypeName(
                         true
                     } else if (Modifier.ENUM in declaration.modifiers) {
                         true
-                    } else if (Modifier.VALUE in declaration.modifiers) {
+                    } else if (Modifier.VALUE in declaration.modifiers || Modifier.INLINE in declaration.modifiers) {
                         isSupportedMapKeyType(declaration.primaryConstructor!!.parameters.first().type.resolve())
                     } else {
                         false
@@ -180,11 +180,11 @@ internal fun getTypescriptTypeName(
                                     }
                                 } else if (Modifier.SEALED in declaration.modifiers) {
                                     getTypeName(declaration.getTypescriptNameWithNamespace(), externalTypeMapping)
-                                } else if (Modifier.VALUE in declaration.modifiers) {
+                                } else if (Modifier.VALUE in declaration.modifiers || Modifier.INLINE in declaration.modifiers) {
                                     // value class
                                     getTypeName(declaration.getTypescriptNameWithNamespace(), externalTypeMapping)
                                 } else {
-                                    error("Only data classes, sealed classes and value classes are supported, found: $declaration")
+                                    error("Only data classes, sealed classes and value classes are supported, found: $ksType")
                                 }
                             }
 
@@ -312,11 +312,13 @@ internal fun getTypescriptSerializedTypeName(ksType: KSType): TypeName {
                             } else if (Modifier.SEALED in declaration.modifiers) {
                                 // sealed class
                                 TypeName.STRING
-                            } else if (Modifier.VALUE in declaration.modifiers) {
+                            } else if (Modifier.VALUE in declaration.modifiers
+                                || Modifier.INLINE in declaration.modifiers
+                            ) {
                                 // value class
                                 TypeName.STRING
                             } else {
-                                error("Only data classes, sealed classes and value classes are supported")
+                                error("Only data classes, sealed classes and value classes are supported, found $ksType")
                             }
                         }
 
@@ -611,7 +613,7 @@ internal fun convertJsonToType(
                                     declaration.getTypescriptFromJsonFunctionNameWithNamespace(externalTypeMapping),
                                     nonNullVariableName,
                                 )
-                            } else if (Modifier.VALUE in declaration.modifiers) {
+                            } else if (Modifier.VALUE in declaration.modifiers || Modifier.INLINE in declaration.modifiers) {
                                 // value class
                                 nonNullVariableName.asCodeBlock()
                             } else {
@@ -822,7 +824,7 @@ internal fun convertTypeToJson(
                                     declaration.getTypescriptToJsonFunctionNameWithNamespace(externalTypeMapping),
                                     nonNullVariableName,
                                 )
-                            } else if (Modifier.VALUE in declaration.modifiers) {
+                            } else if (Modifier.VALUE in declaration.modifiers || Modifier.INLINE in declaration.modifiers) {
                                 // value class
                                 nonNullVariableName.asCodeBlock()
                             } else {
