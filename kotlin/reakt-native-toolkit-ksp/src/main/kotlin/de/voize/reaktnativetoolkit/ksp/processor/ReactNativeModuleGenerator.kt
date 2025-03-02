@@ -314,6 +314,7 @@ class ReactNativeModuleGenerator(
         val className = wrappedClassName.moduleProviderClassName()
 
         val classSpec = TypeSpec.classBuilder(className).apply {
+            addKdoc("Provider for [${packageName}.${wrappedClassName}]")
             if (isInternal) {
                 addModifiers(KModifier.INTERNAL)
             }

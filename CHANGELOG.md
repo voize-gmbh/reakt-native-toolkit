@@ -3,6 +3,7 @@
 ## unreleased
 
 - Fix compiler error for references to external value classes
+- Add KDoc for provider classes
 
 ## v0.21.0
 
