@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.21.1
 
 - Fix compiler error for references to external value classes
 - Add KDoc for provider classes
