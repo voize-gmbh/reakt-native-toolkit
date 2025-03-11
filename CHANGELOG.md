@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Fix crash on iOS with nullable number types in Compose view manager params
+
 ## v0.21.1
 
 - Fix compiler error for references to external value classes

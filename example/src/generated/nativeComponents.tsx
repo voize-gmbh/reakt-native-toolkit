@@ -14,7 +14,11 @@ interface NativeMyComposeViewProps {
 
   boolProp: boolean;
 
+  nullableBoolProp: boolean | null;
+
   intProp: number;
+
+  nullableIntProp: number | null;
 
   doubleProp: number;
 
@@ -22,11 +26,19 @@ interface NativeMyComposeViewProps {
 
   objectProp: string;
 
+  nullableObjectProp: string;
+
   enumProp: string;
+
+  nullableEnumProp: string;
 
   listProp: string;
 
+  nullableListProp: string;
+
   sealedInterface: string;
+
+  nullableSealedInterface: string;
 
   onTextFieldValueChange: (event: any) => void;
 
@@ -46,7 +58,11 @@ interface MyComposeViewProps extends ViewProps {
 
   boolProp: boolean;
 
+  nullableBoolProp: boolean | null;
+
   intProp: number;
+
+  nullableIntProp: number | null;
 
   doubleProp: number;
 
@@ -54,17 +70,25 @@ interface MyComposeViewProps extends ViewProps {
 
   objectProp: com.myrnproject.shared.MyDataClass;
 
+  nullableObjectProp: com.myrnproject.shared.MyDataClass | null;
+
   enumProp: com.myrnproject.shared.Enum;
+
+  nullableEnumProp: com.myrnproject.shared.Enum | null;
 
   listProp: Array<com.myrnproject.shared.MyDataClass>;
 
+  nullableListProp: Array<com.myrnproject.shared.MyDataClass> | null;
+
   sealedInterface: com.myrnproject.shared.TestSealedInterfaceType;
+
+  nullableSealedInterface: com.myrnproject.shared.TestSealedInterfaceType | null;
 
   onTextFieldValueChange: (arg0: string) => void;
 
   onButtonPress: () => void;
 
-  onTestParams: (arg0: string, arg1: string | null, arg2: boolean, arg3: number, arg4: number, arg5: number, arg6: com.myrnproject.shared.MyDataClass, arg7: com.myrnproject.shared.Enum, arg8: Array<com.myrnproject.shared.MyDataClass>, arg9: com.myrnproject.shared.TestSealedInterfaceType) => void;
+  onTestParams: (arg0: string, arg1: string | null, arg2: boolean, arg3: boolean | null, arg4: number, arg5: number | null, arg6: number, arg7: number | null, arg8: number, arg9: number | null, arg10: com.myrnproject.shared.MyDataClass, arg11: com.myrnproject.shared.MyDataClass | null, arg12: com.myrnproject.shared.Enum, arg13: com.myrnproject.shared.Enum | null, arg14: Array<com.myrnproject.shared.MyDataClass>, arg15: Array<com.myrnproject.shared.MyDataClass> | null, arg16: com.myrnproject.shared.TestSealedInterfaceType, arg17: com.myrnproject.shared.TestSealedInterfaceType | null) => void;
 
 }
 
@@ -104,13 +128,19 @@ export const MyComposeView = (props: MyComposeViewProps) => {
   textFieldValue,
   nullableStringProp,
   boolProp,
+  nullableBoolProp,
   intProp,
+  nullableIntProp,
   doubleProp,
   floatProp,
   objectProp,
+  nullableObjectProp,
   enumProp,
+  nullableEnumProp,
   listProp,
+  nullableListProp,
   sealedInterface,
+  nullableSealedInterface,
   onTextFieldValueChange,
   onButtonPress,
   onTestParams,
@@ -132,10 +162,18 @@ export const MyComposeView = (props: MyComposeViewProps) => {
     const temp = boolProp;
     return temp;
   })(), [boolProp]);
+  const nullableBoolPropMemoized = useMemo(() => (() => {
+    const temp = nullableBoolProp;
+    return temp === null ? null : (temp);
+  })(), [nullableBoolProp]);
   const intPropMemoized = useMemo(() => (() => {
     const temp = intProp;
     return temp;
   })(), [intProp]);
+  const nullableIntPropMemoized = useMemo(() => (() => {
+    const temp = nullableIntProp;
+    return temp === null ? null : (temp);
+  })(), [nullableIntProp]);
   const doublePropMemoized = useMemo(() => (() => {
     const temp = doubleProp;
     return temp;
@@ -148,10 +186,18 @@ export const MyComposeView = (props: MyComposeViewProps) => {
     const temp = objectProp;
     return com.myrnproject.shared.toJsonMyDataClass(temp);
   })()), [objectProp]);
+  const nullableObjectPropMemoized = useMemo(() => JSON.stringify((() => {
+    const temp = nullableObjectProp;
+    return temp === null ? null : (com.myrnproject.shared.toJsonMyDataClass(temp));
+  })()), [nullableObjectProp]);
   const enumPropMemoized = useMemo(() => JSON.stringify((() => {
     const temp = enumProp;
     return com.myrnproject.shared.toJsonEnum(temp);
   })()), [enumProp]);
+  const nullableEnumPropMemoized = useMemo(() => JSON.stringify((() => {
+    const temp = nullableEnumProp;
+    return temp === null ? null : (com.myrnproject.shared.toJsonEnum(temp));
+  })()), [nullableEnumProp]);
   const listPropMemoized = useMemo(() => JSON.stringify((() => {
     const temp = listProp;
     return temp.map((it: any) => (() => {
@@ -159,10 +205,21 @@ export const MyComposeView = (props: MyComposeViewProps) => {
       return com.myrnproject.shared.toJsonMyDataClass(temp_);
     })());
   })()), [listProp]);
+  const nullableListPropMemoized = useMemo(() => JSON.stringify((() => {
+    const temp = nullableListProp;
+    return temp === null ? null : (temp.map((it: any) => (() => {
+      const temp_ = it;
+      return com.myrnproject.shared.toJsonMyDataClass(temp_);
+    })()));
+  })()), [nullableListProp]);
   const sealedInterfaceMemoized = useMemo(() => JSON.stringify((() => {
     const temp = sealedInterface;
     return com.myrnproject.shared.toJsonTestSealedInterfaceType(temp);
   })()), [sealedInterface]);
+  const nullableSealedInterfaceMemoized = useMemo(() => JSON.stringify((() => {
+    const temp = nullableSealedInterface;
+    return temp === null ? null : (com.myrnproject.shared.toJsonTestSealedInterfaceType(temp));
+  })()), [nullableSealedInterface]);
   const nativeOnTextFieldValueChange = useCallback((event: any) => {
     onTextFieldValueChange(((() => {
       const temp = event.nativeEvent.args[0];
@@ -182,40 +239,73 @@ export const MyComposeView = (props: MyComposeViewProps) => {
       return temp;
     })()) as boolean, ((() => {
       const temp = event.nativeEvent.args[3];
-      return temp;
-    })()) as number, ((() => {
+      return temp === null ? null : (temp);
+    })()) as boolean | null, ((() => {
       const temp = event.nativeEvent.args[4];
       return temp;
     })()) as number, ((() => {
       const temp = event.nativeEvent.args[5];
+      return temp === null ? null : (temp);
+    })()) as number | null, ((() => {
+      const temp = event.nativeEvent.args[6];
       return temp;
     })()) as number, ((() => {
-      const temp = JSON.parse(event.nativeEvent.args[6]);
+      const temp = event.nativeEvent.args[7];
+      return temp === null ? null : (temp);
+    })()) as number | null, ((() => {
+      const temp = event.nativeEvent.args[8];
+      return temp;
+    })()) as number, ((() => {
+      const temp = event.nativeEvent.args[9];
+      return temp === null ? null : (temp);
+    })()) as number | null, ((() => {
+      const temp = JSON.parse(event.nativeEvent.args[10]);
       return com.myrnproject.shared.fromJsonMyDataClass(temp);
     })()) as com.myrnproject.shared.MyDataClass, ((() => {
-      const temp = JSON.parse(event.nativeEvent.args[7]);
+      const temp = JSON.parse(event.nativeEvent.args[11]);
+      return temp === null ? null : (com.myrnproject.shared.fromJsonMyDataClass(temp));
+    })()) as com.myrnproject.shared.MyDataClass | null, ((() => {
+      const temp = JSON.parse(event.nativeEvent.args[12]);
       return com.myrnproject.shared.fromJsonEnum(temp);
     })()) as com.myrnproject.shared.Enum, ((() => {
-      const temp = JSON.parse(event.nativeEvent.args[8]);
+      const temp = JSON.parse(event.nativeEvent.args[13]);
+      return temp === null ? null : (com.myrnproject.shared.fromJsonEnum(temp));
+    })()) as com.myrnproject.shared.Enum | null, ((() => {
+      const temp = JSON.parse(event.nativeEvent.args[14]);
       return temp.map((it: any) => ((() => {
         const temp_ = it;
         return com.myrnproject.shared.fromJsonMyDataClass(temp_);
       })()) as com.myrnproject.shared.MyDataClass);
     })()) as Array<com.myrnproject.shared.MyDataClass>, ((() => {
-      const temp = JSON.parse(event.nativeEvent.args[9]);
+      const temp = JSON.parse(event.nativeEvent.args[15]);
+      return temp === null ? null : (temp.map((it: any) => ((() => {
+        const temp_ = it;
+        return com.myrnproject.shared.fromJsonMyDataClass(temp_);
+      })()) as com.myrnproject.shared.MyDataClass));
+    })()) as Array<com.myrnproject.shared.MyDataClass> | null, ((() => {
+      const temp = JSON.parse(event.nativeEvent.args[16]);
       return com.myrnproject.shared.fromJsonTestSealedInterfaceType(temp);
-    })()) as com.myrnproject.shared.TestSealedInterfaceType)}, [onTestParams]);
+    })()) as com.myrnproject.shared.TestSealedInterfaceType, ((() => {
+      const temp = JSON.parse(event.nativeEvent.args[17]);
+      return temp === null ? null : (com.myrnproject.shared.fromJsonTestSealedInterfaceType(temp));
+    })()) as com.myrnproject.shared.TestSealedInterfaceType | null)}, [onTestParams]);
   return <NativeMyComposeView {...rest} message={messageMemoized}
   textFieldValue={textFieldValueMemoized}
   nullableStringProp={nullableStringPropMemoized}
   boolProp={boolPropMemoized}
+  nullableBoolProp={nullableBoolPropMemoized}
   intProp={intPropMemoized}
+  nullableIntProp={nullableIntPropMemoized}
   doubleProp={doublePropMemoized}
   floatProp={floatPropMemoized}
   objectProp={objectPropMemoized}
+  nullableObjectProp={nullableObjectPropMemoized}
   enumProp={enumPropMemoized}
+  nullableEnumProp={nullableEnumPropMemoized}
   listProp={listPropMemoized}
+  nullableListProp={nullableListPropMemoized}
   sealedInterface={sealedInterfaceMemoized}
+  nullableSealedInterface={nullableSealedInterfaceMemoized}
   onTextFieldValueChange={nativeOnTextFieldValueChange}
   onButtonPress={nativeOnButtonPress}
   onTestParams={nativeOnTestParams} />;

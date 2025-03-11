@@ -740,10 +740,30 @@ class ReactNativeViewManagerGenerator(
                                                 decodeFromString(CodeBlock.of("%N as String", valueVarName))
                                             } else {
                                                 when (prop.typeArgument.declaration.qualifiedName?.asString()) {
-                                                    "kotlin.Int" -> CodeBlock.of("(%N as %T).intValue", valueVarName, NSNumberClassName)
-                                                    "kotlin.Double" -> CodeBlock.of("(%N as %T).doubleValue", valueVarName, NSNumberClassName)
-                                                    "kotlin.Float" -> CodeBlock.of("(%N as %T).floatValue", valueVarName, NSNumberClassName)
-                                                    "kotlin.Boolean" -> CodeBlock.of("(%N as %T).boolValue", valueVarName, NSNumberClassName)
+                                                    "kotlin.Int" -> CodeBlock.of(
+                                                        "(%N as %T)%L.intValue",
+                                                        valueVarName,
+                                                        NSNumberClassName.copy(nullable = prop.typeArgument.isMarkedNullable),
+                                                        if (prop.typeArgument.isMarkedNullable) "?" else "",
+                                                    )
+                                                    "kotlin.Double" -> CodeBlock.of(
+                                                        "(%N as %T)%L.doubleValue",
+                                                        valueVarName,
+                                                        NSNumberClassName.copy(nullable = prop.typeArgument.isMarkedNullable),
+                                                        if (prop.typeArgument.isMarkedNullable) "?" else "",
+                                                    )
+                                                    "kotlin.Float" -> CodeBlock.of(
+                                                        "(%N as %T)%L.floatValue",
+                                                        valueVarName,
+                                                        NSNumberClassName.copy(nullable = prop.typeArgument.isMarkedNullable),
+                                                        if (prop.typeArgument.isMarkedNullable) "?" else "",
+                                                    )
+                                                    "kotlin.Boolean" -> CodeBlock.of(
+                                                        "(%N as %T)%L.boolValue",
+                                                        valueVarName,
+                                                        NSNumberClassName.copy(nullable = prop.typeArgument.isMarkedNullable),
+                                                        if (prop.typeArgument.isMarkedNullable) "?" else "",
+                                                    )
                                                     else -> CodeBlock.of("%N as %T", valueVarName, prop.typeArgument.toTypeName())
                                                 }
                                             }
