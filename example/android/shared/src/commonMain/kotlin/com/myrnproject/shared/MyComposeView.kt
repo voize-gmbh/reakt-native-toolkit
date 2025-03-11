@@ -33,19 +33,39 @@ internal fun MyComposeView(
     @ReactNativeProp
     boolProp: Boolean,
     @ReactNativeProp
+    nullableBoolProp: Boolean?,
+    @ReactNativeProp
     intProp: Int,
+    @ReactNativeProp
+    nullableIntProp: Int?,
     @ReactNativeProp
     doubleProp: Double,
     @ReactNativeProp
     floatProp: Float,
+    // Nullable Double or Float do not seem to work in the Android RN bridge (but works on iOS)
+    // java.lang.RuntimeException: Unrecognized type: class java.lang.Double for method: com.myrnproject.shared.MyComposeViewRNViewManagerAndroid#setNullableDoubleProp
+    // java.lang.RuntimeException: Unrecognized type: class java.lang.Float for method: com.myrnproject.shared.MyComposeViewRNViewManagerAndroid#setNullableFloatProp
+    //
+    // @ReactNativeProp
+    // nullableDoubleProp: Double?,
+    // @ReactNativeProp
+    // nullableFloatProp: Float?,
     @ReactNativeProp
     objectProp: MyDataClass,
     @ReactNativeProp
+    nullableObjectProp: MyDataClass?,
+    @ReactNativeProp
     enumProp: Enum,
+    @ReactNativeProp
+    nullableEnumProp: Enum?,
     @ReactNativeProp
     listProp: List<MyDataClass>,
     @ReactNativeProp
+    nullableListProp: List<MyDataClass>?,
+    @ReactNativeProp
     sealedInterface: TestSealedInterfaceType,
+    @ReactNativeProp
+    nullableSealedInterface: TestSealedInterfaceType?,
     @ReactNativeProp
     onTextFieldValueChange: (String) -> Unit,
     @ReactNativeProp
@@ -55,13 +75,21 @@ internal fun MyComposeView(
         stringParam: String,
         nullableStringParam: String?,
         boolParam: Boolean,
+        nullableBoolParam: Boolean?,
         intParam: Int,
+        nullableIntParam: Int?,
         doubleParam: Double,
+        nullableDoubleParam: Double?,
         floatParam: Float,
+        nullableFloatParam: Float?,
         objectParam: MyDataClass,
+        nullableObjectParam: MyDataClass?,
         enumParam: Enum,
+        nullableEnumParam: Enum?,
         listParam: List<MyDataClass>,
+        nullableListParam: List<MyDataClass>?,
         sealedInterfaceParam: TestSealedInterfaceType,
+        nullableSealedInterfaceParam: TestSealedInterfaceType?,
     ) -> Unit,
     // dependency injection
     persistentConfig: PersistentConfig,
@@ -75,12 +103,19 @@ internal fun MyComposeView(
             "message" to message,
             "nullableStringProp" to nullableStringProp,
             "boolProp" to boolProp,
+            "nullableBoolProp" to nullableBoolProp,
             "intProp" to intProp,
+            "nullableIntProp" to nullableIntProp,
             "doubleProp" to doubleProp,
             "floatProp" to floatProp,
             "objectProp" to objectProp,
+            "nullableObjectProp" to nullableObjectProp,
             "enumProp" to enumProp,
+            "nullableEnumProp" to nullableEnumProp,
             "listProp" to listProp,
+            "nullableListProp" to nullableListProp,
+            "sealedInterfaceProp" to sealedInterface,
+            "nullableSealedInterfaceProp" to nullableSealedInterface,
         ).forEach { (propName, propValue) ->
             Text("Value of prop \"$propName\": $propValue")
         }
@@ -91,9 +126,13 @@ internal fun MyComposeView(
                 "stringParam",
                 null,
                 true,
+                null,
                 42,
+                null,
                 3.14,
+                null,
                 2.718f,
+                null,
                 MyDataClass(
                     "stringProp",
                     true,
@@ -101,7 +140,9 @@ internal fun MyComposeView(
                     3.14,
                     2.718f,
                 ),
+                null,
                 Enum.Option1,
+                null,
                 listOf(
                     MyDataClass(
                         "stringProp",
@@ -111,7 +152,9 @@ internal fun MyComposeView(
                         2.718f,
                     ),
                 ),
+                null,
                 TestSealedInterfaceType.Option3,
+                null,
             )
         }) {
             Text("Click me!")

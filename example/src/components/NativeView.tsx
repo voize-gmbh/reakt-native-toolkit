@@ -18,11 +18,16 @@ const NativeComposeView: React.FC = () => {
         <MyComposeView
           style={styles.nativeView}
           message="Hello from React Native!"
+          textFieldValue={text}
           nullableStringProp={null}
           boolProp={true}
+          nullableBoolProp={null}
           intProp={42}
-          floatProp={42.42}
+          nullableIntProp={null}
           doubleProp={42.42}
+          // nullableDoubleProp={null}
+          floatProp={42.42}
+          // nullableFloatProp={null}
           objectProp={{
             stringProp: 'hello',
             boolProp: true,
@@ -30,6 +35,7 @@ const NativeComposeView: React.FC = () => {
             floatProp: 42.42,
             doubleProp: 42.42,
           }}
+          nullableObjectProp={null}
           listProp={[
             {
               stringProp: 'hello',
@@ -39,11 +45,13 @@ const NativeComposeView: React.FC = () => {
               doubleProp: 42.42,
             },
           ]}
+          nullableListProp={null}
           enumProp={com.myrnproject.shared.Enum.Option1}
-          textFieldValue={text}
+          nullableEnumProp={null}
           sealedInterface={{
             type: com.myrnproject.shared.TestSealedInterfaceTypeType.Option3,
           }}
+          nullableSealedInterface={null}
           onTextFieldValueChange={setText}
           onButtonPress={() => setCounter((prev) => prev + 1)}
           onTestParams={(...args) => {
@@ -94,7 +102,7 @@ const styles = StyleSheet.create({
   },
   nativeView: {
     width: '100%',
-    height: 400,
+    height: 600,
   },
   nativeListItem: {
     width: '100%',
