@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.21.2
 
 - Fix crash on iOS with nullable number types in Compose view manager params
 
