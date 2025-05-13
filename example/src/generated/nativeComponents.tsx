@@ -92,12 +92,6 @@ interface MyComposeViewProps extends ViewProps {
 
 }
 
-interface NativeMyMinimalComposeViewProps {
-}
-
-interface MyMinimalComposeViewProps extends ViewProps {
-}
-
 interface NativeMySecondComposeViewProps {
 
   index: number;
@@ -118,6 +112,12 @@ interface NativeMyTransparentComposeViewProps {
 }
 
 interface MyTransparentComposeViewProps extends ViewProps {
+}
+
+interface NativeMyMinimalComposeViewProps {
+}
+
+interface MyMinimalComposeViewProps extends ViewProps {
 }
 
 const NativeMyComposeView = requireNativeComponent<NativeMyComposeViewProps>("MyComposeView");
@@ -311,15 +311,6 @@ export const MyComposeView = (props: MyComposeViewProps) => {
   onTestParams={nativeOnTestParams} />;
 };
 
-const NativeMyMinimalComposeView = requireNativeComponent<NativeMyMinimalComposeViewProps>("MyMinimalComposeView");
-
-export const MyMinimalComposeView = (props: MyMinimalComposeViewProps) => {
-  const {
-  ...rest
-  } = props;
-  return <NativeMyMinimalComposeView {...rest}  />;
-};
-
 const NativeMySecondComposeView = requireNativeComponent<NativeMySecondComposeViewProps>("MySecondComposeView");
 
 export const MySecondComposeView = (props: MySecondComposeViewProps) => {
@@ -345,4 +336,13 @@ export const MyTransparentComposeView = (props: MyTransparentComposeViewProps) =
   ...rest
   } = props;
   return <NativeMyTransparentComposeView {...rest}  />;
+};
+
+const NativeMyMinimalComposeView = requireNativeComponent<NativeMyMinimalComposeViewProps>("MyMinimalComposeView");
+
+export const MyMinimalComposeView = (props: MyMinimalComposeViewProps) => {
+  const {
+  ...rest
+  } = props;
+  return <NativeMyMinimalComposeView {...rest}  />;
 };

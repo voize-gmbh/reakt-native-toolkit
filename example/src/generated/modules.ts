@@ -5,6 +5,37 @@ import {EmitterSubscription, NativeEventEmitter, NativeModules} from 'react-nati
 import {Next, Next1, Next2, NextX, useFlow} from 'reakt-native-toolkit';
 
 
+interface NativeTimeProviderInterface {
+
+  timeAsState: Next<Date>;
+
+  time: Next<Date>;
+
+  isAfter: Next1<boolean, string>;
+
+  unsubscribeFromToolkitUseFlow(subscriptionId: string): Promise<void>;
+
+}
+
+/**
+ * Module generated from {@link com.myrnproject.shared.TimeProvider}.
+ */
+export interface TimeProviderInterface {
+
+  timeAsState: Next<Date>;
+
+  time: Next<Date>;
+
+  isAfter: Next1<boolean, string>;
+
+  useTimeAsState(): Date | null;
+
+  useTime(): Date | null;
+
+  useIsAfter(time: string): boolean | null;
+
+}
+
 interface NativeE2ETestInterface {
 
   testFlow: Next<number>;
@@ -251,6 +282,21 @@ export interface E2ETestInterface {
 
 }
 
+interface NativeNotificationDemoInterface {
+
+  unsubscribeFromToolkitUseFlow(subscriptionId: string): Promise<void>;
+
+}
+
+/**
+ * Module generated from {@link com.myrnproject.shared.NotificationDemo}.
+ */
+export interface NotificationDemoInterface {
+
+  addEventListener(key: string, listener: (result: any) => void): EmitterSubscription;
+
+}
+
 interface NativeNameManagerInterface {
 
   name: Next<string | null>;
@@ -278,51 +324,50 @@ export interface NameManagerInterface {
 
 }
 
-interface NativeNotificationDemoInterface {
+const NativeTimeProvider = (NativeModules.TimeProvider) as NativeTimeProviderInterface;
 
-  unsubscribeFromToolkitUseFlow(subscriptionId: string): Promise<void>;
-
-}
-
-/**
- * Module generated from {@link com.myrnproject.shared.NotificationDemo}.
- */
-export interface NotificationDemoInterface {
-
-  addEventListener(key: string, listener: (result: any) => void): EmitterSubscription;
-
-}
-
-interface NativeTimeProviderInterface {
-
-  time: Next<Date>;
-
-  isAfter: Next1<boolean, string>;
-
-  timeAsState: Next<Date>;
-
-  unsubscribeFromToolkitUseFlow(subscriptionId: string): Promise<void>;
-
-}
-
-/**
- * Module generated from {@link com.myrnproject.shared.TimeProvider}.
- */
-export interface TimeProviderInterface {
-
-  time: Next<Date>;
-
-  isAfter: Next1<boolean, string>;
-
-  timeAsState: Next<Date>;
-
-  useTime(): Date | null;
-
-  useIsAfter(time: string): boolean | null;
-
-  useTimeAsState(): Date | null;
-
-}
+export const TimeProvider: TimeProviderInterface = {
+  ...NativeTimeProvider,
+  ['timeAsState']: (subscriptionId: string, currentValue: string | null) =>
+      NativeTimeProvider.timeAsState(subscriptionId, currentValue),
+  ['time']: (subscriptionId: string, currentValue: string | null) =>
+      NativeTimeProvider.time(subscriptionId, currentValue),
+  ['isAfter']: (subscriptionId: string, currentValue: string | null, time: string) =>
+      NativeTimeProvider.isAfter(subscriptionId, currentValue, (() => {
+    const temp = time;
+    return temp;
+  })()),
+  ['useTimeAsState']: () => {
+    const value = useFlow(TimeProvider.timeAsState, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProvider.timeAsState');
+    return useMemo(() => (() => {
+      const temp = value;
+      return temp === null ? null : (((() => {
+        const temp_ = temp;
+        return new Date(temp_);
+      })()) as Date);
+    })(), [value]);
+  },
+  ['useTime']: () => {
+    const value = useFlow(TimeProvider.time, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProvider.time');
+    return useMemo(() => (() => {
+      const temp = value;
+      return temp === null ? null : (((() => {
+        const temp_ = temp;
+        return new Date(temp_);
+      })()) as Date);
+    })(), [value]);
+  },
+  ['useIsAfter']: (time: string) => {
+    const value = useFlow(TimeProvider.isAfter, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProvider.isAfter', time);
+    return useMemo(() => (() => {
+      const temp = value;
+      return temp === null ? null : (((() => {
+        const temp_ = temp;
+        return temp_;
+      })()) as boolean);
+    })(), [value]);
+  }
+};
 
 const NativeE2ETest = (NativeModules.E2ETest) as NativeE2ETestInterface;
 
@@ -906,6 +951,16 @@ export const E2ETest: E2ETestInterface = {
   }
 };
 
+const NativeNotificationDemo = (NativeModules.NotificationDemo) as NativeNotificationDemoInterface;
+
+export const NotificationDemo: NotificationDemoInterface = {
+  ...NativeNotificationDemo,
+  ['addEventListener']: (key: string, listener: (result: any) => void) => {
+    const eventEmitter = new NativeEventEmitter((NativeNotificationDemo) as any);
+    return eventEmitter.addListener(key, listener);
+  }
+};
+
 const NativeNameManager = (NativeModules.NameManager) as NativeNameManagerInterface;
 
 export const NameManager: NameManagerInterface = {
@@ -931,61 +986,6 @@ export const NameManager: NameManagerInterface = {
         const temp_ = temp;
         return temp_ === null ? null : (temp_);
       })()) as string | null);
-    })(), [value]);
-  }
-};
-
-const NativeNotificationDemo = (NativeModules.NotificationDemo) as NativeNotificationDemoInterface;
-
-export const NotificationDemo: NotificationDemoInterface = {
-  ...NativeNotificationDemo,
-  ['addEventListener']: (key: string, listener: (result: any) => void) => {
-    const eventEmitter = new NativeEventEmitter((NativeNotificationDemo) as any);
-    return eventEmitter.addListener(key, listener);
-  }
-};
-
-const NativeTimeProvider = (NativeModules.TimeProvider) as NativeTimeProviderInterface;
-
-export const TimeProvider: TimeProviderInterface = {
-  ...NativeTimeProvider,
-  ['time']: (subscriptionId: string, currentValue: string | null) =>
-      NativeTimeProvider.time(subscriptionId, currentValue),
-  ['isAfter']: (subscriptionId: string, currentValue: string | null, time: string) =>
-      NativeTimeProvider.isAfter(subscriptionId, currentValue, (() => {
-    const temp = time;
-    return temp;
-  })()),
-  ['timeAsState']: (subscriptionId: string, currentValue: string | null) =>
-      NativeTimeProvider.timeAsState(subscriptionId, currentValue),
-  ['useTime']: () => {
-    const value = useFlow(TimeProvider.time, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProvider.time');
-    return useMemo(() => (() => {
-      const temp = value;
-      return temp === null ? null : (((() => {
-        const temp_ = temp;
-        return new Date(temp_);
-      })()) as Date);
-    })(), [value]);
-  },
-  ['useIsAfter']: (time: string) => {
-    const value = useFlow(TimeProvider.isAfter, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProvider.isAfter', time);
-    return useMemo(() => (() => {
-      const temp = value;
-      return temp === null ? null : (((() => {
-        const temp_ = temp;
-        return temp_;
-      })()) as boolean);
-    })(), [value]);
-  },
-  ['useTimeAsState']: () => {
-    const value = useFlow(TimeProvider.timeAsState, NativeTimeProvider.unsubscribeFromToolkitUseFlow, 'TimeProvider.timeAsState');
-    return useMemo(() => (() => {
-      const temp = value;
-      return temp === null ? null : (((() => {
-        const temp_ = temp;
-        return new Date(temp_);
-      })()) as Date);
     })(), [value]);
   }
 };

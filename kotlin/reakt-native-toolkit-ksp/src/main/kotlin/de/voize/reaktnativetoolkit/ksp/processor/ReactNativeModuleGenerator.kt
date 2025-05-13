@@ -160,9 +160,9 @@ class ReactNativeModuleGenerator(
                 val moduleName = reactNativeModelAnnotationArguments.single {
                     it.name?.asString() == "name"
                 }.value as String
-                val supportedEvents = (reactNativeModelAnnotationArguments.single {
+                val supportedEvents = (reactNativeModelAnnotationArguments.singleOrNull {
                     it.name?.asString() == "supportedEvents"
-                }.value as List<*>?).orEmpty().filterIsInstance<String>()
+                }?.value as List<*>?).orEmpty().filterIsInstance<String>()
                 val reactNativeMethods = functionsByClass[wrappedClassDeclaration].orEmpty()
                 val reactNativeFlows = flowsByClass[wrappedClassDeclaration].orEmpty()
                 val isInternal = wrappedClassDeclaration.modifiers.contains(Modifier.INTERNAL)
