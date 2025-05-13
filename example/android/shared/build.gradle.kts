@@ -1,3 +1,6 @@
+import com.google.devtools.ksp.gradle.KspAATask
+import org.gradle.kotlin.dsl.withType
+
 plugins {
     kotlin("multiplatform")
     kotlin("native.cocoapods")
@@ -5,7 +8,7 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.compose") version "1.6.10"
     id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
-    id("com.google.devtools.ksp") version "2.0.21-1.0.25"
+    id("com.google.devtools.ksp") version "2.0.21-1.0.28"
 }
 
 val reaktNativeToolkitVersion = "0.21.2"
@@ -91,8 +94,8 @@ dependencies {
     add("kspIosSimulatorArm64", "de.voize:reakt-native-toolkit-ksp:$reaktNativeToolkitVersion")
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinCompile<*>>().configureEach {
-    if(name != "kspCommonMainKotlinMetadata") {
+tasks.withType<KspAATask>().configureEach {
+    if (name != "kspCommonMainKotlinMetadata") {
         dependsOn("kspCommonMainKotlinMetadata")
     } else {
         finalizedBy("copyGeneratedTypescriptFiles")
