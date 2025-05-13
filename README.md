@@ -415,7 +415,7 @@ Initialize it as follows, again as early as possible:
 ```typescript
 import { polyfillWebCrypto } from "expo-standard-web-crypto";
 
-// useFlow from the devhaus mobile-sdk uses uuid which uses crypto.getRandomValues which is not available in expo,
+// useFlow uses uuid, which uses crypto.getRandomValues, which is not available in expo,
 // so polyfill it with the expo-standard-web-crypto module
 // https://github.com/expo/expo/tree/main/packages/expo-standard-web-crypto
 polyfillWebCrypto();
