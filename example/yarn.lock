@@ -5751,10 +5751,10 @@ readline@^1.3.0:
   resolved "https://registry.yarnpkg.com/readline/-/readline-1.3.0.tgz#c580d77ef2cfc8752b132498060dc9793a7ac01c"
   integrity sha512-k2d6ACCkiNYz222Fs/iNze30rRJ1iIicW7JuX/7/cozvih6YCkFZH+J6mAFDVgv0dRBaAyr4jDqC95R2y4IADg==
 
-reakt-native-toolkit@0.16.0:
-  version "0.16.0"
-  resolved "https://registry.yarnpkg.com/reakt-native-toolkit/-/reakt-native-toolkit-0.16.0.tgz#880791d36454f69e7b3bc5921a378dfebf064604"
-  integrity sha512-8daItAxEU50HTis2UCRceoIm0PrN3ie2RgqPFpDCa2SNnyFA38M7t0hAK+DRUI+QUT9QGBJ1cCOKwwKnRcMaCQ==
+reakt-native-toolkit@0.21.3:
+  version "0.21.3"
+  resolved "https://registry.yarnpkg.com/reakt-native-toolkit/-/reakt-native-toolkit-0.21.3.tgz#5c97822a63c0d1f5cd0ebfa97fefa61d16cdd07b"
+  integrity sha512-zYNP/AtFOTBYa6HhRHqpwgnjRT6ZLItTUeRGYSCEQ/YMfEHATVQk1XHjTvzPXXEpr599ib2iFoF187nrgcDu/w==
   dependencies:
     lodash "^4.17.21"
     uuid "^9.0.1"
