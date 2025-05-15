@@ -58,6 +58,15 @@ And configure the ksp task dependencies and copy the generated typescript files 
 
 ```kotlin
 // android/shared/build.gradle.kts
+// For KSP1
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
+    if (name != "kspCommonMainKotlinMetadata") {
+        dependsOn("kspCommonMainKotlinMetadata")
+    } else {
+        finalizedBy("copyGeneratedTypescriptFiles")
+    }
+}
+// For KSP2
 tasks.withType<com.google.devtools.ksp.gradle.KspAATask>().configureEach {
     if (name != "kspCommonMainKotlinMetadata") {
         dependsOn("kspCommonMainKotlinMetadata")
