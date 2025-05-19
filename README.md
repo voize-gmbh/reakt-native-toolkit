@@ -211,6 +211,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate, RCTBridgeDelegate {
 }
 ```
 
+##### Integration with Expo
+
+Expo 53+ uses `AppDelegate.swift` that includes and registers a `ReactNativeDelegate` class. Add the `extraModules` function to that delegate class.
+It will look like the following:
+
+```swift
+// existing class definition in AppDelegate.swift
+class ReactNativeDelegate: ExpoReactNativeFactoryDelegate {
+  ...
+
+  // new function
+  override func extraModules(for bridge: RCTBridge) -> [RCTBridgeModule] {
+    return MyIOSRNModules().createNativeModules()
+  }
+}
+```
+
+This function can be added via an Expo config plugin with the `mods.ios.appDelegate` mod.
+
 #### Use your native module in React Native
 
 The toolkit will generate a Typescript object for you and you can just import it from the generation destination (usually `src/generated/modules`):
