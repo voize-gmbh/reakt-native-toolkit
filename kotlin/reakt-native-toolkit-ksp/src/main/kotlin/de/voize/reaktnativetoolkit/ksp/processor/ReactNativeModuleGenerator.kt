@@ -54,7 +54,13 @@ class ReactNativeModuleGenerator(
         val supportedEvents: List<String>,
         val reactNativeMethods: List<KSFunctionDeclaration>,
         val reactNativeFlows: List<KSFunctionDeclaration>,
+        val reactNativeEvents: List<ReactNativeEvent>,
         val isInternal: Boolean,
+    )
+
+    internal data class ReactNativeEvent(
+        val functionDeclaration: KSFunctionDeclaration,
+        val name: String,
     )
 
     private var invoked = false
@@ -138,6 +144,51 @@ class ReactNativeModuleGenerator(
                     }
                 }
 
+        val eventsByClass =
+            resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeEvent")
+                .map { annotatedNode ->
+                    try {
+                        when (annotatedNode) {
+                            is KSFunctionDeclaration -> annotatedNode.also {
+                                if (annotatedNode.typeParameters.isNotEmpty()) {
+                                    error("Type parameters are not supported for ReactNativeEvent")
+                                }
+                                val returnTypeReference = annotatedNode.returnType
+                                    ?: error("Return type of ReactNativeEvent must be specified")
+                                val returnType = returnTypeReference.resolve()
+                                val declaration = returnType.declaration
+                                if (declaration.qualifiedName?.asString() != "kotlinx.coroutines.flow.Flow") {
+                                    error("Return type of ReactNativeEvent must be kotlinx.coroutines.flow.Flow, but was ${declaration.qualifiedName?.asString()}")
+                                }
+                                val elementTypeReference = returnType.arguments.single().type
+                                    ?: error("Element type of Flow must be specified")
+                                val elementType = elementTypeReference.resolve()
+                                if (elementType.declaration is KSTypeParameter) {
+                                    error("Element type of Flow must not be a type parameter")
+                                }
+                            }
+
+                            else -> error("ReactNativeEvent annotation can only be used on function declarations")
+                        }
+                        val eventName = annotatedNode.annotations.single {
+                            it.annotationType.resolve().declaration.qualifiedName?.asString() == "$toolkitPackageName.annotation.ReactNativeEvent"
+                        }.arguments.single { it.name?.asString() == "name" }.value as String
+                        ReactNativeEvent(annotatedNode, eventName)
+                    } catch (e: Throwable) {
+                        throw IllegalArgumentException(
+                            "Error processing $annotatedNode at ${annotatedNode.location}",
+                            e,
+                        )
+                    }
+                }.groupBy { event ->
+                    event.functionDeclaration.parentDeclaration.let {
+                        when (it) {
+                            is KSClassDeclaration -> it
+                            else -> error("ReactNativeEvent must be declared in a class")
+                        }
+                    }
+                }
+
         val rnModuleSymbols =
             resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeModule")
 
@@ -165,6 +216,7 @@ class ReactNativeModuleGenerator(
                 }?.value as List<*>?).orEmpty().filterIsInstance<String>()
                 val reactNativeMethods = functionsByClass[wrappedClassDeclaration].orEmpty()
                 val reactNativeFlows = flowsByClass[wrappedClassDeclaration].orEmpty()
+                val reactNativeEvents = eventsByClass[wrappedClassDeclaration].orEmpty()
                 val isInternal = wrappedClassDeclaration.modifiers.contains(Modifier.INTERNAL)
 
                 RNModule(
@@ -173,6 +225,7 @@ class ReactNativeModuleGenerator(
                     supportedEvents = supportedEvents,
                     reactNativeMethods = reactNativeMethods,
                     reactNativeFlows = reactNativeFlows,
+                    reactNativeEvents = reactNativeEvents,
                     isInternal = isInternal,
                 )
             }.toList()
@@ -297,7 +350,7 @@ class ReactNativeModuleGenerator(
      */
     private fun typesFrom(rnModules: List<RNModule>): Pair<List<KSType>, List<KSFile>> {
         val typeDeclarations =
-            rnModules.flatMap { it.reactNativeMethods + it.reactNativeFlows }.flatMap {
+            rnModules.flatMap { it.reactNativeMethods + it.reactNativeFlows + it.reactNativeEvents.map { ev -> ev.functionDeclaration } }.flatMap {
                 it.parameters.map { it.type } + (it.returnType ?: error("Type resolution error"))
             }.toSet().map { it.resolve() }
         val originatingKSFiles = rnModules.mapNotNull { it.wrappedClassDeclaration.containingFile }
@@ -524,6 +577,23 @@ class ReactNativeModuleGenerator(
                 PropertySpec.builder(wrappedModuleVarName, ClassName(packageName, wrappedClassName))
                     .addModifiers(KModifier.PRIVATE).initializer(constructorInvocation).build()
             )
+            if (rnModule.reactNativeEvents.isNotEmpty()) {
+                addInitializerBlock(
+                    CodeBlock.builder().apply {
+                        rnModule.reactNativeEvents.forEach { event ->
+                            addStatement(
+                                "%N.%N().%M(%N, %S, %N)",
+                                wrappedModuleVarName,
+                                event.functionDeclaration.simpleName.asString(),
+                                FlowToEventEmitterMember,
+                                eventEmitterPropertyName,
+                                event.name,
+                                coroutineScopeVarName,
+                            )
+                        }
+                    }.build()
+                )
+            }
             addFunction(
                 FunSpec.builder("getName")
                     .addModifiers(KModifier.OVERRIDE)
@@ -765,6 +835,23 @@ class ReactNativeModuleGenerator(
                 PropertySpec.builder(wrappedModuleVarName, ClassName(packageName, wrappedClassName))
                     .addModifiers(KModifier.PRIVATE).initializer(constructorInvocation).build()
             )
+            if (rnModule.reactNativeEvents.isNotEmpty()) {
+                addInitializerBlock(
+                    CodeBlock.builder().apply {
+                        rnModule.reactNativeEvents.forEach { event ->
+                            addStatement(
+                                "%N.%N().%M(%N, %S, %N)",
+                                wrappedModuleVarName,
+                                event.functionDeclaration.simpleName.asString(),
+                                FlowToEventEmitterMember,
+                                eventEmitterPropertyName,
+                                event.name,
+                                coroutineScopeVarName,
+                            )
+                        }
+                    }.build()
+                )
+            }
 
             val bridgeMethodWrappers = rnModule.reactNativeMethods.map { ksFunctionDeclaration ->
                 iosBridgeMethodWrapper(ksFunctionDeclaration, promiseVarName)
@@ -1363,6 +1450,7 @@ private val JsonClassName = ClassName("kotlinx.serialization.json", "Json")
 private val EncodeToStringMember = MemberName("kotlinx.serialization", "encodeToString")
 private val DecodeFromStringMember = MemberName("kotlinx.serialization", "decodeFromString")
 private val FlowToReactMember = MemberName(toolkitUtilPackageName, "toReact")
+private val FlowToEventEmitterMember = MemberName(toolkitUtilPackageName, "toEventEmitter")
 private val UnsubscribeFromFlowMember =
     MemberName(toolkitUtilPackageName, "unsubscribeFromFlow")
 private val RCTBridgeMethodWrapperClassName =

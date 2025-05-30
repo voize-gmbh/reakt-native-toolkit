@@ -622,6 +622,23 @@ class Notifications(
 }
 ```
 
+If you already have a `Flow` of events you can expose it directly with
+`@ReactNativeEvent`:
+
+```kotlin
+import de.voize.reaktnativetoolkit.annotation.ReactNativeEvent
+
+@ReactNativeModule("Notifications", supportedEvents = ["notify"])
+class Notifications(
+    private val eventEmitter: EventEmitter,
+    private val messages: Flow<String>,
+    private val lifecycleScope: CoroutineScope,
+) {
+    @ReactNativeEvent("notify")
+    fun notifyFlow(): Flow<String> = messages
+}
+```
+
 ### Render Compose Multiplatform components in React Native (experimental)
 
 The toolkit allows you to render Compose Multiplatform components in React Native by annotating any Compose component function with the `@ReactNativeViewManager` annotation. The toolkit will then generate the necessary _view managers_ for [iOS](https://reactnative.dev/docs/native-components-ios) and [Android](https://reactnative.dev/docs/native-components-android) you which allows you to render the component in React Native.
