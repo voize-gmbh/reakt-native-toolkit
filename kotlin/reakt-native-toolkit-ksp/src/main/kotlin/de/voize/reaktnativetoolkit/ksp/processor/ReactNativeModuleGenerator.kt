@@ -89,6 +89,9 @@ class ReactNativeModuleGenerator(
 
         val deferredSymbols = invalidRNModuleSymbols + invalidReactNativeMethodSymbols + invalidReactNativeFlowSymbols
         if (deferredSymbols.isNotEmpty()) {
+            logger.warn("Found ${deferredSymbols.size} invalid symbols for $platforms, deferring processing until next run:\n" +
+                deferredSymbols.joinToString("\n") { "$it at ${it.location}" }
+            )
             // if there is any invalid symbol, we cannot generate the typescript models
             return ToolkitSymbolProcessor.ProcessResult(
                 deferredSymbols = (rnModuleSymbols + reactNativeMethodSymbols + reactNativeFlowSymbols).toList(),
