@@ -78,8 +78,24 @@ class ReactNativeModuleGenerator(
 
         val reactNativeMethodSymbols =
             resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeMethod")
-
         val (validReactNativeMethodSymbols, invalidReactNativeMethodSymbols) = reactNativeMethodSymbols.partition { it.validate() }
+
+        val reactNativeFlowSymbols = resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeFlow")
+        val (validReactNativeFlowSymbols, invalidReactNativeFlowSymbols) = reactNativeFlowSymbols.partition { it.validate() }
+
+        val rnModuleSymbols =
+            resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeModule")
+        val (validRNModuleSymbols, invalidRNModuleSymbols) = rnModuleSymbols.partition { it.validate() }
+
+        val deferredSymbols = invalidRNModuleSymbols + invalidReactNativeMethodSymbols + invalidReactNativeFlowSymbols
+        if (deferredSymbols.isNotEmpty()) {
+            // if there is any invalid symbol, we cannot generate the typescript models
+            return ToolkitSymbolProcessor.ProcessResult(
+                deferredSymbols = (rnModuleSymbols + reactNativeMethodSymbols + reactNativeFlowSymbols).toList(),
+                types = emptyList(),
+                originatingFiles = emptyList(),
+            )
+        }
 
         val functionsByClass =
             validReactNativeMethodSymbols
@@ -101,10 +117,6 @@ class ReactNativeModuleGenerator(
                         }
                     }
                 }
-
-        val reactNativeFlowSymbols = resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeFlow")
-
-        val (validReactNativeFlowSymbols, invalidReactNativeFlowSymbols) = reactNativeFlowSymbols.partition { it.validate() }
 
         val flowsByClass =
             validReactNativeFlowSymbols
@@ -146,11 +158,6 @@ class ReactNativeModuleGenerator(
                         }
                     }
                 }
-
-        val rnModuleSymbols =
-            resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeModule")
-
-        val (validRNModuleSymbols, invalidRNModuleSymbols) = rnModuleSymbols.partition { it.validate() }
 
         val rnModules = validRNModuleSymbols
             .map { annotatedNode ->
@@ -277,10 +284,7 @@ class ReactNativeModuleGenerator(
             }
         }
 
-        val deferredSymbols = invalidRNModuleSymbols + invalidReactNativeMethodSymbols + invalidReactNativeFlowSymbols
-
         if (
-            deferredSymbols.isEmpty() &&
             rnModules.isNotEmpty() &&
             !invoked &&
             platforms.isCommon()

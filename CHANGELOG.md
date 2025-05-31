@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Defer symbol processing until all symbols are validated
+
 ## v0.21.4
 
 - Handle invalid method and flow symbols correctly to better report errors

@@ -4,7 +4,6 @@ import com.google.auto.service.AutoService
 import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.symbol.*
 
-
 class ToolkitSymbolProcessor(
     codeGenerator: CodeGenerator,
     private val platforms: List<PlatformInfo>,
@@ -60,7 +59,9 @@ class ToolkitSymbolProcessor(
             }
         }.toList()
 
-        if (!typescriptModelsGenerationInvoked && platforms.isCommon()) {
+        val deferredSymbols = rnModulesProcessResult.deferredSymbols + rnViewManagersProcessResult.deferredSymbols
+
+        if (deferredSymbols.isEmpty() && !typescriptModelsGenerationInvoked && platforms.isCommon()) {
             val (rootNamespace, typesOriginatingFiles) = TypescriptModelsNamespaceTree.build(
                 rnModulesProcessResult.types + rnViewManagersProcessResult.types + exportTypescriptTypes,
             )
@@ -71,7 +72,7 @@ class ToolkitSymbolProcessor(
             typescriptModelsGenerationInvoked = true
         }
 
-        return rnModulesProcessResult.deferredSymbols + rnViewManagersProcessResult.deferredSymbols
+        return deferredSymbols
     }
 }
 
