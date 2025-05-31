@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.21.6
 
 - Add warning log for deferred processing of invalid React Native symbols
 
