@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.21.4
 
 - Handle invalid method and flow symbols correctly to better report errors
 
