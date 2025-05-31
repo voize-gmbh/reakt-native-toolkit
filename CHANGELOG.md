@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.21.5
 
 - Defer symbol processing until all symbols are validated
 
