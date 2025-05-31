@@ -76,8 +76,13 @@ class ReactNativeModuleGenerator(
                 ?.asType(emptyList())
                 ?: error("Could not find ReactNativeModule")
 
-        val functionsByClass =
+        val reactNativeMethodSymbols =
             resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeMethod")
+
+        val (validReactNativeMethodSymbols, invalidReactNativeMethodSymbols) = reactNativeMethodSymbols.partition { it.validate() }
+
+        val functionsByClass =
+            validReactNativeMethodSymbols
                 .map { annotatedNode ->
                     when (annotatedNode) {
                         is KSFunctionDeclaration -> annotatedNode.also {
@@ -97,8 +102,12 @@ class ReactNativeModuleGenerator(
                     }
                 }
 
+        val reactNativeFlowSymbols = resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeFlow")
+
+        val (validReactNativeFlowSymbols, invalidReactNativeFlowSymbols) = reactNativeFlowSymbols.partition { it.validate() }
+
         val flowsByClass =
-            resolver.getSymbolsWithAnnotation("$toolkitPackageName.annotation.ReactNativeFlow")
+            validReactNativeFlowSymbols
                 .map { annotatedNode ->
                     try {
                         when (annotatedNode) {
@@ -268,8 +277,10 @@ class ReactNativeModuleGenerator(
             }
         }
 
+        val deferredSymbols = invalidRNModuleSymbols + invalidReactNativeMethodSymbols + invalidReactNativeFlowSymbols
+
         if (
-            invalidRNModuleSymbols.isEmpty() &&
+            deferredSymbols.isEmpty() &&
             rnModules.isNotEmpty() &&
             !invoked &&
             platforms.isCommon()
@@ -286,7 +297,7 @@ class ReactNativeModuleGenerator(
         val (types, originatingKSFiles) = typesFrom(rnModules)
 
         return ToolkitSymbolProcessor.ProcessResult(
-            deferredSymbols = invalidRNModuleSymbols,
+            deferredSymbols = deferredSymbols,
             types = types,
             originatingFiles = originatingKSFiles,
         )

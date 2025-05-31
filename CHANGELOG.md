@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Handle invalid method and flow symbols correctly to better report errors
+
 ## v0.21.3
 
 - Support KSP2
