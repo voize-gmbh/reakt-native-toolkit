@@ -812,6 +812,7 @@ class ReactNativeViewManagerGenerator(
                     .addAnnotation(
                         AnnotationSpec.builder(OptInClassName)
                             .addMember("%T::class", ExperimentalComposeApiClassName)
+                            .addMember("%T::class", ExperimentalComposeUiApiClassName)
                             .build()
                     )
                     .returns(UIViewClassName)
@@ -1453,4 +1454,5 @@ private val ComposeUIViewControllerClassName = ClassName("androidx.compose.ui.wi
 private val UIViewClassName = ClassName("platform.UIKit", "UIView")
 private val NSNumberClassName = ClassName("platform.Foundation", "NSNumber")
 private val ExperimentalComposeApiClassName = ClassName("androidx.compose.runtime", "ExperimentalComposeApi")
+private val ExperimentalComposeUiApiClassName = ClassName("androidx.compose.ui", "ExperimentalComposeUiApi")
 private val OptInClassName = ClassName("kotlin", "OptIn")
