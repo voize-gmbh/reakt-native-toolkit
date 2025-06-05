@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.21.7
 
 - Add support for compose multiplatform 1.8.x
 
