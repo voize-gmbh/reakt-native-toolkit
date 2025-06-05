@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Add support for compose multiplatform 1.8.x
+
 ## v0.21.6
 
 - Add warning log for deferred processing of invalid React Native symbols
