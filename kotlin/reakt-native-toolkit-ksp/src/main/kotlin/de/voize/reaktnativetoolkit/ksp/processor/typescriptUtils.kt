@@ -21,6 +21,7 @@ import io.outfoxx.typescriptpoet.FileSpec
 import io.outfoxx.typescriptpoet.NameAllocator
 import io.outfoxx.typescriptpoet.SymbolSpec
 import io.outfoxx.typescriptpoet.TypeName
+import io.outfoxx.typescriptpoet.TypeName.Companion.implicit
 import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
 import java.util.UUID
@@ -122,6 +123,10 @@ internal fun getTypescriptTypeName(
             "kotlin.String" -> TypeName.STRING
             "kotlin.Unit" -> TypeName.VOID
             else -> null
+        } ?: when (val jsTypeIdentifier = (annotations ?: ksType.annotations).getJSTypeAnnotationOrNull()?.getJSTypeIdentifier()) {
+          null -> null
+          // explicitly provided type via annotation
+          else -> implicit(jsTypeIdentifier)
         } ?: when (ksType.declaration.qualifiedName?.asString()) {
             "kotlin.Array", "kotlin.collections.List", "kotlin.collections.Set" -> TypeName.arrayType(
                 resolveTypeArgument(0)
@@ -170,7 +175,11 @@ internal fun getTypescriptTypeName(
                                 }
                             }
                             ClassKind.CLASS -> {
-                                if (Modifier.DATA in declaration.modifiers) {
+                                // use JsType set on class
+                                val jsTypeAnnotation = declaration.annotations.getJSTypeAnnotationOrNull()
+                                if (jsTypeAnnotation != null) {
+                                    implicit(jsTypeAnnotation.getJSTypeIdentifier())
+                                } else if (Modifier.DATA in declaration.modifiers) {
                                     // data class
                                     val rawTypeName = getTypeName(declaration.getTypescriptNameWithNamespace(), externalTypeMapping)
                                     if (sealedSuperclass != null) {
@@ -195,7 +204,11 @@ internal fun getTypescriptTypeName(
                             ClassKind.ENUM_ENTRY -> error("Enum entries are not supported")
                             ClassKind.OBJECT -> {
                                 val rawTypeName = getTypeName(declaration.getTypescriptNameWithNamespace(), externalTypeMapping)
-                                if (sealedSuperclass != null) {
+                                // use JsType set on object
+                                val jsTypeAnnotation = declaration.annotations.getJSTypeAnnotationOrNull()
+                                if (jsTypeAnnotation != null) {
+                                    implicit(jsTypeAnnotation.getJSTypeIdentifier())
+                                } else if (sealedSuperclass != null) {
                                     rawTypeName.withoutSealedClassDiscriminator(sealedSuperclass)
                                 } else {
                                     rawTypeName
