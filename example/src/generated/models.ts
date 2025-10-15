@@ -731,6 +731,8 @@ export namespace com {
 
         floatProp: number;
 
+        valueClassProp: TestValueClassPrimitive;
+
       }
 
       /**
@@ -757,7 +759,11 @@ export namespace com {
           ['floatProp']: ((() => {
             const temp = json['floatProp'];
             return temp;
-          })()) as number
+          })()) as number,
+          ['valueClassProp']: ((() => {
+            const temp = json['valueClassProp'];
+            return temp;
+          })()) as TestValueClassPrimitive
         };
       }
 
@@ -784,6 +790,10 @@ export namespace com {
           })(),
           ['floatProp']: (() => {
             const temp = value['floatProp'];
+            return temp;
+          })(),
+          ['valueClassProp']: (() => {
+            const temp = value['valueClassProp'];
             return temp;
           })()
         };

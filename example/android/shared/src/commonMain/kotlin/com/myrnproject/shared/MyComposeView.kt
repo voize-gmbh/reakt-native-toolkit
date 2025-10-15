@@ -19,6 +19,7 @@ data class MyDataClass(
     val intProp: Int,
     val doubleProp: Double,
     val floatProp: Float,
+    val valueClassProp: TestValueClassPrimitive,
 )
 
 @Composable
@@ -67,6 +68,8 @@ internal fun MyComposeView(
     @ReactNativeProp
     nullableSealedInterface: TestSealedInterfaceType?,
     @ReactNativeProp
+    valueClassProp: TestValueClassPrimitive,
+    @ReactNativeProp
     onTextFieldValueChange: (String) -> Unit,
     @ReactNativeProp
     onButtonPress: () -> Unit,
@@ -90,6 +93,7 @@ internal fun MyComposeView(
         nullableListParam: List<MyDataClass>?,
         sealedInterfaceParam: TestSealedInterfaceType,
         nullableSealedInterfaceParam: TestSealedInterfaceType?,
+        valueClassParam: TestValueClassPrimitive,
     ) -> Unit,
     // dependency injection
     persistentConfig: PersistentConfig,
@@ -116,6 +120,7 @@ internal fun MyComposeView(
             "nullableListProp" to nullableListProp,
             "sealedInterfaceProp" to sealedInterface,
             "nullableSealedInterfaceProp" to nullableSealedInterface,
+            "valueClassProp" to valueClassProp,
         ).forEach { (propName, propValue) ->
             Text("Value of prop \"$propName\": $propValue")
         }
@@ -139,6 +144,7 @@ internal fun MyComposeView(
                     42,
                     3.14,
                     2.718f,
+                    TestValueClassPrimitive("valueClassProp"),
                 ),
                 null,
                 Enum.Option1,
@@ -150,11 +156,13 @@ internal fun MyComposeView(
                         42,
                         3.14,
                         2.718f,
+                        TestValueClassPrimitive("valueClassProp"),
                     ),
                 ),
                 null,
                 TestSealedInterfaceType.Option3,
                 null,
+                TestValueClassPrimitive("valueClassParam"),
             )
         }) {
             Text("Click me!")
