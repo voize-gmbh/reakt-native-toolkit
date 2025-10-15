@@ -14,7 +14,6 @@ import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.Modifier
-import com.google.devtools.ksp.symbol.Origin
 import com.google.devtools.ksp.validate
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
@@ -1416,20 +1415,38 @@ RCT_EXPORT_VIEW_PROPERTY(${prop.name}, RCTBubblingEventBlock)
 }
 
 private fun KSDeclaration.requiresSerialization(): Boolean {
-    val types = listOf(
+    val requiresNoSerialization = setOf(
+        "kotlin.Any",
+        "kotlin.Boolean",
+        "kotlin.Byte",
+        "kotlin.Char",
+        "kotlin.Double",
+        "kotlin.Float",
+        "kotlin.Int",
+        "kotlin.Long",
+        "kotlin.Number",
+        "kotlin.Short",
+        "kotlin.String",
+        "kotlin.Unit",
+    )
+    val requiresSerialization = setOf(
         "kotlin.collections.List",
         "kotlin.collections.Map",
         "kotlin.collections.Set",
     )
 
-    return qualifiedName?.asString() in types
-            || (this is KSClassDeclaration && when (this.classKind) {
-        ClassKind.CLASS -> this.origin == Origin.KOTLIN
-        ClassKind.INTERFACE -> true
-        ClassKind.OBJECT -> true
-        ClassKind.ENUM_CLASS -> true
+    return when {
+        qualifiedName?.asString() in requiresNoSerialization -> false
+        qualifiedName?.asString() in requiresSerialization -> true
+        this is KSClassDeclaration -> when (this.classKind) {
+            ClassKind.CLASS -> true
+            ClassKind.INTERFACE -> true
+            ClassKind.OBJECT -> true
+            ClassKind.ENUM_CLASS -> true
+            else -> false
+        }
         else -> false
-    })
+    }
 }
 
 private val ArgumentsClassName = ClassName("com.facebook.react.bridge", "Arguments")
