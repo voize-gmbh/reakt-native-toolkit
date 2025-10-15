@@ -40,6 +40,8 @@ interface NativeMyComposeViewProps {
 
   nullableSealedInterface: string;
 
+  valueClassProp: string;
+
   onTextFieldValueChange: (event: any) => void;
 
   onButtonPress: (event: any) => void;
@@ -84,11 +86,13 @@ interface MyComposeViewProps extends ViewProps {
 
   nullableSealedInterface: com.myrnproject.shared.TestSealedInterfaceType | null;
 
+  valueClassProp: com.myrnproject.shared.TestValueClassPrimitive;
+
   onTextFieldValueChange: (arg0: string) => void;
 
   onButtonPress: () => void;
 
-  onTestParams: (arg0: string, arg1: string | null, arg2: boolean, arg3: boolean | null, arg4: number, arg5: number | null, arg6: number, arg7: number | null, arg8: number, arg9: number | null, arg10: com.myrnproject.shared.MyDataClass, arg11: com.myrnproject.shared.MyDataClass | null, arg12: com.myrnproject.shared.Enum, arg13: com.myrnproject.shared.Enum | null, arg14: Array<com.myrnproject.shared.MyDataClass>, arg15: Array<com.myrnproject.shared.MyDataClass> | null, arg16: com.myrnproject.shared.TestSealedInterfaceType, arg17: com.myrnproject.shared.TestSealedInterfaceType | null) => void;
+  onTestParams: (arg0: string, arg1: string | null, arg2: boolean, arg3: boolean | null, arg4: number, arg5: number | null, arg6: number, arg7: number | null, arg8: number, arg9: number | null, arg10: com.myrnproject.shared.MyDataClass, arg11: com.myrnproject.shared.MyDataClass | null, arg12: com.myrnproject.shared.Enum, arg13: com.myrnproject.shared.Enum | null, arg14: Array<com.myrnproject.shared.MyDataClass>, arg15: Array<com.myrnproject.shared.MyDataClass> | null, arg16: com.myrnproject.shared.TestSealedInterfaceType, arg17: com.myrnproject.shared.TestSealedInterfaceType | null, arg18: com.myrnproject.shared.TestValueClassPrimitive) => void;
 
 }
 
@@ -141,6 +145,7 @@ export const MyComposeView = (props: MyComposeViewProps) => {
   nullableListProp,
   sealedInterface,
   nullableSealedInterface,
+  valueClassProp,
   onTextFieldValueChange,
   onButtonPress,
   onTestParams,
@@ -220,6 +225,10 @@ export const MyComposeView = (props: MyComposeViewProps) => {
     const temp = nullableSealedInterface;
     return temp === null ? null : (com.myrnproject.shared.toJsonTestSealedInterfaceType(temp));
   })()), [nullableSealedInterface]);
+  const valueClassPropMemoized = useMemo(() => JSON.stringify((() => {
+    const temp = valueClassProp;
+    return temp;
+  })()), [valueClassProp]);
   const nativeOnTextFieldValueChange = useCallback((event: any) => {
     onTextFieldValueChange(((() => {
       const temp = event.nativeEvent.args[0];
@@ -288,7 +297,10 @@ export const MyComposeView = (props: MyComposeViewProps) => {
     })()) as com.myrnproject.shared.TestSealedInterfaceType, ((() => {
       const temp = JSON.parse(event.nativeEvent.args[17]);
       return temp === null ? null : (com.myrnproject.shared.fromJsonTestSealedInterfaceType(temp));
-    })()) as com.myrnproject.shared.TestSealedInterfaceType | null)}, [onTestParams]);
+    })()) as com.myrnproject.shared.TestSealedInterfaceType | null, ((() => {
+      const temp = JSON.parse(event.nativeEvent.args[18]);
+      return temp;
+    })()) as com.myrnproject.shared.TestValueClassPrimitive)}, [onTestParams]);
   return <NativeMyComposeView {...rest} message={messageMemoized}
   textFieldValue={textFieldValueMemoized}
   nullableStringProp={nullableStringPropMemoized}
@@ -306,6 +318,7 @@ export const MyComposeView = (props: MyComposeViewProps) => {
   nullableListProp={nullableListPropMemoized}
   sealedInterface={sealedInterfaceMemoized}
   nullableSealedInterface={nullableSealedInterfaceMemoized}
+  valueClassProp={valueClassPropMemoized}
   onTextFieldValueChange={nativeOnTextFieldValueChange}
   onButtonPress={nativeOnButtonPress}
   onTestParams={nativeOnTestParams} />;
