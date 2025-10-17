@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Support kotlin.time.Instant and kotlinx-datetime 0.7.1
+
 ## v0.21.10
 
 - Make sure value classes are serialized in ViewManagers

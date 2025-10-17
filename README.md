@@ -458,6 +458,7 @@ Complex types are mapped to JS objects with matching generated Typescript interf
 The mapping of date time types can be configured via the `@JSType` annotation or via ksp arguments.
 By default all date time types are mapped to their string representation in js.
 The default for `Instant` can be overridden with the ksp argument `reakt.native.toolkit.defaultInstantJsType`.
+Both the now-deprecated `kotlinx.datetime.Instant` and since Kotlin 2.1, the `kotlin.time.Instant` types are supported.
 Either `string` or `date` can be used as the value for this argument or the `@JSType` annotation.
 
 ```kotlin
@@ -468,7 +469,7 @@ ksp {
 ```
 
 ```kotlin
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.Serializable
 import de.voize.reaktnativetoolkit.annotation.JSType
 

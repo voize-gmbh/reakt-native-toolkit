@@ -143,6 +143,7 @@ internal fun getTypescriptTypeName(
             else -> null
         } ?: when (ksType.declaration.qualifiedName?.asString()) {
             "kotlin.time.Duration",
+            "kotlin.time.Instant",
             "kotlinx.datetime.Instant",
             "kotlinx.datetime.LocalDate",
             "kotlinx.datetime.LocalDateTime",
@@ -290,6 +291,7 @@ internal fun getTypescriptSerializedTypeName(ksType: KSType): TypeName {
         }
         ?: when (ksType.declaration.qualifiedName?.asString()) {
             "kotlin.time.Duration" -> TypeName.STRING
+            "kotlin.time.Instant" -> TypeName.STRING
             "kotlinx.datetime.Instant" -> TypeName.STRING
             "kotlinx.datetime.LocalDate" -> TypeName.STRING
             "kotlinx.datetime.LocalDateTime" -> TypeName.STRING
@@ -383,6 +385,7 @@ internal fun getTypescriptTypeNameForDateTime(
     val jsTypeIdentifier = jsTypeAnnotation?.getJSTypeIdentifier()
     return when (ksType.declaration.qualifiedName?.asString()) {
         "kotlin.time.Duration" -> TypeName.STRING
+        "kotlin.time.Instant",
         "kotlinx.datetime.Instant" -> when (val identifier = jsTypeIdentifier
             ?: defaultInstantJSType) {
             "string" -> TypeName.STRING
@@ -563,6 +566,7 @@ internal fun convertJsonToType(
             else -> null
         } ?: when (ksType.declaration.qualifiedName?.asString()) {
             "kotlin.time.Duration" -> nonNullVariableName.asCodeBlock()
+            "kotlin.time.Instant",
             "kotlinx.datetime.Instant" -> when (val identifier =
                 jsTypeIdentifier ?: defaultInstantJSType) {
                 "string" -> nonNullVariableName.asCodeBlock()
@@ -774,6 +778,7 @@ internal fun convertTypeToJson(
             else -> null
         } ?: when (ksType.declaration.qualifiedName?.asString()) {
             "kotlin.time.Duration" -> nonNullVariableName.asCodeBlock()
+            "kotlin.time.Instant",
             "kotlinx.datetime.Instant" -> when (val identifier =
                 jsTypeIdentifier ?: defaultInstantJSType) {
                 "string" -> nonNullVariableName.asCodeBlock()

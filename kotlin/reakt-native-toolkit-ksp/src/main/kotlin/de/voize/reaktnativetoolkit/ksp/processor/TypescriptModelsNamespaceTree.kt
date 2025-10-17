@@ -148,6 +148,7 @@ internal object TypescriptModelsNamespaceTree {
                 "kotlin.collections.Map",
                 "kotlin.collections.Set",
                 "kotlin.time.Duration",
+                "kotlin.time.Instant",
                 "kotlinx.datetime.Instant",
                 "kotlinx.datetime.LocalDate",
                 "kotlinx.datetime.LocalDateTime",
