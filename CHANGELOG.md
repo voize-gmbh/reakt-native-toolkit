@@ -2,7 +2,13 @@
 
 ## unreleased
 ## v0.21.10
+
+- Make sure value classes are serialized in ViewManagers
+
 ## v0.21.9
+
+- Support value classes in composable view manager
+
 ## v0.21.8
 
 - Update Nexus repository URLs for publishing
