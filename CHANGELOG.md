@@ -1,6 +1,9 @@
 # CHANGELOG
 
 ## unreleased
+
+- Remove react-native as transitive dependency of the toolkit, consumers need to make sure to include react-native dependency in their projects
+
 ## v0.21.11
 
 - Support kotlin.time.Instant and kotlinx-datetime 0.7.1
@@ -51,7 +54,7 @@
 - Allow configuring namespace to prefix generated ObjC filenames and classes to avoid symbol conflicts
 - Add support for value classes
 - Add check that Map keys are supported
-- Fix support for primitive typealias in Kotlin 
+- Fix support for primitive typealias in Kotlin
 
 ## v0.20.1
 
