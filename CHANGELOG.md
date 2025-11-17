@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## unreleased
+## v0.22.0
 
 - Remove react-native as transitive dependency of the toolkit, consumers need to make sure to include react-native dependency in their projects
 
