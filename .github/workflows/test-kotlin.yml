@@ -18,7 +18,7 @@ jobs:
   build-example-project:
     name: Build example project
     runs-on: macos-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
