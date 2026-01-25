@@ -58,6 +58,15 @@ class ReactNativeModuleGenerator(
     )
 
     private var invoked = false
+    private var newArchInvoked = false
+
+    private val newArchConfig = NewArchConfig.fromOptions(options)
+    private val newArchIOSGenerator by lazy {
+        NewArchIOSGenerator(codeGenerator, newArchConfig, logger)
+    }
+    private val newArchKMPBridgeGenerator by lazy {
+        NewArchKMPBridgeGenerator(codeGenerator, newArchConfig, logger)
+    }
 
     private val eventEmitterPropertyName = "eventEmitter"
     private val callableJSModulesPropertyName = "_callableJSModules"
@@ -268,6 +277,10 @@ class ReactNativeModuleGenerator(
                         wrappedClassDeclaration.containingFile,
                         rnModule.isInternal,
                     )
+
+                    if (newArchConfig.enabled) {
+                        newArchKMPBridgeGenerator.generate(rnModule)
+                    }
                 }
 
                 if (platforms.isCommon()) {
@@ -299,6 +312,17 @@ class ReactNativeModuleGenerator(
                 logger,
             ).generate(rnModules)
             invoked = true
+        }
+
+        // Generate Swift/ObjC files for new architecture (in commonMain resources)
+        if (
+            newArchConfig.enabled &&
+            rnModules.isNotEmpty() &&
+            !newArchInvoked &&
+            platforms.isCommon()
+        ) {
+            newArchIOSGenerator.generate(rnModules)
+            newArchInvoked = true
         }
 
         val (types, originatingKSFiles) = typesFrom(rnModules)
