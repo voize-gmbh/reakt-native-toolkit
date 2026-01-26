@@ -38,6 +38,10 @@ internal class NewArchIOSGenerator(
         generateObjCBridgeFile(rnModules)
     }
 
+    private fun hasFlows(module: ReactNativeModuleGenerator.RNModule): Boolean {
+        return module.reactNativeFlows.isNotEmpty()
+    }
+
     private fun generateSharedTypesFile() {
         val swiftCode = buildString {
             appendLine("//")
@@ -68,6 +72,10 @@ internal class NewArchIOSGenerator(
             generateSwiftMethod(module, method, bridgeKtName)
         }
 
+        val flowMethods = module.reactNativeFlows.map { flow ->
+            generateSwiftFlowMethod(module, flow, bridgeKtName)
+        }
+
         val swiftCode = buildString {
             appendLine("//")
             appendLine("//  $className.swift")
@@ -94,6 +102,16 @@ internal class NewArchIOSGenerator(
             methods.forEach { method ->
                 appendLine()
                 append(method)
+            }
+
+            flowMethods.forEach { flowMethod ->
+                appendLine()
+                append(flowMethod)
+            }
+
+            if (hasFlows(module)) {
+                appendLine()
+                append(generateUnsubscribeMethod(module, bridgeKtName))
             }
 
             appendLine("}")
@@ -134,6 +152,58 @@ internal class NewArchIOSGenerator(
         }
     }
 
+    private fun generateSwiftFlowMethod(
+        module: ReactNativeModuleGenerator.RNModule,
+        flow: KSFunctionDeclaration,
+        bridgeKtName: String
+    ): String {
+        val methodName = flow.simpleName.asString()
+        val parameters = flow.parameters
+        val errorCode = "${config.errorCodePrefix}_${module.moduleName.uppercase()}_ERROR"
+
+        val objcSelector = buildObjcSelectorForFlow(methodName, parameters)
+        val swiftParams = buildSwiftFlowMethodParams(methodName, parameters)
+        val bridgeCall = buildBridgeCallForFlow(module.moduleName, methodName, parameters, bridgeKtName, errorCode)
+
+        return buildString {
+            appendLine("    /// ${methodName} (Flow)")
+            appendLine("    @objc($objcSelector)")
+            appendLine("    func $methodName($swiftParams,")
+            appendLine("                  resolve: @escaping RCTPromiseResolveBlock,")
+            appendLine("                  reject: @escaping RCTPromiseRejectBlock) {")
+            appendLine()
+            append(bridgeCall.prependIndent("        "))
+            appendLine("    }")
+        }
+    }
+
+    private fun generateUnsubscribeMethod(
+        module: ReactNativeModuleGenerator.RNModule,
+        bridgeKtName: String
+    ): String {
+        val errorCode = "${config.errorCodePrefix}_${module.moduleName.uppercase()}_ERROR"
+
+        return buildString {
+            appendLine("    /// Unsubscribe from a flow")
+            appendLine("    @objc(unsubscribeFromToolkitUseFlow:resolve:reject:)")
+            appendLine("    func unsubscribeFromToolkitUseFlow(_ subscriptionId: String,")
+            appendLine("                  resolve: @escaping RCTPromiseResolveBlock,")
+            appendLine("                  reject: @escaping RCTPromiseRejectBlock) {")
+            appendLine()
+            appendLine("        // Call Kotlin bridge function")
+            appendLine("        $bridgeKtName.unsubscribeFromToolkitUseFlowFromJS(")
+            appendLine("            subscriptionId: subscriptionId,")
+            appendLine("            onSuccess: { result in")
+            appendLine("                resolve(result)")
+            appendLine("            },")
+            appendLine("            onError: { error in")
+            appendLine("                reject(\"$errorCode\", error, nil)")
+            appendLine("            }")
+            appendLine("        )")
+            appendLine("    }")
+        }
+    }
+
     private fun buildObjcSelector(methodName: String, parameters: List<KSValueParameter>): String {
         return buildString {
             append(methodName)
@@ -152,6 +222,17 @@ internal class NewArchIOSGenerator(
         }
     }
 
+    private fun buildObjcSelectorForFlow(methodName: String, parameters: List<KSValueParameter>): String {
+        return buildString {
+            append(methodName)
+            append(":previous:")
+            parameters.forEach { param ->
+                append("${param.name?.asString()}:")
+            }
+            append("resolve:reject:")
+        }
+    }
+
     private fun buildSwiftMethodParams(methodName: String, parameters: List<KSValueParameter>): String {
         if (parameters.isEmpty()) {
             return ""
@@ -166,6 +247,20 @@ internal class NewArchIOSGenerator(
                 "$paramName: $swiftType"
             }
         }.joinToString(",\n                  ")
+    }
+
+    private fun buildSwiftFlowMethodParams(methodName: String, parameters: List<KSValueParameter>): String {
+        val flowParams = mutableListOf<String>()
+        flowParams.add("_ subscriptionId: String")
+        flowParams.add("previous: String?")
+
+        parameters.forEachIndexed { index, param ->
+            val paramName = param.name?.asString() ?: "param$index"
+            val swiftType = getSwiftType(param)
+            flowParams.add("$paramName: $swiftType")
+        }
+
+        return flowParams.joinToString(",\n                  ")
     }
 
     private fun getSwiftType(param: KSValueParameter): String {
@@ -203,6 +298,44 @@ internal class NewArchIOSGenerator(
         return buildString {
             appendLine("// Call Kotlin bridge function")
             appendLine("$bridgeKtName.$bridgeFunctionName(")
+
+            parameters.forEachIndexed { index, param ->
+                val paramName = param.name?.asString() ?: "param$index"
+                val swiftType = getSwiftType(param)
+
+                val bridgeParamName = if (swiftType == "String" && !isPrimitiveString(param)) {
+                    "json${paramName.replaceFirstChar { it.uppercase() }}"
+                } else {
+                    paramName
+                }
+
+                appendLine("    $bridgeParamName: $paramName,")
+            }
+
+            appendLine("    onSuccess: { result in")
+            appendLine("        resolve(result)")
+            appendLine("    },")
+            appendLine("    onError: { error in")
+            appendLine("        reject(\"$errorCode\", error, nil)")
+            appendLine("    }")
+            appendLine(")")
+        }
+    }
+
+    private fun buildBridgeCallForFlow(
+        moduleName: String,
+        methodName: String,
+        parameters: List<KSValueParameter>,
+        bridgeKtName: String,
+        errorCode: String
+    ): String {
+        val bridgeFunctionName = "${methodName}FromJS"
+
+        return buildString {
+            appendLine("// Call Kotlin bridge function for Flow")
+            appendLine("$bridgeKtName.$bridgeFunctionName(")
+            appendLine("    subscriptionId: subscriptionId,")
+            appendLine("    previous: previous,")
 
             parameters.forEachIndexed { index, param ->
                 val paramName = param.name?.asString() ?: "param$index"
@@ -269,6 +402,16 @@ internal class NewArchIOSGenerator(
                 appendLine()
             }
 
+            module.reactNativeFlows.forEach { flow ->
+                append(generateObjCFlowMethodDeclaration(flow))
+                appendLine()
+            }
+
+            if (hasFlows(module)) {
+                append(generateObjCUnsubscribeMethodDeclaration())
+                appendLine()
+            }
+
             appendLine("@end")
         }
     }
@@ -297,6 +440,34 @@ internal class NewArchIOSGenerator(
                 appendLine("                  resolve:(RCTPromiseResolveBlock)resolve")
                 appendLine("                  reject:(RCTPromiseRejectBlock)reject)")
             }
+        }
+    }
+
+    private fun generateObjCFlowMethodDeclaration(flow: KSFunctionDeclaration): String {
+        val methodName = flow.simpleName.asString()
+        val parameters = flow.parameters
+
+        return buildString {
+            append("RCT_EXTERN_METHOD($methodName:")
+            appendLine("(NSString *)subscriptionId")
+            appendLine("                  previous:(NSString *)previous")
+
+            parameters.forEachIndexed { index, param ->
+                val paramName = param.name?.asString() ?: "param$index"
+                val objcType = getObjCType(param)
+                appendLine("                  $paramName:($objcType *)$paramName")
+            }
+
+            appendLine("                  resolve:(RCTPromiseResolveBlock)resolve")
+            appendLine("                  reject:(RCTPromiseRejectBlock)reject)")
+        }
+    }
+
+    private fun generateObjCUnsubscribeMethodDeclaration(): String {
+        return buildString {
+            appendLine("RCT_EXTERN_METHOD(unsubscribeFromToolkitUseFlow:(NSString *)subscriptionId")
+            appendLine("                  resolve:(RCTPromiseResolveBlock)resolve")
+            appendLine("                  reject:(RCTPromiseRejectBlock)reject)")
         }
     }
 

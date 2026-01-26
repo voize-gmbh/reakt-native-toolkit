@@ -36,6 +36,8 @@ internal class NewArchKMPBridgeGenerator(
     private val jsonClassName = ClassName("kotlinx.serialization.json", "Json")
     private val decodeFromStringMember = MemberName("kotlinx.serialization", "decodeFromString")
     private val encodeToStringMember = MemberName("kotlinx.serialization", "encodeToString")
+    private val flowToReactMember = MemberName("$toolkitPackageName.util", "toReact")
+    private val unsubscribeFromFlowMember = MemberName("$toolkitPackageName.util", "unsubscribeFromFlow")
 
     private val onSuccessType = LambdaTypeName.get(
         parameters = arrayOf(ClassName("kotlin", "Any").copy(nullable = true)),
@@ -52,12 +54,15 @@ internal class NewArchKMPBridgeGenerator(
         val wrappedClassName = rnModule.wrappedClassDeclaration.simpleName.asString()
         val bridgeObjectName = "${moduleName}Bridge"
         val isInternal = rnModule.isInternal
+        val hasFlows = rnModule.reactNativeFlows.isNotEmpty()
 
         val bridgeObject = buildBridgeObject(
             moduleName = moduleName,
             wrappedClassName = wrappedClassName,
             packageName = packageName,
             methods = rnModule.reactNativeMethods,
+            flows = rnModule.reactNativeFlows,
+            hasFlows = hasFlows,
             isInternal = isInternal,
         )
 
@@ -65,10 +70,18 @@ internal class NewArchKMPBridgeGenerator(
             buildTopLevelFunction(bridgeObjectName, method, isInternal)
         }
 
+        val topLevelFlowFunctions = rnModule.reactNativeFlows.map { flow ->
+            buildTopLevelFlowFunction(bridgeObjectName, flow, isInternal)
+        }
+
         val fileSpec = FileSpec.builder(packageName, bridgeObjectName)
             .addType(bridgeObject)
             .apply {
                 topLevelFunctions.forEach { addFunction(it) }
+                topLevelFlowFunctions.forEach { addFunction(it) }
+                if (hasFlows) {
+                    addFunction(buildTopLevelUnsubscribeFunction(bridgeObjectName, isInternal))
+                }
                 rnModule.wrappedClassDeclaration.containingFile?.let {
                 }
             }
@@ -82,6 +95,8 @@ internal class NewArchKMPBridgeGenerator(
         wrappedClassName: String,
         packageName: String,
         methods: List<KSFunctionDeclaration>,
+        flows: List<KSFunctionDeclaration>,
+        hasFlows: Boolean,
         isInternal: Boolean,
     ): TypeSpec {
         val bridgeObjectName = "${moduleName}Bridge"
@@ -123,6 +138,14 @@ internal class NewArchKMPBridgeGenerator(
 
             methods.forEach { method ->
                 addFunction(buildBridgeMethod(method))
+            }
+
+            flows.forEach { flow ->
+                addFunction(buildBridgeFlowMethod(flow))
+            }
+
+            if (hasFlows) {
+                addFunction(buildUnsubscribeMethod())
             }
         }.build()
     }
@@ -208,6 +231,108 @@ internal class NewArchKMPBridgeGenerator(
         }.build()
     }
 
+    private fun buildBridgeFlowMethod(flow: KSFunctionDeclaration): FunSpec {
+        val methodName = flow.simpleName.asString()
+        val parameters = flow.parameters
+
+        return FunSpec.builder(methodName).apply {
+            addParameter("subscriptionId", STRING)
+            addParameter("previous", STRING.copy(nullable = true))
+
+            parameters.forEach { param ->
+                val paramName = param.name?.asString() ?: "param"
+                val paramType = param.type.toTypeName()
+
+                val bridgeParamName = if (isComplexType(paramType)) {
+                    "json${paramName.replaceFirstChar { it.uppercase() }}"
+                } else {
+                    paramName
+                }
+
+                val bridgeParamType = if (isComplexType(paramType)) STRING else paramType
+
+                addParameter(bridgeParamName, bridgeParamType)
+            }
+
+            addParameter(
+                ParameterSpec.builder("onSuccess", onSuccessType).build()
+            )
+            addParameter(
+                ParameterSpec.builder("onError", onErrorType).build()
+            )
+
+            addCode(buildCodeBlock {
+                addStatement("scope.%M {", launchMember)
+                indent()
+                addStatement("try {")
+                indent()
+
+                parameters.forEach { param ->
+                    val paramName = param.name?.asString() ?: "param"
+                    val paramType = param.type.toTypeName()
+
+                    if (isComplexType(paramType)) {
+                        val bridgeParamName = "json${paramName.replaceFirstChar { it.uppercase() }}"
+                        addStatement(
+                            "val %L = json.%M<%T>(%L)",
+                            paramName,
+                            decodeFromStringMember,
+                            paramType,
+                            bridgeParamName
+                        )
+                    }
+                }
+
+                val paramList = parameters.joinToString(", ") { param ->
+                    param.name?.asString() ?: "param"
+                }
+
+                // Call the flow method and convert to React using toReact
+                addStatement(
+                    "val result = wrappedModule.%L(%L).%M(subscriptionId, previous)",
+                    methodName,
+                    paramList,
+                    flowToReactMember
+                )
+                addStatement("onSuccess(result)")
+
+                unindent()
+                addStatement("} catch (e: Exception) {")
+                indent()
+                addStatement("onError(e.message ?: %S)", "Unknown error")
+                unindent()
+                addStatement("}")
+                unindent()
+                addStatement("}")
+            })
+        }.build()
+    }
+
+    private fun buildUnsubscribeMethod(): FunSpec {
+        return FunSpec.builder("unsubscribeFromToolkitUseFlow").apply {
+            addParameter("subscriptionId", STRING)
+            addParameter(
+                ParameterSpec.builder("onSuccess", onSuccessType).build()
+            )
+            addParameter(
+                ParameterSpec.builder("onError", onErrorType).build()
+            )
+
+            addCode(buildCodeBlock {
+                addStatement("try {")
+                indent()
+                addStatement("%M(subscriptionId)", unsubscribeFromFlowMember)
+                addStatement("onSuccess(null)")
+                unindent()
+                addStatement("} catch (e: Exception) {")
+                indent()
+                addStatement("onError(e.message ?: %S)", "Unknown error")
+                unindent()
+                addStatement("}")
+            })
+        }.build()
+    }
+
     private fun buildTopLevelFunction(
         bridgeObjectName: String,
         method: KSFunctionDeclaration,
@@ -260,6 +385,89 @@ internal class NewArchKMPBridgeGenerator(
             }.joinToString(", ")
 
             addStatement("%L.%L(%L)", bridgeObjectName, methodName, paramList)
+        }.build()
+    }
+
+    private fun buildTopLevelFlowFunction(
+        bridgeObjectName: String,
+        flow: KSFunctionDeclaration,
+        isInternal: Boolean,
+    ): FunSpec {
+        val methodName = flow.simpleName.asString()
+        val functionName = "${methodName}FromJS"
+        val parameters = flow.parameters
+
+        return FunSpec.builder(functionName).apply {
+            if (isInternal) {
+                addModifiers(KModifier.INTERNAL)
+            }
+
+            addParameter("subscriptionId", STRING)
+            addParameter("previous", STRING.copy(nullable = true))
+
+            parameters.forEach { param ->
+                val paramName = param.name?.asString() ?: "param"
+                val paramType = param.type.toTypeName()
+
+                val bridgeParamName = if (isComplexType(paramType)) {
+                    "json${paramName.replaceFirstChar { it.uppercase() }}"
+                } else {
+                    paramName
+                }
+
+                val bridgeParamType = if (isComplexType(paramType)) STRING else paramType
+
+                addParameter(bridgeParamName, bridgeParamType)
+            }
+
+            addParameter(
+                ParameterSpec.builder("onSuccess", onSuccessType).build()
+            )
+            addParameter(
+                ParameterSpec.builder("onError", onErrorType).build()
+            )
+
+            val paramList = buildList {
+                add("subscriptionId")
+                add("previous")
+                parameters.forEach { param ->
+                    val paramName = param.name?.asString() ?: "param"
+                    val paramType = param.type.toTypeName()
+
+                    if (isComplexType(paramType)) {
+                        add("json${paramName.replaceFirstChar { it.uppercase() }}")
+                    } else {
+                        add(paramName)
+                    }
+                }
+                add("onSuccess")
+                add("onError")
+            }.joinToString(", ")
+
+            addStatement("%L.%L(%L)", bridgeObjectName, methodName, paramList)
+        }.build()
+    }
+
+    private fun buildTopLevelUnsubscribeFunction(
+        bridgeObjectName: String,
+        isInternal: Boolean,
+    ): FunSpec {
+        val functionName = "unsubscribeFromToolkitUseFlowFromJS"
+
+        return FunSpec.builder(functionName).apply {
+            if (isInternal) {
+                addModifiers(KModifier.INTERNAL)
+            }
+
+            addParameter("subscriptionId", STRING)
+            addParameter(
+                ParameterSpec.builder("onSuccess", onSuccessType).build()
+            )
+            addParameter(
+                ParameterSpec.builder("onError", onErrorType).build()
+            )
+
+            addStatement("%L.unsubscribeFromToolkitUseFlow(subscriptionId, onSuccess, onError)", bridgeObjectName)
         }.build()
     }
 
