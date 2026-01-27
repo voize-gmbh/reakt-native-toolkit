@@ -147,7 +147,7 @@ internal class NewArchIOSGenerator(
                 appendLine("                  reject: @escaping RCTPromiseRejectBlock) {")
             }
             appendLine()
-            append(bridgeCall.prependIndent("        "))
+            appendLine(bridgeCall.prependIndent("        "))
             appendLine("    }")
         }
     }
@@ -172,7 +172,7 @@ internal class NewArchIOSGenerator(
             appendLine("                  resolve: @escaping RCTPromiseResolveBlock,")
             appendLine("                  reject: @escaping RCTPromiseRejectBlock) {")
             appendLine()
-            append(bridgeCall.prependIndent("        "))
+            appendLine(bridgeCall.prependIndent("        "))
             appendLine("    }")
         }
     }
@@ -318,7 +318,7 @@ internal class NewArchIOSGenerator(
             appendLine("    onError: { error in")
             appendLine("        reject(\"$errorCode\", error, nil)")
             appendLine("    }")
-            appendLine(")")
+            append(")")
         }
     }
 
@@ -356,7 +356,7 @@ internal class NewArchIOSGenerator(
             appendLine("    onError: { error in")
             appendLine("        reject(\"$errorCode\", error, nil)")
             appendLine("    }")
-            appendLine(")")
+            append(")")
         }
     }
 
