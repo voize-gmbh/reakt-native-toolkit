@@ -24,6 +24,7 @@ import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.INT
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.LONG
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.NUMBER
@@ -58,15 +59,9 @@ class ReactNativeModuleGenerator(
     )
 
     private var invoked = false
-    private var newArchInvoked = false
+    private var swiftObjcInvoked = false
 
-    private val newArchConfig = NewArchConfig.fromOptions(options)
-    private val newArchIOSGenerator by lazy {
-        NewArchIOSGenerator(codeGenerator, newArchConfig, logger)
-    }
-    private val newArchKMPBridgeGenerator by lazy {
-        NewArchKMPBridgeGenerator(codeGenerator, newArchConfig, logger)
-    }
+    private val kmpFrameworkName = options["reakt.native.toolkit.kmpFrameworkName"] ?: "shared"
 
     private val eventEmitterPropertyName = "eventEmitter"
     private val callableJSModulesPropertyName = "_callableJSModules"
@@ -277,10 +272,13 @@ class ReactNativeModuleGenerator(
                         wrappedClassDeclaration.containingFile,
                         rnModule.isInternal,
                     )
-
-                    if (newArchConfig.enabled) {
-                        newArchKMPBridgeGenerator.generate(rnModule)
-                    }
+                    createIOSBridgeModule(
+                        rnModule,
+                        packageName,
+                        wrappedClassName,
+                        constructorParameters,
+                        requiredEventEmitter,
+                    )
                 }
 
                 if (platforms.isCommon()) {
@@ -316,13 +314,12 @@ class ReactNativeModuleGenerator(
 
         // Generate Swift/ObjC files for new architecture (in commonMain resources)
         if (
-            newArchConfig.enabled &&
             rnModules.isNotEmpty() &&
-            !newArchInvoked &&
+            !swiftObjcInvoked &&
             platforms.isCommon()
         ) {
-            newArchIOSGenerator.generate(rnModules)
-            newArchInvoked = true
+            generateSwiftObjCFiles(rnModules)
+            swiftObjcInvoked = true
         }
 
         val (types, originatingKSFiles) = typesFrom(rnModules)
@@ -930,6 +927,1040 @@ class ReactNativeModuleGenerator(
         fileSpec.writeTo(codeGenerator, false)
     }
 
+    private fun createIOSBridgeModule(
+        rnModule: RNModule,
+        packageName: String,
+        wrappedClassName: String,
+        constructorParameters: List<ParameterSpec>,
+        requiredEventEmitter: Boolean,
+    ) {
+        val moduleName = rnModule.moduleName
+        val bridgeObjectName = "${moduleName}Bridge"
+        val scopeVarName = "scope"
+        val jsonVarName = "json"
+        val wrappedModuleVarName = "wrappedModule"
+        val onSuccessVarName = "onSuccess"
+        val onErrorVarName = "onError"
+        val subscriptionIdVarName = "subscriptionId"
+        val previousVarName = "previous"
+        val hasFlows = rnModule.reactNativeFlows.isNotEmpty()
+        val hasEventEmitter = requiredEventEmitter
+        val eventEmitterVarName = "eventEmitter"
+        val callableJSModulesVarName = "_callableJSModules"
+
+        val bridgeObject = TypeSpec.objectBuilder(bridgeObjectName).apply {
+            if (rnModule.isInternal) {
+                addModifiers(KModifier.INTERNAL)
+            }
+
+            addProperty(
+                PropertySpec.builder(scopeVarName, CoroutineScopeClassName)
+                    .addModifiers(KModifier.PRIVATE)
+                    .initializer(
+                        "%T(%T() + %T.Default)",
+                        CoroutineScopeClassName,
+                        SupervisorJobClassName,
+                        DispatchersClassName
+                    )
+                    .build()
+            )
+
+            addProperty(
+                PropertySpec.builder(jsonVarName, JsonClassName)
+                    .addModifiers(KModifier.PRIVATE)
+                    .initializer("%T { ignoreUnknownKeys = true }", JsonClassName)
+                    .build()
+            )
+
+            if (hasEventEmitter) {
+                val RCTCallableJSModulesClassName = ClassName("react_native", "RCTCallableJSModules")
+
+                addProperty(
+                    PropertySpec.builder(
+                        callableJSModulesVarName,
+                        RCTCallableJSModulesClassName.copy(nullable = true)
+                    )
+                        .mutable(true)
+                        .initializer("null")
+                        .build()
+                )
+
+                addProperty(
+                    PropertySpec.builder(eventEmitterVarName, EventEmitterIOS)
+                        .addModifiers(KModifier.PRIVATE)
+                        .initializer(buildCodeBlock {
+                            add(
+                                "%T({ %N }, %M(%L))",
+                                EventEmitterIOS,
+                                callableJSModulesVarName,
+                                MemberName("kotlin.collections", "listOf"),
+                                rnModule.supportedEvents.joinToString(", ") { "\"$it\"" }
+                            )
+                        })
+                        .build()
+                )
+
+                addFunction(
+                    FunSpec.builder("setCallableJSModules")
+                        .addParameter("callableJSModules", RCTCallableJSModulesClassName.copy(nullable = true))
+                        .addStatement("%N = callableJSModules", callableJSModulesVarName)
+                        .build()
+                )
+
+                addFunction(
+                    FunSpec.builder("addListener")
+                        .addParameter("eventName", STRING)
+                        .addParameter(onSuccessVarName, OnSuccessCallbackType)
+                        .addParameter(onErrorVarName, OnErrorCallbackType)
+                        .addCode(buildCodeBlock {
+                            addStatement("%N.%M {", scopeVarName, LaunchMember)
+                            indent()
+                            addStatement("try {")
+                            indent()
+                            addStatement("%N.addListener(eventName)", eventEmitterVarName)
+                            addStatement("%N(null)", onSuccessVarName)
+                            unindent()
+                            addStatement("} catch (e: Exception) {")
+                            indent()
+                            addStatement("%N(e.%M())", onErrorVarName, AllMessagesMember)
+                            unindent()
+                            addStatement("}")
+                            unindent()
+                            addStatement("}")
+                        })
+                        .build()
+                )
+
+                addFunction(
+                    FunSpec.builder("removeListeners")
+                        .addParameter("count", DOUBLE)
+                        .addParameter(onSuccessVarName, OnSuccessCallbackType)
+                        .addParameter(onErrorVarName, OnErrorCallbackType)
+                        .addCode(buildCodeBlock {
+                            addStatement("%N.%M {", scopeVarName, LaunchMember)
+                            indent()
+                            addStatement("try {")
+                            indent()
+                            addStatement("%N.removeListeners(count)", eventEmitterVarName)
+                            addStatement("%N(null)", onSuccessVarName)
+                            unindent()
+                            addStatement("} catch (e: Exception) {")
+                            indent()
+                            addStatement("%N(e.%M())", onErrorVarName, AllMessagesMember)
+                            unindent()
+                            addStatement("}")
+                            unindent()
+                            addStatement("}")
+                        })
+                        .build()
+                )
+            }
+
+            constructorParameters.forEach { param ->
+                val paramType = param.type
+                val isCoroutineScope = paramType.toString() == "kotlinx.coroutines.CoroutineScope"
+                if (!isCoroutineScope) {
+                    addProperty(
+                        PropertySpec.builder("_${param.name}", paramType.copy(nullable = true))
+                            .mutable(true)
+                            .initializer("null")
+                            .build()
+                    )
+                }
+            }
+
+            val wrappedModuleInitializer = buildCodeBlock {
+                add("lazy { %T(", ClassName(packageName, wrappedClassName))
+                val initArgs = mutableListOf<CodeBlock>()
+                if (hasEventEmitter) {
+                    initArgs.add(CodeBlock.of("%N", eventEmitterVarName))
+                }
+                constructorParameters.forEach { param ->
+                    val paramType = param.type
+                    val isCoroutineScope = paramType.toString() == "kotlinx.coroutines.CoroutineScope"
+                    if (isCoroutineScope) {
+                        initArgs.add(CodeBlock.of("%N", scopeVarName))
+                    } else {
+                        initArgs.add(CodeBlock.of("_%N ?: error(%S)", param.name, "Parameter ${param.name} not initialized. Call set${param.name.replaceFirstChar { it.uppercase() }}() first."))
+                    }
+                }
+                add(initArgs.joinToCode())
+                add(") }")
+            }
+
+            addProperty(
+                PropertySpec.builder(wrappedModuleVarName, ClassName(packageName, wrappedClassName))
+                    .addModifiers(KModifier.PRIVATE)
+                    .delegate(wrappedModuleInitializer)
+                    .build()
+            )
+
+            constructorParameters.forEach { param ->
+                val paramType = param.type
+                val isCoroutineScope = paramType.toString() == "kotlinx.coroutines.CoroutineScope"
+                if (!isCoroutineScope) {
+                    addFunction(
+                        FunSpec.builder("set${param.name.replaceFirstChar { it.uppercase() }}")
+                            .addParameter(param.name, paramType)
+                            .addStatement("_%N = %N", param.name, param.name)
+                            .build()
+                    )
+                }
+            }
+
+            rnModule.reactNativeMethods.forEach { method ->
+                addFunction(
+                    iosBridgeMethodFunctionSpec(
+                        method,
+                        scopeVarName,
+                        jsonVarName,
+                        wrappedModuleVarName,
+                        onSuccessVarName,
+                        onErrorVarName,
+                    )
+                )
+            }
+
+            rnModule.reactNativeFlows.forEach { flow ->
+                addFunction(
+                    iosBridgeFlowFunctionSpec(
+                        flow,
+                        scopeVarName,
+                        jsonVarName,
+                        wrappedModuleVarName,
+                        subscriptionIdVarName,
+                        previousVarName,
+                        onSuccessVarName,
+                        onErrorVarName,
+                    )
+                )
+            }
+
+            if (hasFlows) {
+                addFunction(
+                    iosBridgeUnsubscribeFunctionSpec(
+                        onSuccessVarName,
+                        onErrorVarName,
+                    )
+                )
+            }
+
+            rnModule.wrappedClassDeclaration.containingFile?.let { addOriginatingKSFile(it) }
+        }.build()
+
+        val topLevelFunctions = rnModule.reactNativeMethods.map { method ->
+            iosBridgeTopLevelFunctionSpec(bridgeObjectName, method, onSuccessVarName, onErrorVarName, rnModule.isInternal)
+        }
+
+        val topLevelFlowFunctions = rnModule.reactNativeFlows.map { flow ->
+            iosBridgeTopLevelFlowFunctionSpec(bridgeObjectName, flow, subscriptionIdVarName, previousVarName, onSuccessVarName, onErrorVarName, rnModule.isInternal)
+        }
+
+        val fileSpec = FileSpec.builder(packageName, bridgeObjectName)
+            .addType(bridgeObject)
+            .apply {
+                topLevelFunctions.forEach { addFunction(it) }
+                topLevelFlowFunctions.forEach { addFunction(it) }
+                if (hasFlows) {
+                    addFunction(iosBridgeTopLevelUnsubscribeFunctionSpec(bridgeObjectName, onSuccessVarName, onErrorVarName, rnModule.isInternal))
+                }
+                if (hasEventEmitter) {
+                    addFunction(
+                        FunSpec.builder("setCallableJSModulesFromJS").apply {
+                            if (rnModule.isInternal) addModifiers(KModifier.INTERNAL)
+                            addParameter("callableJSModules", ClassName("react_native", "RCTCallableJSModules").copy(nullable = true))
+                            addStatement("%L.setCallableJSModules(callableJSModules)", bridgeObjectName)
+                        }.build()
+                    )
+                    addFunction(
+                        FunSpec.builder("addListenerFromJS").apply {
+                            if (rnModule.isInternal) addModifiers(KModifier.INTERNAL)
+                            addParameter("eventName", STRING)
+                            addParameter(onSuccessVarName, OnSuccessCallbackType)
+                            addParameter(onErrorVarName, OnErrorCallbackType)
+                            addStatement("%L.addListener(eventName, %N, %N)", bridgeObjectName, onSuccessVarName, onErrorVarName)
+                        }.build()
+                    )
+                    addFunction(
+                        FunSpec.builder("removeListenersFromJS").apply {
+                            if (rnModule.isInternal) addModifiers(KModifier.INTERNAL)
+                            addParameter("count", DOUBLE)
+                            addParameter(onSuccessVarName, OnSuccessCallbackType)
+                            addParameter(onErrorVarName, OnErrorCallbackType)
+                            addStatement("%L.removeListeners(count, %N, %N)", bridgeObjectName, onSuccessVarName, onErrorVarName)
+                        }.build()
+                    )
+                }
+            }
+            .build()
+
+        fileSpec.writeTo(codeGenerator, false)
+    }
+
+    private fun iosBridgeMethodFunctionSpec(
+        method: KSFunctionDeclaration,
+        scopeVarName: String,
+        jsonVarName: String,
+        wrappedModuleVarName: String,
+        onSuccessVarName: String,
+        onErrorVarName: String,
+    ): FunSpec {
+        val methodName = method.simpleName.asString()
+        val parameters = method.parameters
+        val returnType = method.returnType?.toTypeName()
+        val hasReturnValue = returnType != null && returnType != com.squareup.kotlinpoet.UNIT
+
+        return FunSpec.builder(methodName).apply {
+            parameters.forEach { param ->
+                val paramName = param.name?.asString() ?: "param"
+                val paramType = param.type.toTypeName()
+                val bridgeParamName = if (isComplexType(paramType)) "json${paramName.replaceFirstChar { it.uppercase() }}" else paramName
+                val bridgeParamType = if (isComplexType(paramType)) STRING else paramType
+                addParameter(bridgeParamName, bridgeParamType)
+            }
+            addParameter(onSuccessVarName, OnSuccessCallbackType)
+            addParameter(onErrorVarName, OnErrorCallbackType)
+
+            addCode(buildCodeBlock {
+                addStatement("%N.%M {", scopeVarName, LaunchMember)
+                indent()
+                addStatement("try {")
+                indent()
+
+                parameters.forEach { param ->
+                    val paramName = param.name?.asString() ?: "param"
+                    val paramType = param.type.toTypeName()
+                    if (isComplexType(paramType)) {
+                        val bridgeParamName = "json${paramName.replaceFirstChar { it.uppercase() }}"
+                        addStatement("val %L = %N.%M<%T>(%L)", paramName, jsonVarName, DecodeFromStringMember, paramType, bridgeParamName)
+                    }
+                }
+
+                val paramList = parameters.joinToString(", ") { it.name?.asString() ?: "param" }
+
+                if (hasReturnValue) {
+                    addStatement("val result = %N.%L(%L)", wrappedModuleVarName, methodName, paramList)
+                    if (isComplexType(returnType)) {
+                        addStatement("%N(%N.%M(result))", onSuccessVarName, jsonVarName, EncodeToStringMember)
+                    } else {
+                        addStatement("%N(result)", onSuccessVarName)
+                    }
+                } else {
+                    addStatement("%N.%L(%L)", wrappedModuleVarName, methodName, paramList)
+                    addStatement("%N(null)", onSuccessVarName)
+                }
+
+                unindent()
+                addStatement("} catch (e: Exception) {")
+                indent()
+                addStatement("%N(e.%M())", onErrorVarName, AllMessagesMember)
+                unindent()
+                addStatement("}")
+                unindent()
+                addStatement("}")
+            })
+        }.build()
+    }
+
+    private fun iosBridgeFlowFunctionSpec(
+        flow: KSFunctionDeclaration,
+        scopeVarName: String,
+        jsonVarName: String,
+        wrappedModuleVarName: String,
+        subscriptionIdVarName: String,
+        previousVarName: String,
+        onSuccessVarName: String,
+        onErrorVarName: String,
+    ): FunSpec {
+        val methodName = flow.simpleName.asString()
+        val parameters = flow.parameters
+
+        return FunSpec.builder(methodName).apply {
+            addParameter(subscriptionIdVarName, STRING)
+            addParameter(previousVarName, STRING.copy(nullable = true))
+
+            parameters.forEach { param ->
+                val paramName = param.name?.asString() ?: "param"
+                val paramType = param.type.toTypeName()
+                val bridgeParamName = if (isComplexType(paramType)) "json${paramName.replaceFirstChar { it.uppercase() }}" else paramName
+                val bridgeParamType = if (isComplexType(paramType)) STRING else paramType
+                addParameter(bridgeParamName, bridgeParamType)
+            }
+            addParameter(onSuccessVarName, OnSuccessCallbackType)
+            addParameter(onErrorVarName, OnErrorCallbackType)
+
+            addCode(buildCodeBlock {
+                addStatement("%N.%M {", scopeVarName, LaunchMember)
+                indent()
+                addStatement("try {")
+                indent()
+
+                parameters.forEach { param ->
+                    val paramName = param.name?.asString() ?: "param"
+                    val paramType = param.type.toTypeName()
+                    if (isComplexType(paramType)) {
+                        val bridgeParamName = "json${paramName.replaceFirstChar { it.uppercase() }}"
+                        addStatement("val %L = %N.%M<%T>(%L)", paramName, jsonVarName, DecodeFromStringMember, paramType, bridgeParamName)
+                    }
+                }
+
+                val paramList = parameters.joinToString(", ") { it.name?.asString() ?: "param" }
+
+                addStatement("val result = %N.%L(%L).%M(%N, %N)", wrappedModuleVarName, methodName, paramList, FlowToReactMember, subscriptionIdVarName, previousVarName)
+                addStatement("%N(result)", onSuccessVarName)
+
+                unindent()
+                addStatement("} catch (e: Exception) {")
+                indent()
+                addStatement("%N(e.%M())", onErrorVarName, AllMessagesMember)
+                unindent()
+                addStatement("}")
+                unindent()
+                addStatement("}")
+            })
+        }.build()
+    }
+
+    private fun iosBridgeUnsubscribeFunctionSpec(
+        onSuccessVarName: String,
+        onErrorVarName: String,
+    ): FunSpec {
+        return FunSpec.builder("unsubscribeFromToolkitUseFlow").apply {
+            addParameter("subscriptionId", STRING)
+            addParameter(onSuccessVarName, OnSuccessCallbackType)
+            addParameter(onErrorVarName, OnErrorCallbackType)
+
+            addCode(buildCodeBlock {
+                addStatement("try {")
+                indent()
+                addStatement("%M(subscriptionId)", UnsubscribeFromFlowMember)
+                addStatement("%N(null)", onSuccessVarName)
+                unindent()
+                addStatement("} catch (e: Exception) {")
+                indent()
+                addStatement("%N(e.%M())", onErrorVarName, AllMessagesMember)
+                unindent()
+                addStatement("}")
+            })
+        }.build()
+    }
+
+    private fun iosBridgeTopLevelFunctionSpec(
+        bridgeObjectName: String,
+        method: KSFunctionDeclaration,
+        onSuccessVarName: String,
+        onErrorVarName: String,
+        isInternal: Boolean,
+    ): FunSpec {
+        val methodName = method.simpleName.asString()
+        val parameters = method.parameters
+
+        return FunSpec.builder("${methodName}FromJS").apply {
+            if (isInternal) addModifiers(KModifier.INTERNAL)
+
+            parameters.forEach { param ->
+                val paramName = param.name?.asString() ?: "param"
+                val paramType = param.type.toTypeName()
+                val bridgeParamName = if (isComplexType(paramType)) "json${paramName.replaceFirstChar { it.uppercase() }}" else paramName
+                val bridgeParamType = if (isComplexType(paramType)) STRING else paramType
+                addParameter(bridgeParamName, bridgeParamType)
+            }
+            addParameter(onSuccessVarName, OnSuccessCallbackType)
+            addParameter(onErrorVarName, OnErrorCallbackType)
+
+            val paramList = buildList {
+                parameters.forEach { param ->
+                    val paramName = param.name?.asString() ?: "param"
+                    val paramType = param.type.toTypeName()
+                    add(if (isComplexType(paramType)) "json${paramName.replaceFirstChar { it.uppercase() }}" else paramName)
+                }
+                add(onSuccessVarName)
+                add(onErrorVarName)
+            }.joinToString(", ")
+
+            addStatement("%L.%L(%L)", bridgeObjectName, methodName, paramList)
+        }.build()
+    }
+
+    private fun iosBridgeTopLevelFlowFunctionSpec(
+        bridgeObjectName: String,
+        flow: KSFunctionDeclaration,
+        subscriptionIdVarName: String,
+        previousVarName: String,
+        onSuccessVarName: String,
+        onErrorVarName: String,
+        isInternal: Boolean,
+    ): FunSpec {
+        val methodName = flow.simpleName.asString()
+        val parameters = flow.parameters
+
+        return FunSpec.builder("${methodName}FromJS").apply {
+            if (isInternal) addModifiers(KModifier.INTERNAL)
+
+            addParameter(subscriptionIdVarName, STRING)
+            addParameter(previousVarName, STRING.copy(nullable = true))
+
+            parameters.forEach { param ->
+                val paramName = param.name?.asString() ?: "param"
+                val paramType = param.type.toTypeName()
+                val bridgeParamName = if (isComplexType(paramType)) "json${paramName.replaceFirstChar { it.uppercase() }}" else paramName
+                val bridgeParamType = if (isComplexType(paramType)) STRING else paramType
+                addParameter(bridgeParamName, bridgeParamType)
+            }
+            addParameter(onSuccessVarName, OnSuccessCallbackType)
+            addParameter(onErrorVarName, OnErrorCallbackType)
+
+            val paramList = buildList {
+                add(subscriptionIdVarName)
+                add(previousVarName)
+                parameters.forEach { param ->
+                    val paramName = param.name?.asString() ?: "param"
+                    val paramType = param.type.toTypeName()
+                    add(if (isComplexType(paramType)) "json${paramName.replaceFirstChar { it.uppercase() }}" else paramName)
+                }
+                add(onSuccessVarName)
+                add(onErrorVarName)
+            }.joinToString(", ")
+
+            addStatement("%L.%L(%L)", bridgeObjectName, methodName, paramList)
+        }.build()
+    }
+
+    private fun iosBridgeTopLevelUnsubscribeFunctionSpec(
+        bridgeObjectName: String,
+        onSuccessVarName: String,
+        onErrorVarName: String,
+        isInternal: Boolean,
+    ): FunSpec {
+        return FunSpec.builder("unsubscribeFromToolkitUseFlowFromJS").apply {
+            if (isInternal) addModifiers(KModifier.INTERNAL)
+            addParameter("subscriptionId", STRING)
+            addParameter(onSuccessVarName, OnSuccessCallbackType)
+            addParameter(onErrorVarName, OnErrorCallbackType)
+            addStatement("%L.unsubscribeFromToolkitUseFlow(subscriptionId, %N, %N)", bridgeObjectName, onSuccessVarName, onErrorVarName)
+        }.build()
+    }
+
+    private fun isComplexType(type: com.squareup.kotlinpoet.TypeName): Boolean {
+        val primitiveTypes = setOf(
+            "kotlin.String",
+            "kotlin.Boolean",
+            "kotlin.Int",
+            "kotlin.Long",
+            "kotlin.Float",
+            "kotlin.Double",
+            "kotlin.Unit",
+        )
+        return when (type) {
+            is ClassName -> type.canonicalName !in primitiveTypes
+            is ParameterizedTypeName -> true
+            else -> true
+        }
+    }
+
+    private fun generateSwiftObjCFiles(rnModules: List<RNModule>) {
+        if (rnModules.isEmpty()) return
+
+        generateSharedTypesFile()
+        rnModules.forEach { module ->
+            generateSwiftNativeModule(module)
+        }
+        generateObjCBridgeFile(rnModules)
+    }
+
+    private fun generateSharedTypesFile() {
+        val swiftCode = buildString {
+            appendLine("//")
+            appendLine("//  RNTypes.swift")
+            appendLine("//")
+            appendLine("//  Generated by reakt-native-toolkit for React Native 0.83+ new architecture.")
+            appendLine("//  Shared type definitions for all native modules.")
+            appendLine("//  Do not modify manually.")
+            appendLine("//")
+            appendLine()
+            appendLine("import Foundation")
+            appendLine()
+            appendLine("// Type aliases for React Native promise callbacks")
+            appendLine("typealias RCTPromiseResolveBlock = (Any?) -> Void")
+            appendLine("typealias RCTPromiseRejectBlock = (String?, String?, Error?) -> Void")
+        }
+        writeSwiftObjCFile("RNTypes.swift", swiftCode)
+    }
+
+    private fun generateSwiftNativeModule(module: RNModule) {
+        val moduleName = module.moduleName
+        val className = "Native${moduleName}"
+        val bridgeName = "${moduleName}Bridge"
+        val bridgeKtName = "${bridgeName}Kt"
+        val hasEventEmitter = module.supportedEvents.isNotEmpty()
+        val errorCode = "RN_${moduleName.uppercase()}_ERROR"
+
+        val methods = module.reactNativeMethods.map { method ->
+            generateSwiftMethod(module, method, bridgeKtName)
+        }
+
+        val flowMethods = module.reactNativeFlows.map { flow ->
+            generateSwiftFlowMethod(module, flow, bridgeKtName)
+        }
+
+        val swiftCode = buildString {
+            appendLine("//")
+            appendLine("//  $className.swift")
+            appendLine("//")
+            appendLine("//  Generated by reakt-native-toolkit for React Native 0.83+ new architecture.")
+            appendLine("//  Do not modify manually.")
+            appendLine("//")
+            appendLine()
+            appendLine("import Foundation")
+            appendLine("import React")
+            appendLine("import $kmpFrameworkName")
+            appendLine()
+
+            if (hasEventEmitter) {
+                appendLine("@objc($moduleName)")
+                appendLine("class $className: RCTEventEmitter {")
+                appendLine()
+                appendLine("    override init() {")
+                appendLine("        super.init()")
+                appendLine("    }")
+                appendLine()
+                appendLine("    @objc override required init(bridge: RCTBridge, moduleRegistry: RCTModuleRegistry? = nil, viewRegistry_DEPRECATED: RCTViewRegistry? = nil, bundleManager: RCTBundleManager? = nil, callableJSModules: RCTCallableJSModules? = nil, turboModuleRegistry: RCTTurboModuleRegistry? = nil) {")
+                appendLine("        super.init(bridge: bridge, moduleRegistry: moduleRegistry, viewRegistry_DEPRECATED: viewRegistry_DEPRECATED, bundleManager: bundleManager, callableJSModules: callableJSModules, turboModuleRegistry: turboModuleRegistry)")
+                appendLine("        $bridgeKtName.setCallableJSModulesFromJS(callableJSModules: callableJSModules)")
+                appendLine("    }")
+                appendLine()
+                appendLine("    @objc override static func moduleName() -> String! {")
+                appendLine("        return \"$moduleName\"")
+                appendLine("    }")
+                appendLine()
+                appendLine("    @objc override static func requiresMainQueueSetup() -> Bool {")
+                appendLine("        return false")
+                appendLine("    }")
+                appendLine()
+                appendLine("    @objc override func supportedEvents() -> [String]! {")
+                appendLine("        return [${module.supportedEvents.joinToString(", ") { "\"$it\"" }}]")
+                appendLine("    }")
+                appendLine()
+                appendLine("    @objc(addListener:)")
+                appendLine("    override func addListener(_ eventName: String) {")
+                appendLine("        $bridgeKtName.addListenerFromJS(")
+                appendLine("            eventName: eventName,")
+                appendLine("            onSuccess: { _ in },")
+                appendLine("            onError: { _ in }")
+                appendLine("        )")
+                appendLine("    }")
+                appendLine()
+                appendLine("    @objc(removeListeners:)")
+                appendLine("    override func removeListeners(_ count: Double) {")
+                appendLine("        $bridgeKtName.removeListenersFromJS(")
+                appendLine("            count: count,")
+                appendLine("            onSuccess: { _ in },")
+                appendLine("            onError: { _ in }")
+                appendLine("        )")
+                appendLine("    }")
+            } else {
+                appendLine("@objc($moduleName)")
+                appendLine("class $className: NSObject {")
+                appendLine()
+                appendLine("    @objc static func moduleName() -> String {")
+                appendLine("        return \"$moduleName\"")
+                appendLine("    }")
+                appendLine()
+                appendLine("    @objc static func requiresMainQueueSetup() -> Bool {")
+                appendLine("        return false")
+                appendLine("    }")
+            }
+
+            methods.forEach { method ->
+                appendLine()
+                append(method)
+            }
+
+            flowMethods.forEach { flowMethod ->
+                appendLine()
+                append(flowMethod)
+            }
+
+            if (module.reactNativeFlows.isNotEmpty()) {
+                appendLine()
+                append(generateUnsubscribeMethod(module, bridgeKtName))
+            }
+
+            appendLine("}")
+        }
+
+        writeSwiftObjCFile("$className.swift", swiftCode)
+    }
+
+    private fun generateSwiftMethod(
+        module: RNModule,
+        method: KSFunctionDeclaration,
+        bridgeKtName: String
+    ): String {
+        val methodName = method.simpleName.asString()
+        val parameters = method.parameters
+        val errorCode = "RN_${module.moduleName.uppercase()}_ERROR"
+
+        val objcSelector = buildObjcSelector(methodName, parameters)
+        val swiftParams = buildSwiftMethodParams(parameters)
+        val bridgeCall = buildBridgeCall(methodName, parameters, bridgeKtName, errorCode)
+
+        return buildString {
+            appendLine("    /// $methodName")
+            appendLine("    @objc($objcSelector)")
+            if (parameters.isEmpty()) {
+                appendLine("    func $methodName(_ resolve: @escaping RCTPromiseResolveBlock,")
+                appendLine("                reject: @escaping RCTPromiseRejectBlock) {")
+            } else {
+                appendLine("    func $methodName($swiftParams,")
+                appendLine("                  resolve: @escaping RCTPromiseResolveBlock,")
+                appendLine("                  reject: @escaping RCTPromiseRejectBlock) {")
+            }
+            appendLine()
+            appendLine(bridgeCall.prependIndent("        "))
+            appendLine("    }")
+        }
+    }
+
+    private fun generateSwiftFlowMethod(
+        module: RNModule,
+        flow: KSFunctionDeclaration,
+        bridgeKtName: String
+    ): String {
+        val methodName = flow.simpleName.asString()
+        val parameters = flow.parameters
+        val errorCode = "RN_${module.moduleName.uppercase()}_ERROR"
+
+        val objcSelector = buildObjcSelectorForFlow(methodName, parameters)
+        val swiftParams = buildSwiftFlowMethodParams(parameters)
+        val bridgeCall = buildBridgeCallForFlow(methodName, parameters, bridgeKtName, errorCode)
+
+        return buildString {
+            appendLine("    /// $methodName (Flow)")
+            appendLine("    @objc($objcSelector)")
+            appendLine("    func $methodName($swiftParams,")
+            appendLine("                  resolve: @escaping RCTPromiseResolveBlock,")
+            appendLine("                  reject: @escaping RCTPromiseRejectBlock) {")
+            appendLine()
+            appendLine(bridgeCall.prependIndent("        "))
+            appendLine("    }")
+        }
+    }
+
+    private fun generateUnsubscribeMethod(module: RNModule, bridgeKtName: String): String {
+        val errorCode = "RN_${module.moduleName.uppercase()}_ERROR"
+
+        return buildString {
+            appendLine("    /// Unsubscribe from a flow")
+            appendLine("    @objc(unsubscribeFromToolkitUseFlow:resolve:reject:)")
+            appendLine("    func unsubscribeFromToolkitUseFlow(_ subscriptionId: String,")
+            appendLine("                  resolve: @escaping RCTPromiseResolveBlock,")
+            appendLine("                  reject: @escaping RCTPromiseRejectBlock) {")
+            appendLine()
+            appendLine("        // Call Kotlin bridge function")
+            appendLine("        $bridgeKtName.unsubscribeFromToolkitUseFlowFromJS(")
+            appendLine("            subscriptionId: subscriptionId,")
+            appendLine("            onSuccess: { result in")
+            appendLine("                resolve(result)")
+            appendLine("            },")
+            appendLine("            onError: { error in")
+            appendLine("                reject(\"$errorCode\", error, nil)")
+            appendLine("            }")
+            appendLine("        )")
+            appendLine("    }")
+        }
+    }
+
+    private fun buildObjcSelector(methodName: String, parameters: List<KSValueParameter>): String {
+        return buildString {
+            append(methodName)
+            if (parameters.isEmpty()) {
+                append(":reject:")
+            } else {
+                parameters.forEachIndexed { index, param ->
+                    if (index == 0) {
+                        append(":")
+                    } else {
+                        append("${param.name?.asString()}:")
+                    }
+                }
+                append("resolve:reject:")
+            }
+        }
+    }
+
+    private fun buildObjcSelectorForFlow(methodName: String, parameters: List<KSValueParameter>): String {
+        return buildString {
+            append(methodName)
+            append(":previous:")
+            parameters.forEach { param ->
+                append("${param.name?.asString()}:")
+            }
+            append("resolve:reject:")
+        }
+    }
+
+    private fun buildSwiftMethodParams(parameters: List<KSValueParameter>): String {
+        if (parameters.isEmpty()) return ""
+
+        return parameters.mapIndexed { index, param ->
+            val paramName = param.name?.asString() ?: "param$index"
+            val swiftType = getSwiftType(param)
+            if (index == 0) {
+                "_ $paramName: $swiftType"
+            } else {
+                "$paramName: $swiftType"
+            }
+        }.joinToString(",\n                  ")
+    }
+
+    private fun buildSwiftFlowMethodParams(parameters: List<KSValueParameter>): String {
+        val flowParams = mutableListOf<String>()
+        flowParams.add("_ subscriptionId: String")
+        flowParams.add("previous: String?")
+
+        parameters.forEachIndexed { index, param ->
+            val paramName = param.name?.asString() ?: "param$index"
+            val swiftType = getSwiftType(param)
+            flowParams.add("$paramName: $swiftType")
+        }
+
+        return flowParams.joinToString(",\n                  ")
+    }
+
+    private fun getSwiftType(param: KSValueParameter): String {
+        val type = param.type.toTypeName()
+        return when (type) {
+            STRING -> "String"
+            BOOLEAN -> "Bool"
+            INT, LONG, FLOAT, DOUBLE -> "Double" // JS numbers are Double
+            is ClassName -> when (type.canonicalName) {
+                "kotlin.String" -> "String"
+                "kotlin.Boolean" -> "Bool"
+                "kotlin.Int", "kotlin.Long", "kotlin.Float", "kotlin.Double" -> "Double"
+                else -> "String" // Custom types are JSON serialized
+            }
+            is ParameterizedTypeName -> "String" // Collections are JSON serialized
+            else -> "String"
+        }
+    }
+
+    private fun buildBridgeCall(
+        methodName: String,
+        parameters: List<KSValueParameter>,
+        bridgeKtName: String,
+        errorCode: String
+    ): String {
+        val bridgeFunctionName = "${methodName}FromJS"
+
+        return buildString {
+            appendLine("// Call Kotlin bridge function")
+            appendLine("$bridgeKtName.$bridgeFunctionName(")
+
+            parameters.forEachIndexed { index, param ->
+                val paramName = param.name?.asString() ?: "param$index"
+                val paramType = param.type.toTypeName()
+                val bridgeParamName = if (isComplexType(paramType)) {
+                    "json${paramName.replaceFirstChar { it.uppercase() }}"
+                } else {
+                    paramName
+                }
+                appendLine("    $bridgeParamName: $paramName,")
+            }
+
+            appendLine("    onSuccess: { result in")
+            appendLine("        resolve(result)")
+            appendLine("    },")
+            appendLine("    onError: { error in")
+            appendLine("        reject(\"$errorCode\", error, nil)")
+            appendLine("    }")
+            append(")")
+        }
+    }
+
+    private fun buildBridgeCallForFlow(
+        methodName: String,
+        parameters: List<KSValueParameter>,
+        bridgeKtName: String,
+        errorCode: String
+    ): String {
+        val bridgeFunctionName = "${methodName}FromJS"
+
+        return buildString {
+            appendLine("// Call Kotlin bridge function for Flow")
+            appendLine("$bridgeKtName.$bridgeFunctionName(")
+            appendLine("    subscriptionId: subscriptionId,")
+            appendLine("    previous: previous,")
+
+            parameters.forEachIndexed { index, param ->
+                val paramName = param.name?.asString() ?: "param$index"
+                val paramType = param.type.toTypeName()
+                val bridgeParamName = if (isComplexType(paramType)) {
+                    "json${paramName.replaceFirstChar { it.uppercase() }}"
+                } else {
+                    paramName
+                }
+                appendLine("    $bridgeParamName: $paramName,")
+            }
+
+            appendLine("    onSuccess: { result in")
+            appendLine("        resolve(result)")
+            appendLine("    },")
+            appendLine("    onError: { error in")
+            appendLine("        reject(\"$errorCode\", error, nil)")
+            appendLine("    }")
+            append(")")
+        }
+    }
+
+    private fun generateObjCBridgeFile(rnModules: List<RNModule>) {
+        val hasAnyEventEmitter = rnModules.any { it.supportedEvents.isNotEmpty() }
+
+        val objcCode = buildString {
+            appendLine("//")
+            appendLine("//  RNModuleBridge.m")
+            appendLine("//")
+            appendLine("//  Generated by reakt-native-toolkit for React Native 0.83+ new architecture.")
+            appendLine("//  Objective-C bridge file to export Swift modules to React Native.")
+            appendLine("//  This uses RCT_EXTERN_MODULE and RCT_EXTERN_METHOD macros to register")
+            appendLine("//  methods with React Native's TurboModule interop layer.")
+            appendLine("//  Do not modify manually.")
+            appendLine("//")
+            appendLine()
+            appendLine("#import <React/RCTBridgeModule.h>")
+            if (hasAnyEventEmitter) {
+                appendLine("#import <React/RCTEventEmitter.h>")
+            }
+            appendLine()
+
+            rnModules.forEach { module ->
+                append(generateObjCModuleDeclaration(module))
+                appendLine()
+            }
+        }
+
+        writeSwiftObjCFile("RNModuleBridge.m", objcCode)
+    }
+
+    private fun generateObjCModuleDeclaration(module: RNModule): String {
+        val moduleName = module.moduleName
+        val hasEventEmitter = module.supportedEvents.isNotEmpty()
+        val baseClass = if (hasEventEmitter) "RCTEventEmitter" else "NSObject"
+
+        return buildString {
+            appendLine("// $moduleName - ${module.wrappedClassDeclaration.simpleName.asString()}")
+            appendLine("@interface RCT_EXTERN_MODULE($moduleName, $baseClass)")
+            appendLine()
+
+            module.reactNativeMethods.forEach { method ->
+                append(generateObjCMethodDeclaration(method))
+                appendLine()
+            }
+
+            module.reactNativeFlows.forEach { flow ->
+                append(generateObjCFlowMethodDeclaration(flow))
+                appendLine()
+            }
+
+            if (module.reactNativeFlows.isNotEmpty()) {
+                append(generateObjCUnsubscribeMethodDeclaration())
+                appendLine()
+            }
+
+            appendLine("@end")
+        }
+    }
+
+    private fun generateObjCMethodDeclaration(method: KSFunctionDeclaration): String {
+        val methodName = method.simpleName.asString()
+        val parameters = method.parameters
+
+        return buildString {
+            append("RCT_EXTERN_METHOD($methodName:")
+
+            if (parameters.isEmpty()) {
+                appendLine("(RCTPromiseResolveBlock)resolve")
+                appendLine("                  reject:(RCTPromiseRejectBlock)reject)")
+            } else {
+                parameters.forEachIndexed { index, param ->
+                    val paramName = param.name?.asString() ?: "param$index"
+                    val objcType = getObjCType(param)
+
+                    if (index == 0) {
+                        appendLine("($objcType *)$paramName")
+                    } else {
+                        appendLine("                  $paramName:($objcType *)$paramName")
+                    }
+                }
+                appendLine("                  resolve:(RCTPromiseResolveBlock)resolve")
+                appendLine("                  reject:(RCTPromiseRejectBlock)reject)")
+            }
+        }
+    }
+
+    private fun generateObjCFlowMethodDeclaration(flow: KSFunctionDeclaration): String {
+        val methodName = flow.simpleName.asString()
+        val parameters = flow.parameters
+
+        return buildString {
+            append("RCT_EXTERN_METHOD($methodName:")
+            appendLine("(NSString *)subscriptionId")
+            appendLine("                  previous:(NSString *)previous")
+
+            parameters.forEachIndexed { index, param ->
+                val paramName = param.name?.asString() ?: "param$index"
+                val objcType = getObjCType(param)
+                appendLine("                  $paramName:($objcType *)$paramName")
+            }
+
+            appendLine("                  resolve:(RCTPromiseResolveBlock)resolve")
+            appendLine("                  reject:(RCTPromiseRejectBlock)reject)")
+        }
+    }
+
+    private fun generateObjCUnsubscribeMethodDeclaration(): String {
+        return buildString {
+            appendLine("RCT_EXTERN_METHOD(unsubscribeFromToolkitUseFlow:(NSString *)subscriptionId")
+            appendLine("                  resolve:(RCTPromiseResolveBlock)resolve")
+            appendLine("                  reject:(RCTPromiseRejectBlock)reject)")
+        }
+    }
+
+    private fun getObjCType(param: KSValueParameter): String {
+        val type = param.type.toTypeName()
+        return when (type) {
+            STRING -> "NSString"
+            BOOLEAN -> "NSNumber" // Booleans are NSNumber in ObjC
+            INT, LONG, FLOAT, DOUBLE -> "NSNumber"
+            is ClassName -> when (type.canonicalName) {
+                "kotlin.String" -> "NSString"
+                "kotlin.Boolean" -> "NSNumber"
+                "kotlin.Int", "kotlin.Long", "kotlin.Float", "kotlin.Double" -> "NSNumber"
+                else -> "NSString" // Custom types are JSON serialized as String
+            }
+            is ParameterizedTypeName -> "NSString" // Collections are JSON serialized
+            else -> "NSString"
+        }
+    }
+
+    private fun writeSwiftObjCFile(fileName: String, content: String) {
+        val outputPath = "reaktNativeToolkit/iOSInteropLayer/"
+        val filePath = outputPath + fileName.substringBeforeLast(".")
+        val extension = fileName.substringAfterLast(".")
+
+        try {
+            val file = codeGenerator.createNewFileByPath(
+                dependencies = com.google.devtools.ksp.processing.Dependencies.ALL_FILES,
+                path = filePath,
+                extensionName = extension,
+            )
+            java.io.OutputStreamWriter(file, java.nio.charset.StandardCharsets.UTF_8).use { it.write(content) }
+            file.close()
+        } catch (e: Exception) {
+            logger.error("Failed to write $fileName: ${e.message}\n${e.stackTraceToString()}")
+        }
+    }
+
 
     private fun androidReactNativeFunctionSpec(
         functionDeclaration: KSFunctionDeclaration,
@@ -1390,8 +2421,19 @@ private val ReactNativeMethodAndroidClassName =
 private val ReactApplicationContextClassName =
     ClassName("com.facebook.react.bridge", "ReactApplicationContext")
 private val CoroutineScopeClassName = ClassName("kotlinx.coroutines", "CoroutineScope")
+private val SupervisorJobClassName = ClassName("kotlinx.coroutines", "SupervisorJob")
+private val DispatchersClassName = ClassName("kotlinx.coroutines", "Dispatchers")
+private val LaunchMember = MemberName("kotlinx.coroutines", "launch")
 private val PromiseIOSClassName = ClassName(toolkitUtilPackageName, "PromiseIOS")
 private val EventEmitterIOS = ClassName(toolkitUtilPackageName, "EventEmitterIOS")
+private val OnSuccessCallbackType = LambdaTypeName.get(
+    parameters = arrayOf(ClassName("kotlin", "Any").copy(nullable = true)),
+    returnType = com.squareup.kotlinpoet.UNIT
+)
+private val OnErrorCallbackType = LambdaTypeName.get(
+    parameters = arrayOf(STRING),
+    returnType = com.squareup.kotlinpoet.UNIT
+)
 
 private val ReactNativeModuleProviderClassName = ClassName(toolkitUtilPackageName, "ReactNativeModuleProvider")
 private val ReactNativeModuleBaseClassName = ClassName(toolkitUtilPackageName, "ReactNativeModuleBase")
@@ -1407,5 +2449,6 @@ private val DecodeFromStringMember = MemberName("kotlinx.serialization", "decode
 private val FlowToReactMember = MemberName(toolkitUtilPackageName, "toReact")
 private val UnsubscribeFromFlowMember =
     MemberName(toolkitUtilPackageName, "unsubscribeFromFlow")
+private val AllMessagesMember = MemberName(toolkitUtilPackageName, "allMessages")
 private val RCTBridgeMethodWrapperClassName =
     ClassName(toolkitUtilPackageName, "RCTBridgeMethodWrapper")
