@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "lodash": "^4.17.21",
-    "uuid": "^9.0.1"
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@testing-library/react-hooks": "^8.0.1",
