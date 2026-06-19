@@ -16,7 +16,7 @@
     "reakt-native-toolkit": "0.21.3"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0",
+    "@babel/core": "^7.29.6",
     "@babel/preset-env": "^7.20.0",
     "@babel/runtime": "^7.26.10",
     "@react-native/babel-preset": "0.74.81",
